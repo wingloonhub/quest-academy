@@ -16,7 +16,7 @@
    Parent Report pick it up automatically.
 
    Optional level settings:
-     sessionSize: 20                       → questions per assessment (default 15)
+     sessionSize: 20                       → questions per assessment (default 10)
      catLabels: { ADD3: "3-digit sums" }   → friendly names for question `cat` codes
      passageMode: true, passageCount: 2    → reading comprehension: whole passages,
                                              questions kept in order              */
@@ -24,7 +24,7 @@
   "use strict";
 
   const YEAR_LABEL = "Year 4";
-  const DEFAULT_SESSION_SIZE = 15;
+  const DEFAULT_SESSION_SIZE = 10;   // questions per assessment, picked at random from the level
 
   const SUBJECTS = [
     {
@@ -53,7 +53,10 @@
       tagline: "Numbers, measures & problem solving",
       voice: "en-GB",
       topics: [
-        { id: "addition",        label: "Addition",          icon: "+", desc: "Adding numbers and missing numbers",             levels: [] },
+        { id: "addition",        label: "Addition",          icon: "+", desc: "Adding numbers and missing numbers",             levels: [
+            { id: "level1", label: "Level 1", desc: "2- and 3-digit addition",
+              catLabels: { ADD2: "2-digit addition", ADD3: "3-digit addition" } }
+          ] },
         { id: "subtraction",     label: "Subtraction",       icon: "−", desc: "Taking away and finding the difference",         levels: [] },
         { id: "multiplication",  label: "Multiplication",    icon: "×", desc: "Times tables and multiplying bigger numbers",    levels: [] },
         { id: "division",        label: "Division",          icon: "÷", desc: "Sharing, grouping and remainders",               levels: [] },

@@ -185,7 +185,7 @@ Optional on any question: `cat` (powers *weak areas* in the progress report —
 give codes friendly names with `catLabels` on the level) and `explain` (shown
 after a wrong answer).
 
-Optional on a level: `sessionSize: 20` (questions per assessment, default 15),
+Optional on a level: `sessionSize: 20` (questions per assessment, default 10),
 `passageMode: true, passageCount: 2`.
 
 English and Bahasa work the same way: add topics to their `topics: [...]` list
