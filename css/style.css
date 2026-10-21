@@ -608,3 +608,29 @@ button:focus-visible,.profile-card:focus-visible{outline:2px solid var(--gold);o
 .bc-flash b{color:#fff}
 .bc-pad{max-width:320px;margin:4px auto 0}
 .bc-pad .kb-key{padding:15px 0;font-size:24px}
+
+/* Beat the Clock — per-question time bar */
+.bc-timebar{height:10px;max-width:300px;margin:4px auto 12px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden}
+.bc-timebar i{display:block;height:100%;width:100%;border-radius:99px;background:linear-gradient(90deg,#22c55e,var(--gold))}
+.bc-timebar i.warn{background:var(--bad)}
+
+/* ---------- Trophy Room ---------- */
+.trophy-card{display:flex;align-items:center;gap:14px;width:100%;margin-top:14px;text-align:left;background:linear-gradient(160deg,#2a2650,var(--panel-solid));border:1px solid var(--border-strong);border-radius:16px;padding:12px 16px;transition:transform .15s,box-shadow .2s}
+.trophy-card:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(0,0,0,.4),0 0 0 1px rgba(242,193,78,.3)}
+.trophy-card-icon{font-size:30px}
+.trophy-card-text{display:flex;flex-direction:column;flex:1;min-width:0}
+.trophy-card-text b{font-family:var(--display);font-size:19px;color:var(--ink-strong)}
+.trophy-card-text small{color:var(--gold-bright);font-weight:800;font-size:12.5px}
+.trophy-card-medals{display:flex;gap:4px;flex-shrink:0}
+.trophy-hero{display:flex;align-items:center;gap:16px;background:linear-gradient(160deg,#2a2650,var(--panel-solid));border:1px solid var(--border-strong);border-radius:18px;padding:16px 18px}
+.trophy-hero .bar{max-width:320px}
+.trophy-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px}
+.trophy{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;background:var(--panel-solid);border:1px solid var(--border);border-radius:18px;padding:18px 14px}
+.trophy.on{border-color:var(--border-strong);background:radial-gradient(circle at 50% 30%,rgba(242,193,78,.14),var(--panel-solid) 70%)}
+.trophy .badge-medal{filter:drop-shadow(0 6px 14px rgba(0,0,0,.45))}
+.trophy .badge-medal.locked{filter:grayscale(1);opacity:.3}
+.trophy-name{font-family:var(--display);font-size:19px;font-weight:800;color:var(--ink-strong)}
+.trophy-desc{color:var(--muted);font-size:13px;line-height:1.5}
+.trophy-date{font-size:12.5px;font-weight:800;color:var(--gold-bright);margin-top:2px}
+.trophy-date.locked{color:var(--muted)}
+.trophy .btn{margin-top:4px}

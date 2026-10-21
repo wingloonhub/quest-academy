@@ -371,7 +371,7 @@
     },
 
     /* ---------------- Quest Arena: games + badges ---------------- */
-    // entry: { game, subjectId, ts, cleared, reached, correct, answered, livesLeft, r1Ms, r2Ms, r2LeftMs, reason }
+    // entry: { game, subjectId, ts, cleared, reached, correct, answered, tooSlow, livesLeft, r1Ms, r2Ms, reason }
     recordGame(entry) {
       const p = STORE.active(); if (!p || !entry || !entry.game) return null;
       const clean = JSON.parse(JSON.stringify(Object.assign({ ts: Date.now() }, entry)));

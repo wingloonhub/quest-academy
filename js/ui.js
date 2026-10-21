@@ -263,6 +263,11 @@
         </div>
         <h2 class="section-h">Choose a subject</h2>
         <div class="subject-grid">${DATA.SUBJECTS.map(s => subjectCard(s, hist)).join("")}</div>
+        ${(() => { const t = badgeTotals(); return t.ids.length ? `<button class="trophy-card" id="trophyBtn" type="button">
+            <span class="trophy-card-icon">🏆</span>
+            <span class="trophy-card-text"><b>Trophy Room</b><small>${t.got} of ${plural(t.ids.length, "badge")} collected</small></span>
+            <span class="trophy-card-medals">${t.ids.map(id => ART.badge(id, 34, !!t.earned[id])).join("")}</span>
+          </button>` : ""; })()}
         <div class="menu-actions">
           <button class="btn" id="report" type="button">📊 Parent Report</button>
           <button class="btn" id="hist" type="button">📈 History &amp; Analysis</button>
@@ -280,6 +285,7 @@
       </div>`);
     $$(".subject-card").forEach(c => { c.onclick = () => renderSubject(c.dataset.subject); });
     $("#adminBtn").onclick = renderAdmin;
+    if ($("#trophyBtn")) $("#trophyBtn").onclick = () => renderTrophyRoom(renderMenu);
     $("#switch").onclick = () => renderProfileSelect();
     $("#report").onclick = renderReport;
     $("#hist").onclick = () => renderHistory("all", renderMenu);
@@ -305,7 +311,7 @@
         <p>🏆 <b>Mastery</b> — ${esc(REPORT.MASTERY_RULE)} Along the way a level shows <i>Needs practice</i>, <i>Developing</i> or <i>Almost mastered</i>.</p>
         <p>⭐ <b>Stars</b> — 50% = 1 star, 70% = 2 stars, 90% = 3 stars. Your best score on each level counts.</p>
         <p>${ART.coin(16)} <b>Points</b> — earned by <b>beating your own best score</b> on a level. Every 1% above your old best earns points (a parent sets how many for each subject). Repeating a level without beating your best earns nothing — so aim higher each time!</p>
-        <p>🎮 <b>Quest Arena</b> — games that use what you've learned. In Maths, <b>Beat the Clock</b> gives you 15 times-table questions and 3 lives; survive to become a 🥷 <b>Times Table Ninja</b>, then answer 15 more in 30 seconds to become a 🧙 <b>Multiplication Wizard</b>!</p>
+        <p>🎮 <b>Quest Arena</b> — games that use what you've learned. In Maths, <b>Beat the Clock</b> gives you 3 lives and 15 times-table questions with 10 seconds each — survive to become a 🥷 <b>Times Table Ninja</b>. Then 15 more with just 5 seconds each to become a 🧙 <b>Multiplication Wizard</b>! Every badge you win lives in the 🏆 <b>Trophy Room</b>.</p>
         <p>📊 <b>Parent Report</b> — mastery for every topic and level across all three subjects, the levels that need help, badges, and recent mistakes.</p>
         <p>☁️ <b>Same results everywhere</b> — sign in with the same email on a phone, tablet or computer and you get the same players, scores and reports. Assessments finished offline are kept and uploaded automatically next time the app is online.</p>
         <div class="row" style="margin-top:18px"><button class="btn primary" id="backBtn" type="button">← Back to the menu</button></div>
@@ -407,15 +413,16 @@
   }
 
   /* ===================== Quest Arena (games) =====================
-     A subject's arena lists its games (DATA.games). Beat the Clock:
-       Round 1 — N questions, a stopwatch runs, lives only;
-       Round 2 — N more questions against a countdown.
-     Lives last the whole game. Clearing a round earns its badge. */
+     A subject's arena lists its games (DATA.games). Beat the Clock: every
+     question has its own countdown (rounds[].perQuestion seconds). A wrong
+     answer — or running out of time — costs one of the lives, which last the
+     whole game. Clearing a round earns its badge. */
   let game = null;          // the run in progress
   let gameTimer = null;
   function stopGameTimer() { if (gameTimer) { clearInterval(gameTimer); gameTimer = null; } }
   const mmss = (ms) => { const sec = Math.max(0, Math.floor(ms / 1000)); return Math.floor(sec / 60) + ":" + String(sec % 60).padStart(2, "0"); };
-  const countdown = (ms) => { const sec = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(sec / 60) + ":" + String(sec % 60).padStart(2, "0"); };
+  // Answering time, e.g. "42.3s" (or "1:05" past a minute).
+  const secs = (ms) => (ms < 60000 ? (Math.max(0, ms) / 1000).toFixed(1) + "s" : mmss(ms));
 
   function badgeChip(badgeId, earnedTs, isNew) {
     const b = DATA.BADGES[badgeId] || { label: badgeId };
@@ -427,11 +434,14 @@
   function gameBest(def, log) {
     if (!log.length) return "Not played yet — be the first to try!";
     const parts = [plural(log.length, "game") + " played"];
-    const full = log.filter(e => e.cleared >= def.rounds.length && e.r2LeftMs != null);
-    const r1 = log.filter(e => e.cleared >= 1 && e.r1Ms).map(e => e.r1Ms);
-    if (full.length) parts.push("best finish: " + countdown(Math.max.apply(null, full.map(e => e.r2LeftMs))) + " left on the clock");
-    if (r1.length) parts.push("fastest Round 1: " + mmss(Math.min.apply(null, r1)));
-    if (!full.length && !r1.length) parts.push("best: " + Math.max.apply(null, log.map(e => e.correct || 0)) + " correct");
+    const fastest = (round) => {
+      const t = log.filter(e => e.cleared >= round && e["r" + round + "Ms"]).map(e => e["r" + round + "Ms"]);
+      return t.length ? Math.min.apply(null, t) : null;
+    };
+    const f1 = fastest(1), f2 = fastest(2);
+    if (f1 != null) parts.push("fastest Round 1: " + secs(f1));
+    if (f2 != null) parts.push("fastest Round 2: " + secs(f2));
+    if (f1 == null && f2 == null) parts.push("best: " + Math.max.apply(null, log.map(e => e.correct || 0)) + " correct");
     return parts.join(" · ");
   }
 
@@ -481,9 +491,16 @@
       <div class="page narrow">
         <div class="lead" style="margin-top:4px">Use what you've learned to beat the challenge and win badges.</div>
         <div class="game-list">${cards}</div>
+        <button class="btn full" id="trophyBtn" type="button" style="margin-top:16px">🏆 Trophy Room — all my badges</button>
       </div>`, subjectId);
     $("#bk").onclick = () => renderStudyMode(subjectId);
+    $("#trophyBtn").onclick = () => renderTrophyRoom(() => renderArena(subjectId));
     $$("[data-game]").forEach(b => { b.onclick = () => renderGameIntro(subjectId, b.dataset.game); });
+  }
+
+  function roundRule(r, i) {
+    const b = r.badge && DATA.BADGES[r.badge];
+    return `<b>Round ${i + 1}:</b> ${r.questions} ${i ? "more " : ""}questions — ${i ? "only " : ""}<b>${r.perQuestion} seconds</b> for each one${i ? "!" : "."}${b ? ` Make it through to win the <b>${esc(b.label)}</b> badge.` : ""}`;
   }
 
   function renderGameIntro(subjectId, gameId) {
@@ -491,11 +508,6 @@
     if (!def) return renderArena(subjectId);
     current = () => renderGameIntro(subjectId, gameId);
     const earned = STORE.badges();
-    const hearts = "❤️".repeat(def.lives);
-    const rules = def.rounds.map((r, i) => {
-      const b = r.badge && DATA.BADGES[r.badge];
-      return `<li><b>Round ${i + 1}:</b> ${r.questions} ${i ? "more " : ""}questions${r.seconds ? ` in <b>${r.seconds} seconds</b>` : " — a stopwatch runs, but there's no time limit"}.${b ? ` Make it through to win the <b>${esc(b.label)}</b> badge.` : ""}</li>`;
-    }).join("");
     show(`
       <div class="topbar"><span class="back" id="bk">← Quest Arena</span><h2>${def.icon || "🎮"} ${esc(def.label)}</h2></div>
       <div class="page narrow">
@@ -504,8 +516,8 @@
           <h2 class="card-h">${esc(def.label)}</h2>
           <div class="muted">${esc(def.desc)}</div>
           <ul class="game-rules">
-            <li><b>${hearts} ${def.lives} lives</b> for the whole game — every wrong answer costs one.</li>
-            ${rules}
+            <li><b>${"❤️".repeat(def.lives)} ${def.lives} lives</b> for the whole game — a wrong answer, or running out of time, costs one.</li>
+            ${def.rounds.map((r, i) => `<li>${roundRule(r, i)}</li>`).join("")}
             <li>Type the answer on the number pad and tap <b>✓</b> (or press Enter).</li>
           </ul>
           <div class="game-badges center-row">${def.rounds.filter(r => r.badge).map(r => badgeChip(r.badge, earned[r.badge])).join("")}</div>
@@ -530,9 +542,9 @@
     while (qs.length < need) qs = qs.concat(shuffle(pool));
     game = {
       def, subjectId, qs: qs.slice(0, need), qi: 0, round: 0, inRound: 0,
-      lives: def.lives, correct: 0, answered: 0, cleared: 0,
-      times: [], r2LeftMs: null, newBadges: [], typed: "", busy: false, over: false,
-      roundStart: 0, deadline: 0, lastTick: 0
+      lives: def.lives, correct: 0, answered: 0, tooSlow: 0, cleared: 0,
+      times: [], roundMs: 0, newBadges: [], typed: "", busy: false, over: false,
+      qStart: 0, qDeadline: 0, lastTick: 0
     };
     renderGameRound();
   }
@@ -548,10 +560,11 @@
         <div class="bc-hud">
           <span class="bc-lives" id="bcLives"></span>
           <span class="bc-round">Round ${g.round + 1} · <b id="bcNum">1</b>/${r.questions}</span>
-          <span class="bc-clock${r.seconds ? " countdown" : ""}" id="bcClock">${r.seconds ? countdown(r.seconds * 1000) : "0:00"}</span>
+          <span class="bc-clock" id="bcClock">${r.perQuestion}s</span>
         </div>
         <div class="progress"><i id="bcProg" style="width:0%"></i></div>
         <div class="bc-q" id="bcQ"></div>
+        <div class="bc-timebar"><i id="bcTime"></i></div>
         <div class="bc-ans" id="bcAns"></div>
         <div class="bc-flash" id="bcFlash"></div>
         <div class="keyboard numeric bc-pad">
@@ -559,9 +572,7 @@
           <div class="kb-row"><button type="button" class="kb-key kb-back" data-key="back" aria-label="Delete">⌫</button><button type="button" class="kb-key" data-key="0">0</button><button type="button" class="kb-key kb-ok" data-key="ok" aria-label="Check">✓</button></div>
         </div>
       </div>`, g.subjectId);
-    g.inRound = 0; g.typed = ""; g.busy = false; g.lastTick = 0;
-    g.roundStart = Date.now();
-    g.deadline = r.seconds ? g.roundStart + r.seconds * 1000 : 0;
+    g.inRound = 0; g.typed = ""; g.busy = false; g.roundMs = 0;
     $("#bk").onclick = () => {
       showConfirm("Quit the game?", g.cleared ? "Your badge stays, but this run ends here." : "This run won't count.", "Quit", () => {
         if (game !== g || g.over) return;
@@ -577,14 +588,19 @@
     };
     paintGame();
     stopGameTimer();
-    gameTimer = setInterval(tickGame, 100);
+    gameTimer = setInterval(tickGame, 50);
     tickGame();
   }
 
+  function heartsHtml(g, breaking) {
+    return Array.from({ length: g.def.lives }, (_, i) => `<span class="heart${i < g.lives ? "" : " lost"}${breaking && i === g.lives ? " breaking" : ""}">${i < g.lives ? "❤️" : "🖤"}</span>`).join("");
+  }
+
+  // Show the next question and start its clock.
   function paintGame() {
     const g = game; if (!g) return;
     const r = g.def.rounds[g.round], q = g.qs[g.qi];
-    $("#bcLives").innerHTML = Array.from({ length: g.def.lives }, (_, i) => `<span class="heart${i < g.lives ? "" : " lost"}">${i < g.lives ? "❤️" : "🖤"}</span>`).join("");
+    $("#bcLives").innerHTML = heartsHtml(g, false);
     $("#bcNum").textContent = Math.min(g.inRound + 1, r.questions);
     $("#bcProg").style.width = Math.round(g.inRound / r.questions * 100) + "%";
     $("#bcQ").textContent = q.text + " = ?";
@@ -592,20 +608,27 @@
     ans.textContent = g.typed || "?";
     ans.className = "bc-ans" + (g.typed ? "" : " empty");
     $("#bcFlash").innerHTML = "";
+    g.qStart = Date.now();
+    g.qDeadline = g.qStart + r.perQuestion * 1000;
+    g.lastTick = 0;
+    tickGame();
   }
 
   function tickGame() {
     const g = game;
-    const el = $("#bcClock");
-    if (!g || g.over || !el) { stopGameTimer(); return; }
-    const now = Date.now();
-    if (!g.deadline) { el.textContent = mmss(now - g.roundStart); return; }
-    const left = g.deadline - now;
-    el.textContent = countdown(left);
-    el.classList.toggle("warn", left <= 10000);
+    const el = $("#bcClock"), bar = $("#bcTime");
+    if (!g || g.over || !el || !bar) { stopGameTimer(); return; }
+    if (g.busy || !g.qDeadline) return;                  // the clock pauses while feedback shows
+    const total = g.def.rounds[g.round].perQuestion * 1000;
+    const left = g.qDeadline - Date.now();
+    el.textContent = Math.max(0, Math.ceil(left / 1000)) + "s";
+    bar.style.width = Math.max(0, left / total * 100) + "%";
+    const warn = left <= Math.min(3000, total * 0.4);
+    el.classList.toggle("warn", warn);
+    bar.classList.toggle("warn", warn);
     const sec = Math.ceil(left / 1000);
-    if (sec <= 5 && sec > 0 && sec !== g.lastTick) { g.lastTick = sec; SOUND.play("tick"); }
-    if (left <= 0) endGame("time");
+    if (sec <= 2 && sec > 0 && sec !== g.lastTick) { g.lastTick = sec; SOUND.play("tick"); }
+    if (left <= 0) gameTimeout();
   }
 
   function gamePress(k) {
@@ -624,23 +647,43 @@
     if (!g || g.busy || g.over || !g.typed) return;
     const q = g.qs[g.qi];
     const ok = Number(g.typed) === Number(q.answer);
-    g.answered++;
     g.busy = true;
-    const ans = $("#bcAns");
+    g.answered++;
+    g.roundMs += Math.max(0, Date.now() - g.qStart);
+    g.qDeadline = 0;
     if (ok) {
       g.correct++;
       SOUND.play("correct");
-      ans.classList.add("ok");
+      $("#bcAns").classList.add("ok");
       setTimeout(() => gameNext(g), 250);
       return;
     }
+    loseLife(g, `${esc(q.text)} = <b>${esc(q.answer)}</b>`);
+  }
+
+  // The question's clock ran out — counts like a wrong answer.
+  function gameTimeout() {
+    const g = game;
+    if (!g || g.busy || g.over) return;
+    const q = g.qs[g.qi];
+    g.busy = true;
+    g.answered++;
+    g.tooSlow++;
+    g.roundMs += g.def.rounds[g.round].perQuestion * 1000;
+    g.qDeadline = 0;
+    $("#bcClock").textContent = "0s";
+    $("#bcTime").style.width = "0%";
+    loseLife(g, `⏰ Too slow! ${esc(q.text)} = <b>${esc(q.answer)}</b>`);
+  }
+
+  function loseLife(g, flashHtml) {
     g.lives--;
     SOUND.play("wrong");
-    ans.classList.add("bad");
-    $("#bcFlash").innerHTML = `${esc(q.text)} = <b>${esc(q.answer)}</b>`;
-    $("#bcLives").innerHTML = Array.from({ length: g.def.lives }, (_, i) => `<span class="heart${i < g.lives ? "" : " lost"}${i === g.lives ? " breaking" : ""}">${i < g.lives ? "❤️" : "🖤"}</span>`).join("");
-    if (g.lives <= 0) setTimeout(() => { if (game === g && !g.over) endGame("lives"); }, 1100);
-    else setTimeout(() => gameNext(g), 1000);
+    $("#bcAns").classList.add("bad");
+    $("#bcFlash").innerHTML = flashHtml;
+    $("#bcLives").innerHTML = heartsHtml(g, true);
+    if (g.lives <= 0) setTimeout(() => { if (game === g && !g.over) endGame("lives"); }, 1200);
+    else setTimeout(() => gameNext(g), 1100);
   }
 
   function gameNext(g) {
@@ -654,9 +697,7 @@
   function roundCleared() {
     const g = game;
     const r = g.def.rounds[g.round];
-    const now = Date.now();
-    g.times[g.round] = now - g.roundStart;
-    if (g.deadline) g.r2LeftMs = Math.max(0, g.deadline - now);
+    g.times[g.round] = g.roundMs;
     stopGameTimer();
     g.cleared = g.round + 1;
     if (r.badge && STORE.awardBadge(r.badge)) g.newBadges.push(r.badge);
@@ -676,11 +717,10 @@
         <div class="card wide center">
           <div class="big-emoji">🎉</div>
           <h2 class="card-h">Round ${g.round + 1} cleared!</h2>
-          <div class="muted" style="font-weight:700">${g.correct} correct · time ${mmss(g.times[g.round])} · lives left ${"❤️".repeat(g.lives)}</div>
+          <div class="muted" style="font-weight:700">${g.correct} correct · answered in ${secs(g.times[g.round])} · lives left ${"❤️".repeat(g.lives)}</div>
           ${done.badge ? `<div class="game-badges center-row" style="margin-top:14px">${badgeChip(done.badge, earned[done.badge], g.newBadges.indexOf(done.badge) > -1)}</div>` : ""}
           <div class="summary-box" style="margin-top:16px;text-align:left">
-            <b>Round ${g.round + 2}:</b> ${next.questions} more questions${next.seconds ? ` in <b>${next.seconds} seconds</b>` : ""}. Your lives carry on (${"❤️".repeat(g.lives)}).
-            ${next.badge ? `Make it to win the <b>${esc(DATA.BADGES[next.badge].label)}</b> badge.` : ""} The clock starts when you tap <b>Go</b>.
+            ${roundRule(next, g.round + 1)} Your lives carry on (${"❤️".repeat(g.lives)}). The first question starts when you tap <b>Go</b>.
           </div>
           <div class="row" style="margin-top:18px">
             <button class="btn ghost" id="stopBtn" type="button">Stop here</button>
@@ -702,12 +742,12 @@
     stopGameTimer();
     const overlay = document.querySelector(".overlay");
     if (overlay) overlay.remove();
-    if ((reason === "time" || reason === "lives") && g.roundStart && g.times[g.round] == null) g.times[g.round] = Date.now() - g.roundStart;
     const rec = STORE.recordGame({
       game: g.def.id, subjectId: g.subjectId, ts: Date.now(),
-      cleared: g.cleared, reached: g.round + 1, correct: g.correct, answered: g.answered, livesLeft: g.lives,
+      cleared: g.cleared, reached: g.round + 1, correct: g.correct, answered: g.answered,
+      tooSlow: g.tooSlow, livesLeft: g.lives,
       r1Ms: g.cleared >= 1 ? g.times[0] : null, r2Ms: g.cleared >= 2 ? g.times[1] : null,
-      r2LeftMs: g.cleared >= 2 ? g.r2LeftMs : null, reason: reason
+      reason: reason
     });
     game = null;
     renderGameResult(g, rec, reason);
@@ -717,17 +757,14 @@
     const def = g.def;
     current = null;
     const won = g.cleared >= def.rounds.length;
-    const head = won ? "You beat the clock!"
-      : reason === "time" ? "Time's up!"
-      : reason === "lives" ? "Out of lives!"
-      : g.cleared ? "Well played!" : "Game over";
-    const emoji = won ? "🏆" : reason === "time" ? "⏰" : reason === "lives" ? "💔" : "👏";
+    const head = won ? "You beat the clock!" : reason === "lives" ? "Out of lives!" : g.cleared ? "Well played!" : "Game over";
+    const emoji = won ? "🏆" : reason === "lives" ? "💔" : "👏";
     const earned = STORE.badges();
     const stats = [`<b>${g.correct}</b> correct out of ${g.answered}`];
-    if (rec.r1Ms) stats.push(`Round 1 in <b>${mmss(rec.r1Ms)}</b>`);
-    if (rec.r2LeftMs != null) stats.push(`Round 2 with <b>${countdown(rec.r2LeftMs)}</b> to spare`);
-    const tip = won ? "Amazing! Can you finish Round 2 with even more time to spare?"
-      : reason === "time" ? "So close! Practise your quickest tables and try again."
+    if (g.tooSlow) stats.push(`⏰ ${g.tooSlow} too slow`);
+    if (rec.r1Ms) stats.push(`Round 1 in <b>${secs(rec.r1Ms)}</b>`);
+    if (rec.r2Ms) stats.push(`Round 2 in <b>${secs(rec.r2Ms)}</b>`);
+    const tip = won ? "Amazing! Can you beat your fastest time?"
       : reason === "lives" ? `Practise the tricky ones in <b>By Topic → ${esc(DATA.topicLabel(def.subjectId, def.source.topicId))} → ${esc(DATA.levelLabel(def.subjectId, def.source.topicId, def.source.levelId))}</b>, then come back!`
       : "Come back and try for the next badge!";
     show(`
@@ -742,6 +779,7 @@
           <div class="summary-box" style="margin-top:16px;text-align:left">${tip}</div>
           <div class="row" style="margin-top:18px">
             <button class="btn ghost" id="arenaBtn" type="button">← Quest Arena</button>
+            <button class="btn" id="trophyBtn" type="button">🏆 Trophy Room</button>
             <button class="btn primary" id="againBtn" type="button">🔁 Play again</button>
           </div>
         </div>
@@ -749,7 +787,58 @@
     if (g.newBadges.length) setTimeout(() => SOUND.play("star"), 500);
     $("#bk").onclick = () => renderArena(def.subjectId);
     $("#arenaBtn").onclick = () => renderArena(def.subjectId);
+    $("#trophyBtn").onclick = () => renderTrophyRoom(() => renderArena(def.subjectId));
     $("#againBtn").onclick = () => startGame(def.subjectId, def.id);
+  }
+
+  /* ===================== Trophy Room — every badge ===================== */
+  function badgeGroups() {
+    return DATA.GAMES.map(def => ({ def, ids: def.rounds.map(r => r.badge).filter(id => id && DATA.BADGES[id]) }))
+      .filter(gr => gr.ids.length);
+  }
+  function badgeTotals() {
+    const earned = STORE.badges();
+    const ids = [].concat.apply([], badgeGroups().map(gr => gr.ids));
+    return { ids, earned, got: ids.filter(id => earned[id]).length };
+  }
+
+  function renderTrophyRoom(onBack) {
+    onBack = onBack || renderMenu;
+    current = () => renderTrophyRoom(onBack);
+    const p = STORE.active() || {};
+    const t = badgeTotals();
+    const pct = t.ids.length ? Math.round(t.got / t.ids.length * 100) : 0;
+    const sections = badgeGroups().map(gr => `<section class="trophy-group">
+        <h3 class="section-h">${gr.def.icon || "🎮"} ${esc(gr.def.label)} ${subjectPill(gr.def.subjectId)}</h3>
+        <div class="trophy-grid">${gr.ids.map(id => {
+          const b = DATA.BADGES[id], ts = t.earned[id];
+          return `<div class="trophy${ts ? " on" : ""}">
+            ${ART.badge(id, 104, !!ts)}
+            <div class="trophy-name">${esc(b.label)}</div>
+            <div class="trophy-desc">${esc(b.desc)}</div>
+            ${ts ? `<div class="trophy-date">🎉 Earned ${esc(REPORT.shortDate(ts))}</div>`
+                 : `<div class="trophy-date locked">🔒 Not earned yet</div>
+                    <button class="btn sm" data-play="${esc(gr.def.id)}" type="button">Play ${esc(gr.def.label)} →</button>`}
+          </div>`;
+        }).join("")}</div>
+      </section>`).join("");
+    show(`
+      <div class="topbar"><span class="back" id="bk">← Back</span><h2>🏆 Trophy Room</h2></div>
+      <div class="page narrow">
+        <div class="trophy-hero">
+          <div class="player-chip-avatar">${ART.student(p.gender)}</div>
+          <div style="flex:1;min-width:0">
+            <div class="subject-hero-name">${esc(p.name || "Player")}'s badges</div>
+            <div class="muted">${t.got} of ${plural(t.ids.length, "badge")} collected${t.got && t.got === t.ids.length ? " — every one! 🌟" : ""}</div>
+            <div class="bar"><i style="width:${pct}%;background:var(--gold)"></i></div>
+          </div>
+        </div>
+        ${sections || `<div class="empty-note">No badges to collect yet.</div>`}
+      </div>`);
+    $("#bk").onclick = onBack;
+    $$("[data-play]").forEach(b => {
+      b.onclick = () => { const def = DATA.game(b.dataset.play); if (def) renderGameIntro(def.subjectId, def.id); };
+    });
   }
 
   /* ---------- By Topic ---------- */

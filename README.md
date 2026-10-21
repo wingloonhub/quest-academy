@@ -27,7 +27,7 @@ Subject   English · Bahasa · Maths          (the three cards on the menu)
 | Players (several kids under one account) | ✅ built |
 | Main menu → English · Bahasa · Maths | ✅ built |
 | Study Mode inside each subject: **By Topic**, **By School Year** (Year 1–6) or **Quest Arena** (games) | ✅ built |
-| Quest Arena → Maths → Beat the Clock, with 2 badges | ✅ built |
+| Quest Arena → Maths → Beat the Clock, with 2 badges · 🏆 Trophy Room | ✅ built |
 | Maths → 12 topics (Addition, Subtraction, Multiplication, Division, Fractions, Length, Mass (weight), Capacity & volume, Perimeter, Time, Money, Word Problems) | ✅ built |
 | Maths levels ready: Addition L1: 2- and 3-digit (50 questions, 10 per test) · Multiplication L1: 1 digit × 1 digit (tables 2–10, 90 questions, 20 per test) · Multiplication L2: 2 digits × 1 digit (80 questions, 15 per test) · Multiplication L3: identify groups & items in each group (80 word problems with two answer boxes, 15 per test) — not linked to a school year yet | ✅ loaded |
 | Level page → Assessment · Learn · Progress report | ✅ built — fills in as levels are added |
@@ -64,12 +64,14 @@ Multiplication Level 1, ×1 to ×9 only, never repeated within a game):
 
 | | Rule | Badge |
 |---|---|---|
-| Lives | ❤️❤️❤️ for the whole game; each wrong answer costs one (the right answer flashes up) | |
-| Round 1 | 15 questions, a stopwatch runs, no time limit | 🥷 **Times Table Ninja** (silver) |
-| Round 2 | 15 more questions in **30 seconds** (clock starts on "Go") | 🧙 **Multiplication Wizard** (gold) |
+| Lives | ❤️❤️❤️ for the whole game; a wrong answer — or running out of time — costs one (the right answer flashes up) | |
+| Round 1 | 15 questions, **10 seconds for each one** | 🥷 **Times Table Ninja** (silver) |
+| Round 2 | 15 more questions, **only 5 seconds for each one** | 🧙 **Multiplication Wizard** (gold) |
 
 Badges belong to the player, sync across devices (the first date earned is
-kept) and show on the menu, in the Arena and in the Parent Report. Games and
+kept) and live in the **🏆 Trophy Room** (on the main menu): earned badges in
+colour with the date, locked ones greyed out with how to win them. They also
+show in the Arena and the Parent Report. Games and
 badges are set up in `js/data.js` (`GAMES`, `BADGES`).
 
 ### Admin page (parents only)
