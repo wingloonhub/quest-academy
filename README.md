@@ -1,0 +1,214 @@
+# Quest Academy 🎓
+
+A Year 4 learning app for **English, Bahasa and Maths**, built on exactly the
+same stack as *The Haunted English Mansion* and *Bahasa Quest*: plain
+HTML/CSS/JavaScript, no build step, GitHub → Vercel for hosting, Firebase for
+email login + a cloud database.
+
+**Sign in on any phone, tablet or computer with the same email and you get the
+same players, scores, progress reports and Parent Report.**
+
+## How it's organised
+
+```
+Subject   English · Bahasa · Maths          (the three cards on the menu)
+  └ Topic    e.g. Maths → Addition … Word Problems
+      └ Level   Level 1, Level 2, …         (you add these as worksheets come in)
+          ├ 📝 Assessment       questions picked at random from the level's bank
+          ├ 📖 Learn            lesson cards with worked examples
+          └ 📊 Progress report  score history, attempts, weak areas,
+                                 last practice date, mastery status
+```
+
+| Part | Status |
+|---|---|
+| Login / create account / forgot password (email + password) | ✅ built |
+| Cloud database — same results on every device, works offline and catches up | ✅ built |
+| Players (several kids under one account) | ✅ built |
+| Main menu → English · Bahasa · Maths | ✅ built |
+| Maths → 12 topics (Addition, Subtraction, Multiplication, Division, Fractions, Length, Mass (weight), Capacity & volume, Perimeter, Time, Money, Word Problems) | ✅ built — levels *coming soon* |
+| Level page → Assessment · Learn · Progress report | ✅ built — fills in as levels are added |
+| English and Bahasa topics | ⏳ *coming soon* — same topic → level layout as Maths |
+| History & Analysis, Parent Report (mastery grid for every topic and level) | ✅ built |
+| Installable on phones (Add to Home Screen) | ✅ built |
+
+**Mastery status** for each level: *Not started → Needs practice → Developing →
+Almost mastered → Mastered*. A level is **Mastered** when the last 3
+assessments in a row all score 80% or more.
+
+---
+
+## What to upload
+
+Upload **the contents of this `game` folder only** (the folder with `index.html`).
+Don't upload the `Materials` folder.
+
+```
+game/
+  index.html  vercel.json  firestore.rules  manifest.webmanifest
+  service-worker.js  favicon.svg  README.md
+  css/style.css
+  icons/...
+  js/...   (including js/questions/ and js/learn/)
+```
+
+## Step 1 — Put it on GitHub
+
+1. Go to <https://github.com/new> and create a repository, e.g. `quest-academy`
+   (Public or Private — both work with Vercel). Click **Create repository**.
+2. On the new repo page click **uploading an existing file**.
+3. Open the `game` folder on your PC, select **everything inside it** and drag
+   it into the GitHub upload box (folders included).
+4. Click **Commit changes**.
+
+## Step 2 — Firebase (email login + cloud database)
+
+Quest Academy uses its **own** Firebase project, separate from your other games.
+
+1. <https://console.firebase.google.com> → **Add project** (e.g. `quest-academy`).
+   Google Analytics can be skipped.
+2. **Authentication** → *Get started* → **Sign-in method** → enable
+   **Email/Password** → Save.
+3. **Build → Firestore Database** → *Create database* → **Start in production
+   mode** → location **asia-southeast1** (Singapore, closest) → *Enable*.
+4. Firestore → **Rules** tab → replace everything with the contents of
+   `firestore.rules` (in this folder) → **Publish**. This makes sure each
+   account can only ever read and write its own data.
+5. **Project settings** (gear icon) → **Your apps** → click the **`</>`** (Web)
+   icon → give it a nickname → **Register app**. Firebase shows a
+   `firebaseConfig = { ... }` block.
+6. Open `js/firebase-config.js` and paste the 6 values between the quotes
+   (apiKey, authDomain, projectId, storageBucket, messagingSenderId, appId).
+   Save.
+7. Re-upload **`js/firebase-config.js`** to GitHub (open the file on GitHub →
+   pencil icon → paste → Commit).
+
+> Until Step 2 is done the app still runs, but saves on one device only and
+> has no login (it shows a "Try it on this device" button). Once it's done,
+> **login is required** and that button disappears.
+
+## Step 3 — Deploy on Vercel
+
+1. <https://vercel.com> → **Add New… → Project**.
+2. **Import** the repo from Step 1.
+3. Leave everything default (Framework Preset: *Other*, no build command) →
+   **Deploy**.
+4. You get a live URL like `https://quest-academy.vercel.app`.
+
+### One last Firebase setting (so login works on the live site)
+
+Firebase console → **Authentication → Settings → Authorized domains → Add
+domain** → paste the Vercel domain (e.g. `quest-academy.vercel.app`). Without
+this, login is blocked on the live site.
+
+## Step 4 — Use it
+
+Open the Vercel URL, **Create an account** (the student name you type becomes
+the first player), then pick a subject. Sign in with the same email on a phone
+— everything follows. On a phone, use **Share → Add to Home Screen** (iPhone)
+or **Install app** (Android) so it opens like a normal app.
+
+---
+
+## How the database works
+
+- Each account has one document in Firestore at `users/{account id}` holding
+  every player and every finished assessment (with the question-by-question
+  details of the 20 most recent ones).
+- Every change is saved on the device first, then synced. A sync **merges** the
+  device's copy with the cloud copy — it never overwrites — so a phone and a
+  computer used on the same day both keep their results.
+- Sync runs after every finished assessment, when the app is reopened or comes
+  back to the foreground, and when the internet comes back. The menu shows
+  ☁️ *Saved to the cloud*, 📴 *Offline — will sync when back online*, etc.
+- Deleting a player or clearing history is remembered, so it stays deleted on
+  every device.
+
+---
+
+## Adding a level (example: Maths → Addition → Level 1)
+
+Three files, same ids everywhere.
+
+**1. `js/data.js`** — add the level inside the topic:
+
+```js
+{ id: "addition", label: "Addition", icon: "+", desc: "…", levels: [
+    { id: "level1", label: "Level 1", desc: "Adding 2- and 3-digit numbers",
+      catLabels: { ADD2: "2-digit sums", ADD3: "3-digit sums", MISS: "Missing numbers" } }
+] },
+```
+
+**2. `js/questions/maths.js`** — the assessment questions:
+
+```js
+window.QUESTIONS.maths = {
+  addition: {
+    level1: [
+      { q: "What is 46 + 35?", options: ["81", "71", "711", "82"], answer: 0, cat: "ADD2",
+        explain: "6 + 5 = 11 — write 1, carry 1. 4 + 3 + 1 = 8." },
+      { typed: true, q: "347 + 285 = ___", word: "632", cat: "ADD3" },
+      { typed: true, q: "___ + 25 = 60", word: "35", cat: "MISS" }
+    ]
+  }
+};
+```
+
+**3. `js/learn/maths.js`** — the lesson (optional):
+
+```js
+window.LEARN.maths = {
+  addition: {
+    level1: [
+      { title: "Column addition",
+        text: "Line the numbers up so the ones are under the ones.\nAdd the ones first.",
+        example: "  46\n+ 35\n----\n  81",
+        tip: "If the ones make 10 or more, carry the ten." }
+    ]
+  }
+};
+```
+
+Re-upload the changed files to GitHub — Vercel redeploys automatically.
+
+### Question formats
+
+| Format | Example |
+|---|---|
+| Multiple choice (`answer` = index of the right option; options are shuffled each time) | `{ q, options: [...], answer: 0 }` |
+| Typed answer — on-screen keyboard; **number pad** automatically when the answer is a number, decimal or fraction | `{ typed: true, q: "347 + 285 = ___", word: "632", alt: [...] }` |
+| Listen and spell (British English voice for English, Malay voice for Bahasa) | `{ spelling: true, word: "because", hint: "…" }` |
+| Reading passage — same `pid` + `passage` on each question, and `passageMode: true` on the level | `{ pid: "fox1", passage: "…", q, options, answer }` |
+| Picture above any question (shapes, clocks, scales…) | `visual: "<svg …>…</svg>"` |
+
+Optional on any question: `cat` (powers *weak areas* in the progress report —
+give codes friendly names with `catLabels` on the level) and `explain` (shown
+after a wrong answer).
+
+Optional on a level: `sessionSize: 20` (questions per assessment, default 15),
+`passageMode: true, passageCount: 2`.
+
+English and Bahasa work the same way: add topics to their `topics: [...]` list
+in `js/data.js`, then levels, questions (`js/questions/english.js`,
+`js/questions/bahasa.js`) and lessons (`js/learn/…`).
+
+---
+
+## Previewing on the PC
+
+The `.claude/launch.json` one folder up starts a small local server on port
+5530 (needs Node.js): open <http://localhost:5530>.
+
+## Where things live
+
+| File | What it does |
+|---|---|
+| `js/data.js` | Subjects → topics → levels |
+| `js/questions/*.js` | Assessment questions, per subject → topic → level |
+| `js/learn/*.js` | Learn lessons, per subject → topic → level |
+| `js/store.js` | Players, saved results, merge logic (device + cloud) |
+| `js/firebase.js` | Email login + cloud sync |
+| `js/report.js` | Mastery, per-level progress reports, Parent Report |
+| `js/ui.js` | Every screen |
+| `js/art.js` | Crest, student avatars, owl mascot, subject badges |
+| `css/style.css` | The night-sky academy theme (palette at the top) |

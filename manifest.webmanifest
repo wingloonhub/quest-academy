@@ -1,0 +1,29 @@
+{
+  "name": "Quest Academy",
+  "short_name": "Quest Academy",
+  "description": "Year 4 practice in English, Bahasa and Maths — topic drills, progress history and a parent report that syncs across devices.",
+  "start_url": "./",
+  "scope": "./",
+  "id": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#070b1a",
+  "theme_color": "#070b1a",
+  "categories": ["education", "kids"],
+  "lang": "en",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
