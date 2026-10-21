@@ -51,6 +51,7 @@
       AUTH.user = null; AUTH.session = true; AUTH._emitAuth();
     };
     AUTH.syncNow = function () { return Promise.resolve(false); };
+    AUTH.verifyPassword = function () { return Promise.resolve(); };   // no account password on this device
     window.AUTH = AUTH;
   }
 
@@ -128,6 +129,12 @@
     });
   };
   AUTH.signIn = (email, password) => fbAuth.signInWithEmailAndPassword(email, password);
+  // Re-check the account password (used before creating / resetting the admin PIN).
+  AUTH.verifyPassword = function (password) {
+    const u = fbAuth.currentUser;
+    if (!u || !u.email) return Promise.reject(new Error("Please sign in first."));
+    return u.reauthenticateWithCredential(firebase.auth.EmailAuthProvider.credential(u.email, password));
+  };
   AUTH.resetPassword = (email) => fbAuth.sendPasswordResetEmail(email);
   AUTH.signOut = () => fbAuth.signOut();
 

@@ -36,6 +36,37 @@ Subject   English · Bahasa · Maths          (the three cards on the menu)
 Almost mastered → Mastered*. A level is **Mastered** when the last 3
 assessments in a row all score 80% or more.
 
+### Points
+
+Points are earned only by **beating your own best score on a level**:
+
+> points = (new best % − old best %) × the subject's *points per 1%*
+
+| Attempt on a level | Score | Points at 1 per 1% |
+|---|---|---|
+| First try | 70% | +70 |
+| Second try | 60% | 0 — below the best |
+| Third try | 90% | +20 (90 − 70) |
+| Fourth try | 90% | 0 — same as the best |
+
+So repeating a level can never farm points, and one level pays at most
+100 × the value. Points already earned keep the value they were earned at,
+and clearing history doesn't reset a level's best score.
+
+### Admin page (parents only)
+
+**Menu → 🔒 Admin** (bottom of the menu). The first time, it asks for the
+account password, then you choose a **4–8 digit PIN**. After that the PIN
+unlocks it on every device. On the admin page you can:
+
+- set **points per 1%** for English, Bahasa and Maths (0 switches a subject's
+  points off; halves like 1.5 are fine),
+- see each player's points,
+- change the PIN or lock the page. Leaving the page locks it again.
+
+Forgot the PIN? Tap **Forgot the PIN?** and confirm the account password to
+choose a new one. Five wrong PINs in a row lock the pad for 60 seconds.
+
 ---
 
 ## What to upload
@@ -206,9 +237,10 @@ The `.claude/launch.json` one folder up starts a small local server on port
 | `js/data.js` | Subjects → topics → levels |
 | `js/questions/*.js` | Assessment questions, per subject → topic → level |
 | `js/learn/*.js` | Learn lessons, per subject → topic → level |
-| `js/store.js` | Players, saved results, merge logic (device + cloud) |
+| `js/store.js` | Players, saved results, points ledger, admin settings, merge logic (device + cloud) |
 | `js/firebase.js` | Email login + cloud sync |
 | `js/report.js` | Mastery, per-level progress reports, Parent Report |
+| `js/ui.js` (admin section) | PIN-protected admin page: points per 1% for each subject |
 | `js/ui.js` | Every screen |
 | `js/art.js` | Crest, student avatars, owl mascot, subject badges |
 | `css/style.css` | The night-sky academy theme (palette at the top) |

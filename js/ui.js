@@ -244,6 +244,7 @@
     current = renderMenu;
     const hist = STORE.history();
     const stars = totalStars(hist);
+    const points = STORE.points();
     const email = (STORE.state.account || {}).email || "";
     show(`
       <div class="page menu-page">
@@ -255,7 +256,7 @@
           <div class="player-chip-avatar">${ART.student(p.gender)}</div>
           <div class="player-chip-text">
             <div class="player-chip-hello">${hist.length ? "Welcome back" : "Welcome"}, <b>${esc(p.name)}</b>!</div>
-            <div class="muted">${stars ? `⭐ ${plural(stars, "star")} earned` : "Pick a subject to start your quest"}${hist.length ? ` · ${plural(hist.length, "assessment")}` : ""}</div>
+            <div class="muted">${stars || points ? `⭐ ${plural(stars, "star")} · ${ART.coin(14)} <b class="gold">${plural(points, "point")}</b>` : "Pick a subject to start your quest"}${hist.length ? ` · ${plural(hist.length, "assessment")}` : ""}</div>
           </div>
           <button class="btn ghost sm" id="switch" type="button">Switch</button>
         </div>
@@ -269,11 +270,15 @@
         </div>
         <div class="menu-foot">
           ${syncBadge()}
-          ${AUTH.user ? `<button class="link-btn" id="out" type="button">Sign out (${esc(email)})</button>`
-                      : `<button class="link-btn" id="out" type="button">Back to the login screen</button>`}
+          <div class="row">
+            <button class="link-btn" id="adminBtn" type="button">🔒 Admin</button>
+            ${AUTH.user ? `<button class="link-btn" id="out" type="button">Sign out (${esc(email)})</button>`
+                        : `<button class="link-btn" id="out" type="button">Back to the login screen</button>`}
+          </div>
         </div>
       </div>`);
     $$(".subject-card").forEach(c => { c.onclick = () => renderSubject(c.dataset.subject); });
+    $("#adminBtn").onclick = renderAdmin;
     $("#switch").onclick = () => renderProfileSelect();
     $("#report").onclick = renderReport;
     $("#hist").onclick = () => renderHistory("all", renderMenu);
@@ -298,6 +303,7 @@
         <p>📊 <b>Progress report</b> — every score, how many attempts, the weak areas, the last practice date and the mastery status.</p>
         <p>🏆 <b>Mastery</b> — ${esc(REPORT.MASTERY_RULE)} Along the way a level shows <i>Needs practice</i>, <i>Developing</i> or <i>Almost mastered</i>.</p>
         <p>⭐ <b>Stars</b> — 50% = 1 star, 70% = 2 stars, 90% = 3 stars. Your best score on each level counts.</p>
+        <p>${ART.coin(16)} <b>Points</b> — earned by <b>beating your own best score</b> on a level. Every 1% above your old best earns points (a parent sets how many for each subject). Repeating a level without beating your best earns nothing — so aim higher each time!</p>
         <p>📊 <b>Parent Report</b> — mastery for every topic and level across all three subjects, the levels that need help, and recent mistakes.</p>
         <p>☁️ <b>Same results everywhere</b> — sign in with the same email on a phone, tablet or computer and you get the same players, scores and reports. Assessments finished offline are kept and uploaded automatically next time the app is online.</p>
         <div class="row" style="margin-top:18px"><button class="btn primary" id="backBtn" type="button">← Back to the menu</button></div>
@@ -340,7 +346,7 @@
           <div>
             <div class="subject-hero-name">${esc(subj.fullLabel || subj.label)}</div>
             <div class="muted">${esc(subj.tagline)} · ${esc(DATA.YEAR_LABEL)}</div>
-            ${hist.length ? `<div class="subject-hero-stats">⭐ ${totalStars(hist)} · ${plural(hist.length, "assessment")} · avg ${avgPct(hist)}%</div>` : ""}
+            ${hist.length ? `<div class="subject-hero-stats">⭐ ${totalStars(hist)} · ${ART.coin(13)} ${plural(STORE.points(null, subjectId), "point")} · ${plural(hist.length, "assessment")} · avg ${avgPct(hist)}%</div>` : ""}
           </div>
         </div>
         ${subj.topics.length
@@ -414,6 +420,13 @@
       assessInfo = `${plural(sessionSizeFor(l, bank), "question")} picked at random from ${bank.length}. No timer — take your time.`;
     }
     const best = st.attempts ? `<div class="sec-stat">${ART.stars(starsFor(st.best), 16)} Best <b>${st.best}%</b> · Latest <b>${st.latest}%</b></div>` : "";
+    const bestEver = STORE.bestScore(subjectId, topicId, levelId);
+    const rate = STORE.rate(subjectId);
+    const left = Math.round((100 - bestEver) * rate);
+    const pointsLine = !bank || rate <= 0 ? ""
+      : bestEver >= 100 ? `<div class="sec-stat pts-line">${ART.coin(16)} All the points on this level are earned — 100%!</div>`
+      : bestEver > 0 ? `<div class="sec-stat pts-line">${ART.coin(16)} Beat your best (${bestEver}%) to earn up to <b>${left}</b> more points</div>`
+      : `<div class="sec-stat pts-line">${ART.coin(16)} Earn up to <b>${left}</b> points — ${ratePhrase(rate)} for every 1%</div>`;
 
     show(`
       <div class="topbar"><span class="back" id="bk">← ${esc(t.label)}</span><h2>${esc(l.label)}</h2></div>
@@ -436,6 +449,7 @@
               <div class="sec-title">Assessment</div>
               <div class="sec-text">${assessInfo}</div>
               ${best}
+              ${pointsLine}
             </div>
             <button class="btn primary" id="goAssess" type="button"${bank ? "" : " disabled"}>${bank ? (st.attempts ? "Try again →" : "Start →") : "Coming soon"}</button>
           </div>
@@ -571,7 +585,7 @@
       const b = pctBand(s.pct);
       return `<button class="session-row" data-ts="${s.ts}" type="button">
         <span class="session-line"><span class="session-topic">${i === 0 ? "Latest" : "#" + (st.sessions.length - i)} · ${esc(REPORT.shortDate(s.ts))} <span class="muted small">${esc(REPORT.timeAgo(s.ts))}</span></span><span class="${b.cls}">${s.correct}/${s.total} · ${s.pct}%</span></span>
-        <span class="session-line"><span>${ART.stars(starsFor(s.pct), 13)}</span><span class="session-more">View details ›</span></span>
+        <span class="session-line"><span>${ART.stars(starsFor(s.pct), 13)}${s.points ? ` <span class="pts-gain">+${s.points} points</span>` : ""}</span><span class="session-more">View details ›</span></span>
       </button>`;
     }).join("");
     const areas = st.areas.length
@@ -898,18 +912,28 @@
     const before = REPORT.levelStats(st.subjectId, st.topicId, st.levelId);
 
     const mistakes = st.answers.filter(a => !a.correct).map(a => ({ q: a.stem, chosen: a.chosenText, answer: a.answerText, cat: a.q.cat || "?" }));
-    STORE.recordSession({
+    const saved = STORE.recordSession({
       subjectId: st.subjectId, topicId: st.topicId, levelId: st.levelId,
       ts: Date.now(), total, correct, byCat: st.byCat, mistakes,
       answers: st.answers.map(a => ({ q: a.stem, c: a.chosenText, a: a.answerText, ok: a.correct ? 1 : 0, cat: a.q.cat || "?" }))
     });
     const after = REPORT.levelStats(st.subjectId, st.topicId, st.levelId);
     const nStars = starsFor(pct);
-    const newBest = before.attempts > 0 && pct > before.best;
+    const newBest = !!(saved && saved.newBest && saved.prevBest > 0);
+    const earned = (saved && saved.points) || 0;
+    let pointsBox;
+    if (earned > 0) {
+      pointsBox = `<div class="points-won">${ART.coin(30)}<div><b>+${plural(earned, "point")}!</b><span>${saved.prevBest ? "New best: " + pct + "% (was " + saved.prevBest + "%)" : "Your first score on this level"}</span></div></div>`;
+    } else if (saved && saved.newBest) {
+      pointsBox = `<div class="points-none">New best! Points are switched off for ${esc(DATA.subject(st.subjectId).label)} right now.</div>`;
+    } else {
+      pointsBox = `<div class="points-none">${ART.coin(18)} No new points this time — your best is still <b>${saved ? saved.prevBest : 0}%</b>. Beat it to earn more!</div>`;
+    }
     const justMastered = after.mastery.id === "mastered" && before.mastery.id !== "mastered";
     const masteryUp = after.mastery.rank > before.mastery.rank && before.attempts > 0;
     SOUND.play(pct >= 80 ? "win" : "finish");
     if (nStars) setTimeout(() => SOUND.play("star"), 520);
+    if (earned) setTimeout(() => SOUND.play("coin"), 900);
 
     const head = justMastered ? "Level mastered!" : pct >= 90 ? "Outstanding!" : pct >= 70 ? "Great work!" : pct >= 50 ? "Good effort!" : "Keep going — you'll get there!";
     const rows = Object.keys(st.byCat).map(k => {
@@ -941,6 +965,7 @@
           <div class="results-stars">${ART.stars(nStars, 34)}</div>
           <div class="muted" style="font-weight:700">${correct} / ${total} correct${newBest ? ` · <span class="new-best">🎉 New best!</span>` : ""}</div>
           <div style="margin-top:10px">${masteryBadge(after.mastery, true)}${masteryUp && !justMastered ? ` <span class="new-best small">▲ moved up!</span>` : ""}</div>
+          ${pointsBox}
           <div class="summary-box" style="margin-top:14px;text-align:left">${advice}</div>
         </div>
         ${breakdown}
@@ -1124,7 +1149,8 @@
           <div class="sub">${s.totalC} / ${s.totalQ} correct · ${plural(s.sessions, "assessment")} · last ${esc(REPORT.timeAgo(s.lastTs))}</div>
           <div class="bar"><i style="width:${s.pct}%;background:${s.band.color}"></i></div>
         ` : ""}
-        <div class="sub" style="margin-top:8px">${!s.subject.topics.length ? "Topics coming soon." : !s.levelsTotal ? plural(s.subject.topics.length, "topic") + " · levels coming soon." : `🏆 ${s.levelsMastered} / ${plural(s.levelsTotal, "level")} mastered`}</div>
+        <div class="sub" style="margin-top:8px">${ART.coin(13)} <b class="gold">${plural(STORE.points(null, s.subject.id), "point")}</b> · 1% = ${ratePhrase(STORE.rate(s.subject.id))}</div>
+        <div class="sub">${!s.subject.topics.length ? "Topics coming soon." : !s.levelsTotal ? plural(s.subject.topics.length, "topic") + " · levels coming soon." : `🏆 ${s.levelsMastered} / ${plural(s.levelsTotal, "level")} mastered`}</div>
       </div>`).join("");
 
     // Mastery overview — every topic, every level, coloured by mastery.
@@ -1145,6 +1171,11 @@
         <div class="sub">${plural(l.attempts, "attempt")} · avg ${l.avg}% · latest ${l.latest}% · last ${esc(REPORT.timeAgo(l.lastTs))}</div>
         ${l.weakAreas[0] ? `<div class="sub">🎯 Weak area: <b class="bad">${esc(l.weakAreas[0].label)}</b> (${l.weakAreas[0].pct}%)</div>` : ""}
       </button>`).join("");
+    const earnedLog = STORE.pointsLog().filter(e => e.pts > 0).slice(-10).reverse();
+    const pointsCards = earnedLog.map(e => `<div class="rep-card">
+        <div class="t"><span>${esc(DATA.fullLabel(e.s, e.t, e.l))} ${subjectPill(e.s)}</span><span class="pts-gain">+${e.pts}</span></div>
+        <div class="sub">${e.prev ? "Best " + e.prev + "% → " + e.pct + "%" : "First score: " + e.pct + "%"} · 1% = ${ratePhrase(e.rate)} · ${esc(REPORT.timeAgo(e.ts))}</div>
+      </div>`).join("");
     const recent = r.recent.length
       ? `<h3 class="section-h">Recent mistakes</h3>
          <div class="rep-grid">${r.recent.map(m => `<div class="rep-card">
@@ -1165,6 +1196,7 @@
             <div><div class="kpi-label">Accuracy</div><div class="kpi">${r.overallPct}%</div></div>
             <div><div class="kpi-label">Levels mastered</div><div class="kpi">🏆 ${r.mastered}</div></div>
             <div><div class="kpi-label">Stars</div><div class="kpi">⭐ ${totalStars(STORE.history())}</div></div>
+            <div><div class="kpi-label">Points</div><div class="kpi">${ART.coin(22)} ${STORE.points()}</div></div>
           </div>` : ""}
         <h3 class="section-h">By subject</h3>
         <div class="rep-grid">${subjectCards}</div>
@@ -1173,6 +1205,7 @@
           <div class="ov-wrap">${overview}</div>
           <div class="muted small" style="margin-top:6px">${esc(REPORT.MASTERY_RULE)} Tap a level for its progress report.</div>` : ""}
         ${weakCards ? `<h3 class="section-h">Levels that need help</h3><div class="rep-grid">${weakCards}</div>` : ""}
+        ${pointsCards ? `<h3 class="section-h">Points earned</h3><div class="rep-grid">${pointsCards}</div>` : ""}
         ${recent}
         <div class="row" style="margin-top:22px">
           <button class="btn ghost" id="backBtn" type="button">← Menu</button>
@@ -1183,6 +1216,243 @@
     $("#backBtn").onclick = renderMenu;
     $("#toHist").onclick = () => renderHistory("all", self);
     $$("[data-level][data-subj]").forEach(b => { b.onclick = () => renderLevelReport(b.dataset.subj, b.dataset.topic, b.dataset.level, self); });
+  }
+
+  /* ===================== points helpers ===================== */
+  const ratePhrase = (r) => (r === 1 ? "1 point" : r + " points");
+  const ptsChip = (n, size) => `<span class="pts">${ART.coin(size || 15)} ${n}</span>`;
+
+  /* ===================== admin (parents only, PIN protected) =====================
+     The PIN is stored as a salted SHA-256 hash in the account's cloud settings,
+     so the same PIN unlocks the admin page on every device. Creating or
+     resetting it first asks for the account password. 5 wrong PINs in a row
+     lock the pad for 60 seconds. Leaving the admin page locks it again. */
+  let adminUnlocked = false;
+  const PIN_FAIL_KEY = "qa_pin_fail";
+  function randomHex(n) {
+    const a = new Uint8Array(n);
+    crypto.getRandomValues(a);
+    return Array.from(a, b => b.toString(16).padStart(2, "0")).join("");
+  }
+  async function hashPin(pin, salt) {
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(salt + ":" + pin));
+    return Array.from(new Uint8Array(buf), b => b.toString(16).padStart(2, "0")).join("");
+  }
+  function pinFails() { try { return JSON.parse(localStorage.getItem(PIN_FAIL_KEY) || "{}") || {}; } catch (e) { return {}; } }
+  function setPinFails(v) { try { localStorage.setItem(PIN_FAIL_KEY, JSON.stringify(v)); } catch (e) { } }
+  function leaveAdmin() { adminUnlocked = false; renderMenu(); }
+
+  function renderAdmin() {
+    if (!window.crypto || !crypto.subtle) { toast("The admin page needs a secure (https) connection.", "bad"); return; }
+    if (!STORE.settings().pin) return renderAdminVerify("setup");
+    if (!adminUnlocked) return renderPinEntry();
+    renderAdminPage();
+  }
+
+  // Number pad for the PIN — the digits show as dots.
+  function pinPad(opts) {
+    current = null;
+    let pin = "";
+    show(`
+      <div class="topbar"><span class="back" id="bk">← Menu</span><h2>🔒 Admin</h2></div>
+      <div class="page narrow">
+        <div class="card wide center pin-card">
+          <div class="big-emoji">${opts.icon || "🔒"}</div>
+          <h2 class="card-h">${esc(opts.title)}</h2>
+          <p class="muted">${opts.sub || ""}</p>
+          <div class="pin-dots" id="pinDots"></div>
+          <div class="err" id="pinErr"></div>
+          <div class="keyboard numeric pin-pad">
+            ${["123", "456", "789"].map(r => `<div class="kb-row">${r.split("").map(c => `<button type="button" class="kb-key" data-key="${c}">${c}</button>`).join("")}</div>`).join("")}
+            <div class="kb-row"><button type="button" class="kb-key kb-back" data-key="back" aria-label="Delete">⌫</button><button type="button" class="kb-key" data-key="0">0</button><button type="button" class="kb-key kb-ok" data-key="ok" aria-label="OK">✓</button></div>
+          </div>
+          ${opts.footer || ""}
+        </div>
+      </div>`);
+    const paint = () => {
+      $("#pinDots").innerHTML = Array.from({ length: Math.max(4, pin.length) }, (_, i) => `<i class="${i < pin.length ? "on" : ""}"></i>`).join("");
+    };
+    const press = (k) => {
+      if (opts.locked && opts.locked()) return;
+      if (k === "ok") {
+        if (pin.length < 4) { $("#pinErr").textContent = "The PIN needs 4 to 8 digits."; return; }
+        const entered = pin; pin = ""; paint();
+        opts.onDone(entered);
+        return;
+      }
+      if (k === "back") pin = pin.slice(0, -1);
+      else if (pin.length < 8) pin += k;
+      $("#pinErr").textContent = "";
+      paint();
+    };
+    $$(".pin-pad .kb-key").forEach(b => { b.onclick = () => press(b.dataset.key); });
+    keyHandler = (e) => {
+      if (/^[0-9]$/.test(e.key)) { press(e.key); return true; }
+      if (e.key === "Backspace") { press("back"); return true; }
+      if (e.key === "Enter") { press("ok"); return true; }
+    };
+    $("#bk").onclick = leaveAdmin;
+    paint();
+  }
+
+  function renderPinEntry() {
+    const lockedUntil = () => { const f = pinFails(); return f.until && f.until > Date.now() ? f.until : 0; };
+    pinPad({
+      title: "Enter the admin PIN",
+      sub: "This page is for parents only.",
+      locked: () => {
+        const u = lockedUntil();
+        if (u) $("#pinErr").textContent = "Too many wrong tries — wait " + Math.ceil((u - Date.now()) / 1000) + " seconds.";
+        return !!u;
+      },
+      footer: `<button class="link-btn" id="forgotPin" type="button">Forgot the PIN?</button>`,
+      onDone: async (pin) => {
+        const saved = STORE.settings().pin;
+        if (saved && (await hashPin(pin, saved.salt)) === saved.hash) {
+          setPinFails({});
+          adminUnlocked = true;
+          renderAdminPage();
+          return;
+        }
+        const f = pinFails();
+        f.count = (f.count || 0) + 1;
+        if (f.count >= 5) { f.until = Date.now() + 60000; f.count = 0; }
+        setPinFails(f);
+        SOUND.play("wrong");
+        $("#pinErr").textContent = f.until && f.until > Date.now()
+          ? "Too many wrong tries — wait 60 seconds."
+          : "Wrong PIN — " + plural(5 - f.count, "try", "tries") + " left.";
+      }
+    });
+    $("#forgotPin").onclick = () => renderAdminVerify("reset");
+  }
+
+  // Before creating or resetting the PIN: confirm the account password.
+  function renderAdminVerify(mode) {
+    current = null;
+    if (!AUTH.user) return renderPinCreate(mode);    // device-only mode has no account password
+    const email = (STORE.state.account || {}).email || "";
+    show(`
+      <div class="topbar"><span class="back" id="bk">← Menu</span><h2>🔒 Admin</h2></div>
+      <div class="page narrow">
+        <div class="card wide pin-card">
+          <div class="center">
+            <div class="big-emoji">🛡️</div>
+            <h2 class="card-h">${mode === "reset" ? "Reset the admin PIN" : "Set up the admin page"}</h2>
+            <p class="muted" style="line-height:1.6">First, confirm it's you: type the password for <b>${esc(email)}</b>. Then choose a PIN — it unlocks the admin page on every device.</p>
+          </div>
+          <form id="pwForm" style="margin-top:14px">
+            <div class="field"><label for="apw">Account password</label>
+              <div class="pw-wrap"><input id="apw" type="password" autocomplete="current-password" required/><button type="button" class="pw-eye" id="pwEye" aria-label="Show password">👁</button></div>
+            </div>
+            <button class="btn primary full" id="pwBtn" type="submit">Continue →</button>
+          </form>
+          <div class="err" id="pwErr"></div>
+        </div>
+      </div>`);
+    $("#bk").onclick = leaveAdmin;
+    $("#pwEye").onclick = () => {
+      const pw = $("#apw");
+      pw.type = pw.type === "password" ? "text" : "password";
+      $("#pwEye").textContent = pw.type === "password" ? "👁" : "🙈";
+    };
+    $("#pwForm").onsubmit = (e) => {
+      e.preventDefault();
+      const btn = $("#pwBtn");
+      btn.disabled = true; btn.textContent = "Checking…";
+      AUTH.verifyPassword($("#apw").value)
+        .then(() => renderPinCreate(mode))
+        .catch(ex => {
+          const c = (ex && ex.code) || "";
+          $("#pwErr").textContent = /wrong-password|invalid-credential|invalid-login/.test(c) ? "That password isn't right." : friendly(ex);
+          btn.disabled = false; btn.textContent = "Continue →";
+        });
+    };
+  }
+
+  function renderPinCreate(mode) {
+    pinPad({
+      icon: "🔑",
+      title: mode === "change" ? "Choose a new PIN" : "Choose an admin PIN",
+      sub: "4 to 8 digits. Keep it secret from the kids!",
+      onDone: (first) => pinPad({
+        icon: "🔑",
+        title: "Type the PIN again",
+        sub: "Just to make sure.",
+        onDone: async (second) => {
+          if (second !== first) { toast("The two PINs didn't match — try again.", "bad"); renderPinCreate(mode); return; }
+          const salt = randomHex(16);
+          STORE.setPin({ salt: salt, hash: await hashPin(first, salt) });
+          setPinFails({});
+          adminUnlocked = true;
+          toast("Admin PIN saved — it works on every device.", "good");
+          renderAdminPage();
+        }
+      })
+    });
+  }
+
+  function renderAdminPage() {
+    if (!adminUnlocked) return renderAdmin();
+    current = null;     // don't redraw under the parent's fingers while they edit
+    const example = (r) => { const n = Math.round(10 * r); return "80% → 90% = <b>" + n + "</b> " + (n === 1 ? "point" : "points"); };
+    const rows = DATA.SUBJECTS.map(s => `<div class="rate-row" data-subject="${esc(s.id)}">
+        <span class="rate-name"><span class="subject-rep-art">${ART.subject(s.id)}</span>${esc(s.label)}</span>
+        <span class="stepper">
+          <button class="btn ghost sm" data-step="-0.5" data-s="${esc(s.id)}" type="button" aria-label="Less">−</button>
+          <input class="rate-input" id="rate_${esc(s.id)}" type="number" inputmode="decimal" min="0" max="100" step="0.5" value="${STORE.rate(s.id)}" aria-label="${esc(s.label)} points per 1%"/>
+          <button class="btn ghost sm" data-step="0.5" data-s="${esc(s.id)}" type="button" aria-label="More">+</button>
+        </span>
+        <span class="rate-example muted small" id="ex_${esc(s.id)}">${example(STORE.rate(s.id))}</span>
+      </div>`).join("");
+    const players = STORE.profilesList().map(p => {
+      const log = STORE.pointsLog(p).filter(e => e.pts > 0);
+      const last = log[log.length - 1];
+      return `<div class="rep-card">
+        <div class="t"><span>${esc(p.name)}</span>${ptsChip(STORE.points(p), 17)}</div>
+        <div class="sub">${DATA.SUBJECTS.map(s => esc(s.label) + " " + STORE.points(p, s.id)).join(" · ")}</div>
+        <div class="sub">${last ? "Last earned: +" + last.pts + " on " + esc(DATA.fullLabel(last.s, last.t, last.l)) + ", " + esc(REPORT.timeAgo(last.ts)) : "No points yet."}</div>
+      </div>`;
+    }).join("");
+    show(`
+      <div class="topbar"><span class="back" id="bk">← Menu</span><h2>🔒 Admin</h2></div>
+      <div class="page narrow">
+        <div class="summary-box">Parents only. Changes are saved to the cloud and apply on every device signed in to this account.</div>
+        <h3 class="section-h">Points for each 1%</h3>
+        <div class="card wide admin-card">
+          <p class="muted small" style="line-height:1.6;margin-bottom:12px">Points are paid only when a player <b>beats their own best score</b> on a level: (new best − old best) × the value below. Repeating a level without beating the best earns nothing, so one level can never pay more than 100 × the value.</p>
+          <div class="rate-list">${rows}</div>
+          <p class="muted small" style="margin-top:12px;line-height:1.6">New values count from the next assessment — points already earned don't change. Set a subject to 0 to switch its points off.</p>
+          <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn primary" id="saveRates" type="button">💾 Save points values</button></div>
+        </div>
+        <h3 class="section-h">Points so far</h3>
+        <div class="rep-grid">${players || `<div class="muted">No players yet.</div>`}</div>
+        <h3 class="section-h">Admin PIN</h3>
+        <div class="row" style="justify-content:flex-start">
+          <button class="btn" id="changePin" type="button">🔑 Change PIN</button>
+          <button class="btn ghost" id="lockAdmin" type="button">🔒 Lock admin</button>
+        </div>
+      </div>`);
+    const read = (id) => { const v = Number($("#rate_" + id).value); return isFinite(v) && v >= 0 ? Math.min(100, Math.round(v * 100) / 100) : 0; };
+    const refreshEx = (id) => { $("#ex_" + id).innerHTML = example(read(id)); };
+    $$(".stepper [data-step]").forEach(b => {
+      b.onclick = () => {
+        const id = b.dataset.s;
+        $("#rate_" + id).value = Math.max(0, Math.min(100, read(id) + Number(b.dataset.step)));
+        refreshEx(id);
+      };
+    });
+    $$(".rate-input").forEach(inp => { inp.oninput = () => refreshEx(inp.id.slice(5)); });
+    $("#saveRates").onclick = () => {
+      const r = {};
+      DATA.SUBJECTS.forEach(s => { r[s.id] = read(s.id); });
+      STORE.setRates(r);
+      toast("Saved — the new points values apply on every device.", "good");
+      renderAdminPage();
+    };
+    $("#changePin").onclick = () => renderPinCreate("change");
+    $("#lockAdmin").onclick = leaveAdmin;
+    $("#bk").onclick = leaveAdmin;
   }
 
   /* ===================== players ===================== */
@@ -1197,7 +1467,7 @@
       return `<div class="profile-card ${isActive ? "active" : ""}" data-pick="${esc(p.id)}" role="button" tabindex="0">
         <div class="profile-mini">${ART.student(p.gender)}</div>
         <div class="profile-name">${esc(p.name)}</div>
-        <div class="profile-meta">⭐ ${stars} · ${plural(hist.length, "assessment")}${avg != null ? ` · ${avg}%` : ""}</div>
+        <div class="profile-meta">⭐ ${stars} · ${ART.coin(13)} ${STORE.points(p)} · ${plural(hist.length, "assessment")}${avg != null ? ` · ${avg}%` : ""}</div>
         <div class="profile-actions">
           <button class="btn ghost sm" data-edit="${esc(p.id)}" type="button">Edit</button>
           ${profiles.length > 1 ? `<button class="btn ghost sm" data-delete="${esc(p.id)}" type="button">Delete</button>` : ""}
@@ -1311,7 +1581,7 @@
   function route() {
     if (!AUTH.ready) return renderSplash();
     const needLogin = AUTH.configured ? !(AUTH.user && AUTH.session) : !AUTH.session;
-    if (needLogin) { exam = null; return renderAuth(); }
+    if (needLogin) { exam = null; adminUnlocked = false; return renderAuth(); }
     const profiles = STORE.profilesList();
     if (!profiles.length) return renderProfileSelect({ autoAdd: true });
     if (!STORE.active()) STORE.selectProfile(profiles[0].id);

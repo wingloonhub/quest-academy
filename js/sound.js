@@ -51,6 +51,11 @@
       [523.25, 659.26, 783.99, 1046.50].forEach((f, i) =>
         tone({ type: "triangle", freq: f, duration: 0.22, vol: 0.18, delay: i * 0.10 }));
     },
+    coin()    {
+      tone({ type: "square", freq: 988,  duration: 0.07, vol: 0.14 });
+      tone({ type: "square", freq: 1318, duration: 0.14, vol: 0.14, delay: 0.06 });
+      tone({ type: "square", freq: 1760, duration: 0.18, vol: 0.12, delay: 0.14 });
+    },
     finish()  {
       [392.00, 523.25, 659.26].forEach((f, i) =>
         tone({ type: "triangle", freq: f, duration: 0.20, vol: 0.16, delay: i * 0.12 }));

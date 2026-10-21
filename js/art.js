@@ -147,6 +147,12 @@
     return crest();
   }
 
+  // Gold coin used for points.
+  function coin(size) {
+    const s = size || 16;
+    return `<svg class="coin" width="${s}" height="${s}" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11.5" fill="#d99a1e"/><circle cx="12" cy="12" r="9" fill="#f7c948" stroke="#c98a1b" stroke-width="1"/><polygon points="${starPoints(12, 12.6, 5.8, 2.5)}" fill="#c98a1b"/></svg>`;
+  }
+
   // Row of 3 stars, `n` of them lit.
   function stars(n, size) {
     const s = size || 22;
@@ -158,7 +164,7 @@
   }
 
   window.ART = {
-    crest, student, owl, subject, stars,
+    crest, student, owl, subject, stars, coin,
     player: function (_pose, gender) { return student(gender); }
   };
 })();

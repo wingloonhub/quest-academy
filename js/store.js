@@ -8,13 +8,21 @@
    - The cloud copy is MERGED, never blindly overwritten: sessions are combined
      by timestamp, deleted players / cleared histories are remembered with a
      timestamp, and the newest edit of a player's name wins. So a phone and a
-     desktop signed in to the same account always end up with the same data. */
+     desktop signed in to the same account always end up with the same data.
+   - POINTS: a level pays points only when the player beats their own best
+     score on it — (new best − old best) × the subject's points-per-1% rate.
+     Every new best is kept in a small ledger ("bests") with the rate at that
+     moment, so changing the rate later never changes points already earned,
+     and clearing history never lets points be earned twice.
+   - SETTINGS (points rates, admin PIN) belong to the whole account; the
+     newest saved version wins on every device. */
 (function () {
   "use strict";
   const LS_PREFIX = "qa_save_";
   const HISTORY_MAX = 120;     // finished sessions kept per player (all subjects)
   const DETAIL_KEEP = 20;      // newest sessions that keep every question for "View details"
   const MISTAKES_MAX = 8;      // mistakes kept per session for the Parent Report
+  const DEFAULT_RATE = 1;      // points for each 1% improvement on a level's best score
 
   let uidKey = "guest";
   let syncer = null;           // set by firebase.js
@@ -39,14 +47,63 @@
       updatedAt: now,          // last edit of name / character — newest edit wins on merge
       lastPlayed: now,
       history: [],             // finished sessions, newest first, all subjects
-      cleared: {}              // { english: ts, all: ts } — sessions at/before ts are gone
+      cleared: {},             // { english: ts, all: ts } — sessions at/before ts are gone
+      bests: []                // points ledger: one entry per new best score on a level
     };
+  }
+
+  function defaultSettings() {
+    return {
+      updatedAt: 0,                                              // newest saved settings win
+      pointsPerPercent: { english: DEFAULT_RATE, bahasa: DEFAULT_RATE, maths: DEFAULT_RATE },
+      pin: null                                                  // { salt, hash } of the admin PIN
+    };
+  }
+  function cleanRate(v) {
+    const n = Number(v);
+    return isFinite(n) && n >= 0 ? Math.min(100, Math.round(n * 100) / 100) : DEFAULT_RATE;
+  }
+  function normaliseSettings(raw) {
+    const out = defaultSettings();
+    if (!isObj(raw)) return out;
+    out.updatedAt = raw.updatedAt || 0;
+    if (isObj(raw.pointsPerPercent)) {
+      Object.keys(raw.pointsPerPercent).forEach(function (k) { out.pointsPerPercent[k] = cleanRate(raw.pointsPerPercent[k]); });
+    }
+    out.pin = isObj(raw.pin) && raw.pin.hash && raw.pin.salt ? { salt: String(raw.pin.salt), hash: String(raw.pin.hash) } : null;
+    return out;
+  }
+
+  // Points ledger: one entry per new best { s, t, l, ts, pct, rate }.
+  const bestKey = (e) => e.s + "|" + e.t + "|" + e.l;
+  function tidyBests(list) {
+    const seen = {};
+    return (list || []).filter(function (e) {
+      if (!isObj(e) || e.ts == null || !e.s || !e.t || !e.l) return false;
+      const k = bestKey(e) + "|" + e.ts;
+      if (seen[k]) return false;
+      seen[k] = true;
+      return true;
+    }).sort(function (a, b) { return (a.ts || 0) - (b.ts || 0); });
+  }
+  // Points for every ledger entry, worked out in time order: only the part
+  // above the best so far counts. Re-run after every merge, so two devices
+  // that both beat the same old score offline can't pay out twice.
+  function scoreBests(list) {
+    const best = {};
+    return tidyBests(list).map(function (e) {
+      const k = bestKey(e), prev = best[k] || 0;
+      const gain = Math.max(0, (e.pct || 0) - prev);
+      if ((e.pct || 0) > prev) best[k] = e.pct || 0;
+      return Object.assign({}, e, { prev: prev, gain: gain, pts: Math.round(gain * cleanRate(e.rate)) });
+    });
   }
 
   function blankState() {
     return {
       v: 1,
       account: { uid: null, email: null },
+      settings: defaultSettings(),
       profiles: {},
       deleted: {},             // { profileId: ts } so a deleted player stays deleted everywhere
       activeProfileId: null    // per device — never taken from the cloud
@@ -97,6 +154,7 @@
     p.lastPlayed = p.lastPlayed || p.updatedAt;
     p.cleared = isObj(p.cleared) ? p.cleared : {};
     p.history = tidyHistory(Array.isArray(p.history) ? p.history : [], p.cleared);
+    p.bests = tidyBests(Array.isArray(p.bests) ? p.bests : []);
     return p;
   }
 
@@ -105,6 +163,7 @@
     if (!isObj(data)) return out;
     data = clone(data);
     out.account = Object.assign(out.account, isObj(data.account) ? data.account : {});
+    out.settings = normaliseSettings(data.settings);
     out.deleted = isObj(data.deleted) ? data.deleted : {};
     const profs = isObj(data.profiles) ? data.profiles : {};
     Object.keys(profs).forEach(function (pid) {
@@ -122,6 +181,7 @@
     out.account = Object.assign({}, a.account);
     Object.keys(b.account).forEach(function (k) { if (b.account[k] != null) out.account[k] = b.account[k]; });
     out.deleted = maxMap(a.deleted, b.deleted);
+    out.settings = (b.settings.updatedAt || 0) >= (a.settings.updatedAt || 0) ? b.settings : a.settings;
 
     const ids = {};
     Object.keys(a.profiles).concat(Object.keys(b.profiles)).forEach(function (id) { ids[id] = true; });
@@ -133,6 +193,7 @@
       p.lastPlayed = Math.max(pa.lastPlayed || 0, pb.lastPlayed || 0);
       p.cleared = maxMap(pa.cleared, pb.cleared);
       p.history = tidyHistory(pb.history.concat(pa.history), p.cleared);
+      p.bests = tidyBests(pb.bests.concat(pa.bests));
       out.profiles[id] = p;
     });
 
@@ -230,6 +291,8 @@
       });
     },
 
+    // Records a finished assessment and pays points if it beats the best score.
+    // Returns the stored session plus { points, prevBest, newBest, rate }.
     recordSession(entry) {
       const p = STORE.active(); if (!p || !entry) return null;
       const clean = {
@@ -244,11 +307,56 @@
         mistakes:  (entry.mistakes || []).slice(0, MISTAKES_MAX),
         answers:   entry.answers || null         // every question, for "View details"
       };
+      const prevBest = STORE.bestScore(clean.subjectId, clean.topicId, clean.levelId, p);
+      const rate = STORE.rate(clean.subjectId);
+      let points = 0;
+      if (clean.pct > prevBest) {
+        p.bests.push({ s: clean.subjectId, t: clean.topicId, l: clean.levelId, ts: clean.ts, pct: clean.pct, rate: rate });
+        p.bests = tidyBests(p.bests);
+        points = Math.round((clean.pct - prevBest) * rate);
+      }
+      clean.points = points;
       p.history.unshift(clean);
       p.history = tidyHistory(p.history, p.cleared);
       p.lastPlayed = Date.now();
       STORE.save({ immediate: true });           // a finished session must never be lost
-      return clean;
+      return Object.assign({}, clean, { prevBest: prevBest, newBest: clean.pct > prevBest, rate: rate });
+    },
+
+    /* ---------------- points ---------------- */
+    // Best score ever on a level (kept even if history is cleared).
+    bestScore(subjectId, topicId, levelId, profile) {
+      const p = profile || STORE.active();
+      return ((p && p.bests) || []).reduce(function (m, e) {
+        return e.s === subjectId && e.t === topicId && e.l === levelId ? Math.max(m, e.pct || 0) : m;
+      }, 0);
+    },
+    // Every points-earning moment, oldest first, with .pts worked out.
+    pointsLog(profile, subjectId) {
+      const p = profile || STORE.active();
+      return scoreBests((p && p.bests) || []).filter(function (e) { return !subjectId || e.s === subjectId; });
+    },
+    points(profile, subjectId) {
+      return STORE.pointsLog(profile, subjectId).reduce(function (a, e) { return a + e.pts; }, 0);
+    },
+
+    /* ---------------- account settings (admin) ---------------- */
+    settings() { return STORE.state.settings || defaultSettings(); },
+    rate(subjectId) {
+      const r = (STORE.settings().pointsPerPercent || {})[subjectId];
+      return r == null ? DEFAULT_RATE : cleanRate(r);
+    },
+    setRates(rates) {
+      const st = STORE.state.settings = normaliseSettings(STORE.state.settings);
+      Object.keys(rates || {}).forEach(function (k) { st.pointsPerPercent[k] = cleanRate(rates[k]); });
+      st.updatedAt = Date.now();
+      STORE.save({ immediate: true });
+    },
+    setPin(pin) {      // pin = { salt, hash } or null
+      const st = STORE.state.settings = normaliseSettings(STORE.state.settings);
+      st.pin = pin && pin.salt && pin.hash ? { salt: pin.salt, hash: pin.hash } : null;
+      st.updatedAt = Date.now();
+      STORE.save({ immediate: true });
     },
 
     // subjectId = "english" | "bahasa" | "maths" | "all"
@@ -292,6 +400,7 @@
     onChange(fn) { listeners.push(fn); },
     emit() { listeners.forEach(function (fn) { try { fn(STORE.state); } catch (e) { } }); },
 
+    DEFAULT_RATE,
     // Exposed for firebase.js
     merge, normalise, forCloud, stable
   };
