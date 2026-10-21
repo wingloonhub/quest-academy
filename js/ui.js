@@ -486,8 +486,7 @@
     parts.push(bank ? "📝 " + plural(sessionSizeFor(l, bank), "question") : "📝 questions coming soon");
     parts.push(lesson ? "📖 " + lesson.length + "-card lesson" : "📖 lesson coming soon");
     return `<button class="level-card" data-topic="${esc(topicId)}" data-level="${esc(levelId)}" type="button">
-        <span class="level-head"><span class="level-name">${esc(l.label)}</span>${masteryBadge(ls.mastery)}</span>
-        ${l.desc ? `<span class="topic-desc">${esc(l.desc)}</span>` : ""}
+        <span class="level-head"><span class="level-name">${esc(l.label)}${l.desc ? `: ${esc(l.desc)}` : ""}</span>${masteryBadge(ls.mastery)}</span>
         <span class="level-foot">
           <span class="muted small">${parts.join(" · ")}</span>
           ${ls.attempts ? `<span class="topic-best">${ART.stars(starsFor(ls.best), 14)} best ${ls.best}% · ${esc(REPORT.timeAgo(ls.lastTs))}</span>` : ""}
@@ -565,8 +564,7 @@
           <div class="level-hero-top">
             <span class="topic-hero-icon sm">${esc(t.icon || "📘")}</span>
             <div style="min-width:0">
-              <div class="level-hero-name">${esc(t.label)} · ${esc(l.label)}</div>
-              ${l.desc ? `<div class="muted">${esc(l.desc)}</div>` : ""}
+              <div class="level-hero-name">${esc(t.label)} · ${esc(l.label)}${l.desc ? `: ${esc(l.desc)}` : ""}</div>
             </div>
           </div>
           <div class="level-hero-mastery">${masteryBadge(st.mastery, true)}<span class="muted small">${esc(st.next)}</span></div>
@@ -870,10 +868,15 @@
     const subj = DATA.subject(st.subjectId);
     const total = st.questions.length, num = st.idx + 1;
     const correctSoFar = st.answers.filter(a => a.correct).length;
-    const kind = q.spelling ? "spell" : q.typed ? "typed" : "mcq";
-    const accepts = kind === "mcq" ? [] : acceptedAnswers(q);
+    const kind = q.spelling ? "spell" : Array.isArray(q.fields) ? "multi" : q.typed ? "typed" : "mcq";
+    const accepts = kind === "mcq" || kind === "multi" ? [] : acceptedAnswers(q);
     const numeric = kind === "typed" && isNumericAnswers(accepts);
-    const tag = q.cat ? DATA.catLabel(st.subjectId, st.topicId, st.levelId, q.cat) : "";
+    const lvlDef = DATA.level(st.subjectId, st.topicId, st.levelId) || {};
+    // hideCat: don't show the question-type tag during the test (it would give the answer away)
+    const tag = q.cat && !lvlDef.hideCat ? DATA.catLabel(st.subjectId, st.topicId, st.levelId, q.cat) : "";
+    // Several answer boxes (e.g. "Number of groups" + "Items in each group").
+    const fieldAcc = kind === "multi" ? q.fields.map(f => [f.word].concat(f.alt || []).filter(a => a != null).map(String)) : [];
+    const multiNumeric = kind === "multi" && fieldAcc.every(a => isNumericAnswers(a));
     const passage = q.passage ? `<div class="passage">${fmt(q.passage)}</div>` : "";
     const visual = q.visual ? `<div class="q-visual">${q.visual}</div>` : "";
     const qText = String(q.q || "");
@@ -893,6 +896,13 @@
           <div class="keyboard" id="kb">${keyboardHtml(accepts, false)}</div>
           ${actions}
         </div>`;
+    } else if (kind === "multi") {
+      body = `${passage}${visual}
+        <div class="qtext">${fmt(qText)}</div>
+        <div class="mf-row">${q.fields.map((f, i) => `<button class="mf-box${i === 0 ? " active" : ""}" data-f="${i}" type="button"><span class="mf-label">${esc(f.label)}</span><span class="mf-val" id="mfVal${i}"></span></button>`).join("")}</div>
+        <p class="spell-instr">${esc(q.instr || "Tap a box, then type the number.")}</p>
+        <div class="keyboard${multiNumeric ? " numeric" : ""}" id="kb">${keyboardHtml([].concat.apply([], fieldAcc), multiNumeric)}</div>
+        ${actions}`;
     } else if (kind === "typed") {
       const parts = qText.split("___");
       body = `${passage}${visual}
@@ -975,6 +985,59 @@
         if (i < 0 && /^[1-6]$/.test(k)) i = Number(k) - 1;
         if (i >= 0 && i < q.options.length) { choose(i); return true; }
       };
+      return;
+    }
+
+    // Several answer boxes: type into the highlighted box; "Next box" moves on.
+    if (kind === "multi") {
+      const fields = q.fields;
+      const vals = fields.map(() => "");
+      let active = 0;
+      const kb = $("#kb"), clearBtn = $("#clearBtn"), submitBtn = $("#submitBtn");
+      const boxes = $$(".mf-box");
+      const firstEmpty = () => vals.findIndex(v => !v.trim());
+      const paint = () => {
+        boxes.forEach((b, i) => {
+          b.classList.toggle("active", i === active && !busy);
+          $("#mfVal" + i).innerHTML = vals[i] ? esc(vals[i]) : `<span class="placeholder">?</span>`;
+        });
+        clearBtn.disabled = busy || !vals[active];
+        submitBtn.disabled = busy || vals.every(v => !v.trim());
+        submitBtn.textContent = firstEmpty() === -1 ? "Check answer ✓" : "Next box →";
+      };
+      const press = (k) => {
+        if (busy) return;
+        if (k === "back") vals[active] = vals[active].slice(0, -1);
+        else if (vals[active].length < 8) vals[active] += k;
+        paint();
+      };
+      const submit = () => {
+        if (busy) return;
+        const empty = firstEmpty();
+        if (empty > -1) { active = empty; paint(); return; }
+        const okEach = vals.map((v, i) => sameAnswer(v, fieldAcc[i], multiNumeric));
+        const ok = okEach.every(Boolean);
+        kb.querySelectorAll(".kb-key").forEach(b => { b.disabled = true; });
+        boxes.forEach((b, i) => { b.disabled = true; b.classList.remove("active"); b.classList.add(okEach[i] ? "ok" : "bad"); });
+        clearBtn.disabled = true; submitBtn.disabled = true;
+        finish(ok,
+          fields.map((f, i) => f.label + ": " + vals[i].trim()).join(", "),
+          fields.map((f, i) => f.label + ": " + fieldAcc[i][0]).join(", "),
+          "❌ " + fields.map((f, i) => `${esc(f.label)}: <b>${esc(fieldAcc[i][0])}</b>${okEach[i] ? " ✓" : ""}`).join(" · "));
+      };
+      boxes.forEach((b, i) => { b.onclick = () => { if (!busy) { active = i; paint(); } }; });
+      kb.querySelectorAll(".kb-key").forEach(b => { b.onclick = () => press(b.dataset.key); });
+      clearBtn.onclick = () => { if (!busy) { vals[active] = ""; paint(); } };
+      submitBtn.onclick = submit;
+      keyHandler = (e) => {
+        if (busy) return;
+        if (e.key === "Enter") { submit(); return true; }
+        if (e.key === "Tab") { active = (active + (e.shiftKey ? fields.length - 1 : 1)) % fields.length; paint(); return true; }
+        if (e.key === "Backspace") { press("back"); return true; }
+        const k = String(e.key || "").length === 1 ? e.key.toLowerCase() : "";
+        if (k && (multiNumeric ? /[0-9.\/-]/.test(k) : /[a-z' -]/.test(k))) { press(k); return true; }
+      };
+      paint();
       return;
     }
 

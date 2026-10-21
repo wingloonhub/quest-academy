@@ -22,7 +22,9 @@
      sessionSize: 20                       → questions per assessment (default 10)
      catLabels: { ADD3: "3-digit sums" }   → friendly names for question `cat` codes
      passageMode: true, passageCount: 2    → reading comprehension: whole passages,
-                                             questions kept in order              */
+                                             questions kept in order
+     hideCat: true                         → don't show the question-type tag during
+                                             the assessment (when it would give a hint) */
 (function () {
   "use strict";
 
@@ -63,10 +65,15 @@
           ] },
         { id: "subtraction",     label: "Subtraction",       icon: "−", desc: "Taking away and finding the difference",         levels: [] },
         { id: "multiplication",  label: "Multiplication",    icon: "×", desc: "Times tables and multiplying bigger numbers",    levels: [
-            { id: "level1", label: "Level 1", desc: "Tables 2 to 10", sessionSize: 20,
+            { id: "level1", label: "Level 1", desc: "1 digit × 1 digit", sessionSize: 20,
               catLabels: { T2: "2 times table", T3: "3 times table", T4: "4 times table", T5: "5 times table",
                            T6: "6 times table", T7: "7 times table", T8: "8 times table", T9: "9 times table",
-                           T10: "10 times table" } }
+                           T10: "10 times table" } },
+            { id: "level2", label: "Level 2", desc: "2 digits × 1 digit", sessionSize: 15,
+              catLabels: { NOCARRY: "Without carrying", CARRY: "With carrying" } },
+            { id: "level3", label: "Level 3", desc: "Identify groups & items in each group", sessionSize: 15, hideCat: true,
+              catLabels: { SETUP: "“… are set up. There are … in each one”", EACHOF: "“Each of the … contains …”",
+                           EVERY: "“… has …, with … in every one”", PUTIN: "“… are put in each of …” (items first)" } }
           ] },
         { id: "division",        label: "Division",          icon: "÷", desc: "Sharing, grouping and remainders",               levels: [] },
         { id: "fractions",       label: "Fractions",         icon: "🍕", desc: "Parts of a whole, comparing, fractions of amounts", levels: [] },

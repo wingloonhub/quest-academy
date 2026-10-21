@@ -550,3 +550,15 @@ button:focus-visible,.profile-card:focus-visible{outline:2px solid var(--gold);o
 .year-badge{font-family:var(--display);font-size:34px}
 .year-topic{margin-top:18px}
 .year-topic-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+
+/* ---------- Several answer boxes (e.g. groups + items) ---------- */
+.mf-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:4px 0 2px}
+.mf-box{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 10px;border-radius:14px;background:rgba(0,0,0,.3);border:2px solid var(--border);color:var(--ink);transition:border-color .15s,background .15s,box-shadow .15s}
+.mf-box.active{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow);background:rgba(0,0,0,.4)}
+.mf-label{font-size:12.5px;font-weight:800;letter-spacing:.4px;color:var(--muted);text-transform:uppercase;text-align:center}
+.mf-val{font-size:30px;font-weight:800;color:var(--ink-strong);min-height:38px;line-height:38px}
+.mf-val .placeholder{font-size:26px;color:var(--accent)}
+.mf-box.ok{border-color:var(--good);background:rgba(78,196,106,.16)}
+.mf-box.ok .mf-val{color:#b2f3c3}
+.mf-box.bad{border-color:var(--bad);background:rgba(226,85,77,.16)}
+.mf-box.bad .mf-val{color:#ffc8c4}

@@ -28,7 +28,7 @@ Subject   English · Bahasa · Maths          (the three cards on the menu)
 | Main menu → English · Bahasa · Maths | ✅ built |
 | Study Mode inside each subject: **By Topic** or **By School Year** (Year 1–6) | ✅ built |
 | Maths → 12 topics (Addition, Subtraction, Multiplication, Division, Fractions, Length, Mass (weight), Capacity & volume, Perimeter, Time, Money, Word Problems) | ✅ built |
-| Maths levels ready: Addition L1 (2- and 3-digit, 50 questions, 10 per test) · Multiplication L1 (tables 2–10, 90 questions, 20 per test) — not linked to a school year yet | ✅ loaded |
+| Maths levels ready: Addition L1: 2- and 3-digit (50 questions, 10 per test) · Multiplication L1: 1 digit × 1 digit (tables 2–10, 90 questions, 20 per test) · Multiplication L2: 2 digits × 1 digit (80 questions, 15 per test) · Multiplication L3: identify groups & items in each group (80 word problems with two answer boxes, 15 per test) — not linked to a school year yet | ✅ loaded |
 | Level page → Assessment · Learn · Progress report | ✅ built — fills in as levels are added |
 | English and Bahasa topics | ⏳ *coming soon* — same topic → level layout as Maths |
 | History & Analysis, Parent Report (mastery grid for every topic and level) | ✅ built |
@@ -213,6 +213,7 @@ Re-upload the changed files to GitHub — Vercel redeploys automatically.
 | Listen and spell (British English voice for English, Malay voice for Bahasa) | `{ spelling: true, word: "because", hint: "…" }` |
 | Reading passage — same `pid` + `passage` on each question, and `passageMode: true` on the level | `{ pid: "fox1", passage: "…", q, options, answer }` |
 | Picture above any question (shapes, clocks, scales…) | `visual: "<svg …>…</svg>"` |
+| Several answer boxes (e.g. *Number of groups* + *Items in each group*) — tap a box, type, “Next box”; correct only if every box is right | `{ q: "story…", fields: [{ label: "Number of groups", word: "4" }, { label: "Items in each group", word: "6" }] }` |
 
 Optional on any question: `cat` (powers *weak areas* in the progress report —
 give codes friendly names with `catLabels` on the level) and `explain` (shown
