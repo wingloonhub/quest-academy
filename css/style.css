@@ -526,3 +526,27 @@ button:focus-visible,.profile-card:focus-visible{outline:2px solid var(--gold);o
   .rate-row{grid-template-columns:1fr auto}
   .rate-example{grid-column:1 / -1}
 }
+
+/* ---------- Study Mode ---------- */
+.study-box{margin-top:16px;background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:18px}
+.study-h{font-family:var(--display);font-size:21px;color:var(--ink-strong);margin-bottom:14px}
+.study-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:520px){.study-grid{grid-template-columns:1fr}}
+.study-card{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;background:var(--panel-solid);border:1px solid var(--border);border-radius:16px;padding:22px 16px 18px;transition:transform .15s,border-color .2s,box-shadow .2s}
+.study-card:hover{transform:translateY(-3px);border-color:var(--accent);box-shadow:0 12px 26px rgba(0,0,0,.4),0 0 0 1px var(--accent-glow)}
+.study-icon{width:34px;height:34px;color:var(--accent)}
+.study-icon svg{width:100%;height:100%}
+.study-title{font-family:var(--display);font-size:20px;font-weight:800;color:var(--ink-strong)}
+.study-desc{color:var(--muted);font-size:14px;line-height:1.5}
+.study-eg{font-size:13px;font-weight:800;color:var(--ink)}
+.study-ready{font-size:12px;font-weight:800;color:var(--accent)}
+.study-last{position:absolute;top:10px;right:10px;font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--ink-strong);background:var(--accent-glow);border:1px solid var(--accent);border-radius:99px;padding:2px 8px}
+.year-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media(max-width:560px){.year-grid{grid-template-columns:1fr 1fr}}
+.year-card{display:flex;flex-direction:column;align-items:flex-start;gap:6px;text-align:left;background:var(--panel-solid);border:1px solid var(--border);border-top:3px solid var(--accent);border-radius:14px;padding:14px 14px 16px;transition:transform .15s,border-color .2s,box-shadow .2s}
+.year-card:hover{transform:translateY(-2px);border-color:var(--accent);box-shadow:0 10px 22px rgba(0,0,0,.4)}
+.year-card.pending{border-top-color:var(--border);opacity:.75}
+.year-num{font-family:var(--display);font-size:22px;font-weight:800;color:var(--ink-strong)}
+.year-badge{font-family:var(--display);font-size:34px}
+.year-topic{margin-top:18px}
+.year-topic-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}

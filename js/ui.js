@@ -321,12 +321,80 @@
     </div>`;
   }
 
-  /* ===================== subject → topics ===================== */
-  function renderSubject(subjectId) {
+  /* ===================== subject → Study Mode ===================== *
+     Opening a subject asks how to study:
+       By Topic       → every topic → its levels
+       By School Year → Year 1…6 → the levels tagged with that year (data.js `years`)
+     `studyCtx` remembers the path so "back" from a level returns to the
+     topic page or the year page the child came from. */
+  let studyCtx = { subjectId: null, mode: "topic", year: null };
+  const STUDY_KEY = "qa_study_";
+  function lastStudy(subjectId) { try { return localStorage.getItem(STUDY_KEY + subjectId) || ""; } catch (e) { return ""; } }
+  function rememberStudy(subjectId, v) { try { localStorage.setItem(STUDY_KEY + subjectId, v); } catch (e) { } }
+
+  const ICON_BOOK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 5.5C4.6 4 8.2 4 12 6c3.8-2 7.4-2 10-.5V19c-2.6-1.5-6.2-1.5-10 .5-3.8-2-7.4-2-10-.5z"/><path d="M12 6v13.5"/></svg>`;
+  const ICON_CAP = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9.5 12 4.5l10 5-10 5z"/><path d="M6 11.5v4.8c0 1.4 2.7 3.2 6 3.2s6-1.8 6-3.2v-4.8"/><path d="M22 9.5v5.5"/></svg>`;
+
+  function subjectHero(subj, hist) {
+    return `<div class="subject-hero">
+        <div class="subject-hero-art">${ART.subject(subj.id)}</div>
+        <div>
+          <div class="subject-hero-name">${esc(subj.fullLabel || subj.label)}</div>
+          <div class="muted">${esc(subj.tagline)}</div>
+          ${hist.length ? `<div class="subject-hero-stats">⭐ ${totalStars(hist)} · ${ART.coin(13)} ${plural(STORE.points(null, subj.id), "point")} · ${plural(hist.length, "assessment")} · avg ${avgPct(hist)}%</div>` : ""}
+        </div>
+      </div>`;
+  }
+
+  function renderSubject(subjectId) { renderStudyMode(subjectId); }
+
+  function renderStudyMode(subjectId) {
     const subj = DATA.subject(subjectId);
     if (!subj) return renderMenu();
-    current = () => renderSubject(subjectId);
+    current = () => renderStudyMode(subjectId);
     const hist = STORE.history(subjectId);
+    const last = lastStudy(subjectId);
+    const names = subj.topics.map(t => t.label);
+    const topicLine = names.length ? esc(names.slice(0, 3).join(", ")) + (names.length > 3 ? "…" : "") : "Coming soon";
+    const readyYears = DATA.SCHOOL_YEARS.filter(y => DATA.yearTopics(subjectId, y).length);
+    show(`
+      <div class="topbar"><span class="back" id="bk">← Menu</span><h2>${esc(subj.label)}</h2></div>
+      <div class="page narrow">
+        ${subjectHero(subj, hist)}
+        <div class="study-box">
+          <h3 class="study-h">How would you like to study?</h3>
+          <div class="study-grid">
+            <button class="study-card" id="byTopic" type="button">
+              ${last === "topic" ? `<span class="study-last">Last used</span>` : ""}
+              <span class="study-icon">${ICON_BOOK}</span>
+              <span class="study-title">By Topic</span>
+              <span class="study-desc">Choose a specific topic and progress from basic to advanced.</span>
+              <span class="study-eg">${topicLine}</span>
+            </button>
+            <button class="study-card" id="byYear" type="button">
+              ${last.indexOf("year") === 0 ? `<span class="study-last">Last used</span>` : ""}
+              <span class="study-icon">${ICON_CAP}</span>
+              <span class="study-title">By School Year</span>
+              <span class="study-desc">Study topics based on your school year's syllabus.</span>
+              <span class="study-eg">Year ${DATA.SCHOOL_YEARS.join(", ")}</span>
+              ${readyYears.length ? `<span class="study-ready">Ready now: ${readyYears.map(y => "Year " + y).join(", ")}</span>` : ""}
+            </button>
+          </div>
+        </div>
+        <button class="btn full" id="histBtn" type="button" style="margin-top:18px">📈 ${esc(subj.label)} history &amp; analysis${hist.length ? ` <span class="muted">· ${plural(hist.length, "assessment")}</span>` : ""}</button>
+      </div>`, subjectId);
+    $("#bk").onclick = renderMenu;
+    $("#byTopic").onclick = () => { rememberStudy(subjectId, "topic"); renderTopicList(subjectId); };
+    $("#byYear").onclick = () => { rememberStudy(subjectId, "year"); renderYearList(subjectId); };
+    $("#histBtn").onclick = () => renderHistory(subjectId, () => renderStudyMode(subjectId));
+  }
+
+  /* ---------- By Topic ---------- */
+  function renderTopicList(subjectId) {
+    const subj = DATA.subject(subjectId);
+    if (!subj) return renderMenu();
+    current = () => renderTopicList(subjectId);
+    studyCtx = { subjectId, mode: "topic", year: null };
     const cards = subj.topics.map(t => {
       const sum = REPORT.topicSummary(subjectId, t.id);
       let foot;
@@ -339,40 +407,85 @@
       </button>`;
     }).join("");
     show(`
-      <div class="topbar"><span class="back" id="bk">← Menu</span><h2>${esc(subj.label)}</h2></div>
+      <div class="topbar"><span class="back" id="bk">← Study mode</span><h2>${esc(subj.label)} · By Topic</h2></div>
       <div class="page narrow">
-        <div class="subject-hero">
-          <div class="subject-hero-art">${ART.subject(subjectId)}</div>
-          <div>
-            <div class="subject-hero-name">${esc(subj.fullLabel || subj.label)}</div>
-            <div class="muted">${esc(subj.tagline)} · ${esc(DATA.YEAR_LABEL)}</div>
-            ${hist.length ? `<div class="subject-hero-stats">⭐ ${totalStars(hist)} · ${ART.coin(13)} ${plural(STORE.points(null, subjectId), "point")} · ${plural(hist.length, "assessment")} · avg ${avgPct(hist)}%</div>` : ""}
-          </div>
-        </div>
         ${subj.topics.length
-          ? `<h3 class="section-h">Topics</h3><div class="topic-grid">${cards}</div>`
-          : soonCard("Topics are on the way", `The Year 4 ${esc(subj.label)} topics will appear here as soon as the worksheets are added. Each topic will have its own levels, and every level gets an <b>Assessment</b>, a <b>Learn</b> lesson and a <b>Progress report</b>.`)}
-        <button class="btn full" id="histBtn" type="button" style="margin-top:18px">📈 ${esc(subj.label)} history &amp; analysis${hist.length ? ` <span class="muted">· ${plural(hist.length, "assessment")}</span>` : ""}</button>
+          ? `<h3 class="section-h" style="margin-top:4px">Topics</h3><div class="topic-grid">${cards}</div>`
+          : soonCard("Topics are on the way", `The ${esc(subj.label)} topics will appear here as soon as the worksheets are added. Each topic will have its own levels, and every level gets an <b>Assessment</b>, a <b>Learn</b> lesson and a <b>Progress report</b>.`)}
       </div>`, subjectId);
-    $("#bk").onclick = renderMenu;
-    $("#histBtn").onclick = () => renderHistory(subjectId, () => renderSubject(subjectId));
+    $("#bk").onclick = () => renderStudyMode(subjectId);
     $$(".topic-card").forEach(card => { card.onclick = () => renderTopic(subjectId, card.dataset.topic); });
   }
 
+  /* ---------- By School Year ---------- */
+  function renderYearList(subjectId) {
+    const subj = DATA.subject(subjectId);
+    if (!subj) return renderMenu();
+    current = () => renderYearList(subjectId);
+    const cards = DATA.SCHOOL_YEARS.map(y => {
+      const groups = DATA.yearTopics(subjectId, y);
+      const levels = groups.reduce((n, g) => n + g.levels.length, 0);
+      const mastered = groups.reduce((n, g) => n + g.levels.filter(l => REPORT.levelStats(subjectId, g.topic.id, l.id).mastery.id === "mastered").length, 0);
+      return `<button class="year-card${levels ? "" : " pending"}" data-year="${y}" type="button">
+        <span class="year-num">Year ${y}</span>
+        ${levels
+          ? `<span class="topic-hint">${plural(levels, "level")}${mastered ? ` · 🏆 ${mastered} mastered` : ""}</span>
+             <span class="topic-desc">${esc(groups.map(g => g.topic.label).join(", "))}</span>`
+          : `<span class="soon-pill sm">Coming soon</span>`}
+      </button>`;
+    }).join("");
+    show(`
+      <div class="topbar"><span class="back" id="bk">← Study mode</span><h2>${esc(subj.label)} · By School Year</h2></div>
+      <div class="page narrow">
+        <div class="lead" style="margin-top:4px">Pick a school year to see the levels that match that year's syllabus.</div>
+        <div class="year-grid">${cards}</div>
+      </div>`, subjectId);
+    $("#bk").onclick = () => renderStudyMode(subjectId);
+    $$(".year-card").forEach(c => { c.onclick = () => renderYear(subjectId, Number(c.dataset.year)); });
+  }
+
+  function renderYear(subjectId, year) {
+    const subj = DATA.subject(subjectId);
+    if (!subj) return renderMenu();
+    current = () => renderYear(subjectId, year);
+    studyCtx = { subjectId, mode: "year", year };
+    rememberStudy(subjectId, "year:" + year);
+    const groups = DATA.yearTopics(subjectId, year);
+    const all = [];
+    groups.forEach(g => g.levels.forEach(l => all.push(REPORT.levelStats(subjectId, g.topic.id, l.id))));
+    const mastered = all.filter(x => x.mastery.id === "mastered").length;
+    const sections = groups.map(g => `<section class="year-topic">
+        <div class="year-topic-head"><span class="topic-icon">${esc(g.topic.icon || "📘")}</span><span class="topic-name">${esc(g.topic.label)}</span></div>
+        <div class="level-list">${g.levels.map(l => levelCard(subjectId, g.topic.id, l.id)).join("")}</div>
+      </section>`).join("");
+    show(`
+      <div class="topbar"><span class="back" id="bk">← School years</span><h2>${esc(subj.label)} · Year ${year}</h2></div>
+      <div class="page narrow">
+        <div class="subject-hero">
+          <div class="topic-hero-icon year-badge">${year}</div>
+          <div>
+            <div class="subject-hero-name">Year ${year} ${esc(subj.label)}</div>
+            <div class="muted">${groups.length ? plural(groups.length, "topic") + " · " + plural(all.length, "level") : "Levels for this year haven't been added yet."}</div>
+            ${all.length ? `<div class="subject-hero-stats">🏆 ${mastered}/${all.length} levels mastered</div>` : ""}
+          </div>
+        </div>
+        ${groups.length ? sections : soonCard("Year " + year + " is on the way",
+            `Levels for Year ${year} ${esc(subj.label)} will appear here once they're added. Meanwhile, try <b>By Topic</b> to see everything that's ready.`)}
+      </div>`, subjectId);
+    $("#bk").onclick = () => renderYearList(subjectId);
+    $$(".level-card").forEach(c => { c.onclick = () => renderLevel(subjectId, c.dataset.topic, c.dataset.level); });
+  }
+
   /* ===================== topic → levels ===================== */
-  function renderTopic(subjectId, topicId) {
-    const subj = DATA.subject(subjectId), t = DATA.topic(subjectId, topicId);
-    if (!subj || !t) return renderSubject(subjectId);
-    current = () => renderTopic(subjectId, topicId);
-    const sum = REPORT.topicSummary(subjectId, topicId);
-    const levelCards = sum.levels.map(ls => {
-      const l = DATA.level(subjectId, topicId, ls.levelId);
-      const bank = DATA.bank(subjectId, topicId, ls.levelId);
-      const lesson = DATA.lesson(subjectId, topicId, ls.levelId);
-      const parts = [];
-      parts.push(bank ? "📝 " + plural(sessionSizeFor(l, bank), "question") : "📝 questions coming soon");
-      parts.push(lesson ? "📖 " + lesson.length + "-card lesson" : "📖 lesson coming soon");
-      return `<button class="level-card" data-level="${esc(ls.levelId)}" type="button">
+  function levelCard(subjectId, topicId, levelId) {
+    const ls = REPORT.levelStats(subjectId, topicId, levelId);
+    const l = DATA.level(subjectId, topicId, levelId);
+    const bank = DATA.bank(subjectId, topicId, levelId);
+    const lesson = DATA.lesson(subjectId, topicId, levelId);
+    const parts = [];
+    parts.push(bank ? "📝 " + plural(sessionSizeFor(l, bank), "question") : "📝 questions coming soon");
+    parts.push(lesson ? "📖 " + lesson.length + "-card lesson" : "📖 lesson coming soon");
+    return `<button class="level-card" data-topic="${esc(topicId)}" data-level="${esc(levelId)}" type="button">
         <span class="level-head"><span class="level-name">${esc(l.label)}</span>${masteryBadge(ls.mastery)}</span>
         ${l.desc ? `<span class="topic-desc">${esc(l.desc)}</span>` : ""}
         <span class="level-foot">
@@ -380,9 +493,16 @@
           ${ls.attempts ? `<span class="topic-best">${ART.stars(starsFor(ls.best), 14)} best ${ls.best}% · ${esc(REPORT.timeAgo(ls.lastTs))}</span>` : ""}
         </span>
       </button>`;
-    }).join("");
+  }
+
+  function renderTopic(subjectId, topicId) {
+    const subj = DATA.subject(subjectId), t = DATA.topic(subjectId, topicId);
+    if (!subj || !t) return renderTopicList(subjectId);
+    current = () => renderTopic(subjectId, topicId);
+    studyCtx = { subjectId, mode: "topic", year: null };
+    const sum = REPORT.topicSummary(subjectId, topicId);
     show(`
-      <div class="topbar"><span class="back" id="bk">← ${esc(subj.label)}</span><h2>${esc(t.label)}</h2></div>
+      <div class="topbar"><span class="back" id="bk">← Topics</span><h2>${esc(t.label)}</h2></div>
       <div class="page narrow">
         <div class="subject-hero">
           <div class="topic-hero-icon">${esc(t.icon || "📘")}</div>
@@ -393,13 +513,22 @@
           </div>
         </div>
         ${sum.total
-          ? `<h3 class="section-h">Levels</h3><div class="level-list">${levelCards}</div>`
+          ? `<h3 class="section-h">Levels</h3><div class="level-list">${sum.levels.map(ls => levelCard(subjectId, topicId, ls.levelId)).join("")}</div>`
           : soonCard("Levels are on the way",
               `The <b>${esc(t.label)}</b> levels will appear here once they're added. Every level will have:` +
               `<span class="soon-parts"><span>📝 <b>Assessment</b></span><span>📖 <b>Learn</b></span><span>📊 <b>Progress report</b></span></span>`)}
       </div>`, subjectId);
-    $("#bk").onclick = () => renderSubject(subjectId);
+    $("#bk").onclick = () => renderTopicList(subjectId);
     $$(".level-card").forEach(c => { c.onclick = () => renderLevel(subjectId, topicId, c.dataset.level); });
+  }
+
+  // Where "back" from a level goes: the year page if the child came that way.
+  function levelBack(subjectId, topicId, levelId) {
+    const viaYear = studyCtx.mode === "year" && studyCtx.subjectId === subjectId &&
+      DATA.levelYears(DATA.level(subjectId, topicId, levelId)).indexOf(studyCtx.year) > -1;
+    return viaYear
+      ? { label: "Year " + studyCtx.year, go: () => renderYear(subjectId, studyCtx.year) }
+      : { label: DATA.topicLabel(subjectId, topicId), go: () => renderTopic(subjectId, topicId) };
   }
 
   /* ===================== level hub: Assessment · Learn · Progress ===================== */
@@ -410,6 +539,7 @@
     const bank = DATA.bank(subjectId, topicId, levelId);
     const lesson = DATA.lesson(subjectId, topicId, levelId);
     const st = REPORT.levelStats(subjectId, topicId, levelId);
+    const back = levelBack(subjectId, topicId, levelId);
 
     let assessInfo;
     if (!bank) assessInfo = "The questions for this level haven't been added yet.";
@@ -429,7 +559,7 @@
       : `<div class="sec-stat pts-line">${ART.coin(16)} Earn up to <b>${left}</b> points — ${ratePhrase(rate)} for every 1%</div>`;
 
     show(`
-      <div class="topbar"><span class="back" id="bk">← ${esc(t.label)}</span><h2>${esc(l.label)}</h2></div>
+      <div class="topbar"><span class="back" id="bk">← ${esc(back.label)}</span><h2>${esc(l.label)}</h2></div>
       <div class="page narrow">
         <div class="level-hero">
           <div class="level-hero-top">
@@ -474,7 +604,7 @@
         </div>
       </div>`, subjectId);
     const self = () => renderLevel(subjectId, topicId, levelId);
-    $("#bk").onclick = () => renderTopic(subjectId, topicId);
+    $("#bk").onclick = back.go;
     $("#goAssess").onclick = () => startSession(subjectId, topicId, levelId);
     $("#goLearn").onclick = () => renderLearn(subjectId, topicId, levelId, 0);
     $("#goReport").onclick = () => renderLevelReport(subjectId, topicId, levelId, self);

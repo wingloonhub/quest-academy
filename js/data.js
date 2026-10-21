@@ -15,6 +15,9 @@
    Nothing else changes — the screens, scoring, progress reports and the
    Parent Report pick it up automatically.
 
+   Each level also says which SCHOOL YEAR(S) it belongs to, for Study Mode →
+   "By School Year":   years: [3]   (or several, e.g. years: [3, 4])
+
    Optional level settings:
      sessionSize: 20                       → questions per assessment (default 10)
      catLabels: { ADD3: "3-digit sums" }   → friendly names for question `cat` codes
@@ -25,6 +28,7 @@
 
   const YEAR_LABEL = "Year 4";
   const DEFAULT_SESSION_SIZE = 10;   // questions per assessment, picked at random from the level
+  const SCHOOL_YEARS = [1, 2, 3, 4, 5, 6];   // shown in Study Mode → By School Year
 
   const SUBJECTS = [
     {
@@ -58,7 +62,12 @@
               catLabels: { ADD2: "2-digit addition", ADD3: "3-digit addition" } }
           ] },
         { id: "subtraction",     label: "Subtraction",       icon: "−", desc: "Taking away and finding the difference",         levels: [] },
-        { id: "multiplication",  label: "Multiplication",    icon: "×", desc: "Times tables and multiplying bigger numbers",    levels: [] },
+        { id: "multiplication",  label: "Multiplication",    icon: "×", desc: "Times tables and multiplying bigger numbers",    levels: [
+            { id: "level1", label: "Level 1", desc: "Tables 2 to 10", sessionSize: 20,
+              catLabels: { T2: "2 times table", T3: "3 times table", T4: "4 times table", T5: "5 times table",
+                           T6: "6 times table", T7: "7 times table", T8: "8 times table", T9: "9 times table",
+                           T10: "10 times table" } }
+          ] },
         { id: "division",        label: "Division",          icon: "÷", desc: "Sharing, grouping and remainders",               levels: [] },
         { id: "fractions",       label: "Fractions",         icon: "🍕", desc: "Parts of a whole, comparing, fractions of amounts", levels: [] },
         { id: "length",          label: "Length",            icon: "📏", desc: "mm, cm, m and km — measuring and converting",    levels: [] },
@@ -69,7 +78,7 @@
         { id: "money",           label: "Money",             icon: "💰", desc: "Coins, notes, totals and change",                levels: [] },
         { id: "word_problems",   label: "Word Problems",     icon: "🧩", desc: "Picking the right operation for real-life problems", levels: [] }
         // Levels are added inside each topic, e.g.
-        //   levels: [ { id: "level1", label: "Level 1", desc: "Adding 2-digit numbers" } ]
+        //   levels: [ { id: "level1", label: "Level 1", desc: "Adding 2-digit numbers", years: [3] } ]
       ]
     }
   ];
@@ -91,6 +100,20 @@
     const s = (window.LEARN && window.LEARN[subjectId]) || {};
     const l = (s[topicId] || {})[levelId];
     return Array.isArray(l) && l.length ? l : null;
+  }
+  // School years a level belongs to (accepts years: [3, 4] or year: 3).
+  function levelYears(lvl) {
+    if (!lvl) return [];
+    if (Array.isArray(lvl.years)) return lvl.years.map(Number);
+    return lvl.year != null ? [Number(lvl.year)] : [];
+  }
+  // Study Mode → By School Year: the topics with levels for that year, each
+  // with only those levels.  [{ topic, levels: [...] }, …]
+  function yearTopics(subjectId, year) {
+    const s = subject(subjectId);
+    if (!s) return [];
+    return s.topics.map(t => ({ topic: t, levels: (t.levels || []).filter(l => levelYears(l).indexOf(Number(year)) > -1) }))
+      .filter(x => x.levels.length);
   }
   function levelCount(subjectId) {
     const s = subject(subjectId);
@@ -121,8 +144,8 @@
   }
 
   window.DATA = {
-    YEAR_LABEL, DEFAULT_SESSION_SIZE, SUBJECTS,
-    subject, topic, level, bank, lesson, levelCount,
+    YEAR_LABEL, DEFAULT_SESSION_SIZE, SCHOOL_YEARS, SUBJECTS,
+    subject, topic, level, bank, lesson, levelCount, levelYears, yearTopics,
     topicLabel, levelLabel, fullLabel, catLabel
   };
 })();
