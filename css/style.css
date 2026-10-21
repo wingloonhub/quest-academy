@@ -530,8 +530,9 @@ button:focus-visible,.profile-card:focus-visible{outline:2px solid var(--gold);o
 /* ---------- Study Mode ---------- */
 .study-box{margin-top:16px;background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:18px}
 .study-h{font-family:var(--display);font-size:21px;color:var(--ink-strong);margin-bottom:14px}
-.study-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-@media(max-width:520px){.study-grid{grid-template-columns:1fr}}
+.study-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media(max-width:700px){.study-grid{grid-template-columns:1fr}}
+.study-card .soon-pill{align-self:center}
 .study-card{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;background:var(--panel-solid);border:1px solid var(--border);border-radius:16px;padding:22px 16px 18px;transition:transform .15s,border-color .2s,box-shadow .2s}
 .study-card:hover{transform:translateY(-3px);border-color:var(--accent);box-shadow:0 12px 26px rgba(0,0,0,.4),0 0 0 1px var(--accent-glow)}
 .study-icon{width:34px;height:34px;color:var(--accent)}
@@ -562,3 +563,48 @@ button:focus-visible,.profile-card:focus-visible{outline:2px solid var(--gold);o
 .mf-box.ok .mf-val{color:#b2f3c3}
 .mf-box.bad{border-color:var(--bad);background:rgba(226,85,77,.16)}
 .mf-box.bad .mf-val{color:#ffc8c4}
+
+/* ---------- Quest Arena ---------- */
+.game-list{display:flex;flex-direction:column;gap:14px}
+.game-card{display:flex;flex-direction:column;gap:10px;background:var(--panel-solid);border:1px solid var(--border);border-top:3px solid var(--accent);border-radius:16px;padding:16px}
+.game-card .btn{align-self:flex-start}
+.game-head{display:flex;align-items:center;gap:12px}
+.game-icon{font-size:30px;width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:var(--accent-glow);flex-shrink:0}
+.game-title{font-family:var(--display);font-size:20px;font-weight:800;color:var(--ink-strong)}
+.game-rules{text-align:left;margin:14px auto 4px;max-width:480px;padding-left:20px;line-height:1.7;font-size:14.5px}
+.game-rules li{margin-bottom:4px}
+.game-badges{display:flex;flex-wrap:wrap;gap:10px}
+.center-row{justify-content:center}
+.badge-chip{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:14px;padding:6px 12px 6px 6px;text-align:left}
+.badge-chip.on{border-color:var(--border-strong);background:rgba(242,193,78,.08)}
+.badge-chip.new{border-color:var(--gold);box-shadow:0 0 0 3px rgba(242,193,78,.2);animation:pop .5s ease}
+.badge-text{display:flex;flex-direction:column;line-height:1.3}
+.badge-text b{font-size:14px;color:var(--ink-strong)}
+.badge-text small{font-size:11.5px;color:var(--muted);font-weight:700}
+.badge-chip.new .badge-text small{color:var(--gold-bright);letter-spacing:1px}
+.badge-medal{flex-shrink:0;filter:drop-shadow(0 3px 6px rgba(0,0,0,.4))}
+.badge-medal.locked{filter:grayscale(1);opacity:.35}
+.badge-won{display:flex;flex-direction:column;align-items:center;gap:10px;margin-top:16px}
+
+/* Beat the Clock */
+.bc-wrap{max-width:460px}
+.bc-hud{display:flex;align-items:center;justify-content:space-between;gap:10px;font-weight:800}
+.bc-lives{font-size:22px;letter-spacing:2px;white-space:nowrap}
+.bc-lives .heart{display:inline-block}
+.bc-lives .heart.breaking{animation:heartbreak .6s ease}
+@keyframes heartbreak{0%{transform:scale(1.4)}50%{transform:scale(.6) rotate(-12deg)}100%{transform:scale(1)}}
+.bc-round{color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.6px}
+.bc-round b{color:var(--ink-strong)}
+.bc-clock{font-family:Consolas,"Courier New",monospace;font-size:24px;font-weight:800;color:var(--ink-strong);background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:10px;padding:4px 10px;min-width:78px;text-align:center}
+.bc-clock.countdown{color:var(--gold-bright);border-color:var(--border-strong)}
+.bc-clock.warn{color:#ff8a83;border-color:var(--bad);animation:pulse 1s infinite}
+@keyframes pulse{50%{transform:scale(1.08)}}
+.bc-q{font-family:var(--display);font-size:52px;font-weight:800;text-align:center;color:var(--ink-strong);margin:18px 0 6px;letter-spacing:1px}
+.bc-ans{margin:0 auto;width:150px;min-height:62px;font-size:40px;font-weight:800;text-align:center;border-radius:14px;border:2px solid var(--accent);background:rgba(0,0,0,.35);color:var(--ink-strong);line-height:58px;transition:background .12s,border-color .12s}
+.bc-ans.empty{color:var(--accent)}
+.bc-ans.ok{border-color:var(--good);background:rgba(78,196,106,.25);color:#c8f7d4}
+.bc-ans.bad{border-color:var(--bad);background:rgba(226,85,77,.25);color:#ffd0cc}
+.bc-flash{min-height:30px;text-align:center;font-size:18px;font-weight:700;color:#ffc2bd;margin:8px 0 4px}
+.bc-flash b{color:#fff}
+.bc-pad{max-width:320px;margin:4px auto 0}
+.bc-pad .kb-key{padding:15px 0;font-size:24px}

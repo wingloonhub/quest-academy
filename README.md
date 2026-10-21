@@ -26,7 +26,8 @@ Subject   English · Bahasa · Maths          (the three cards on the menu)
 | Cloud database — same results on every device, works offline and catches up | ✅ built |
 | Players (several kids under one account) | ✅ built |
 | Main menu → English · Bahasa · Maths | ✅ built |
-| Study Mode inside each subject: **By Topic** or **By School Year** (Year 1–6) | ✅ built |
+| Study Mode inside each subject: **By Topic**, **By School Year** (Year 1–6) or **Quest Arena** (games) | ✅ built |
+| Quest Arena → Maths → Beat the Clock, with 2 badges | ✅ built |
 | Maths → 12 topics (Addition, Subtraction, Multiplication, Division, Fractions, Length, Mass (weight), Capacity & volume, Perimeter, Time, Money, Word Problems) | ✅ built |
 | Maths levels ready: Addition L1: 2- and 3-digit (50 questions, 10 per test) · Multiplication L1: 1 digit × 1 digit (tables 2–10, 90 questions, 20 per test) · Multiplication L2: 2 digits × 1 digit (80 questions, 15 per test) · Multiplication L3: identify groups & items in each group (80 word problems with two answer boxes, 15 per test) — not linked to a school year yet | ✅ loaded |
 | Level page → Assessment · Learn · Progress report | ✅ built — fills in as levels are added |
@@ -54,6 +55,22 @@ Points are earned only by **beating your own best score on a level**:
 So repeating a level can never farm points, and one level pays at most
 100 × the value. Points already earned keep the value they were earned at,
 and clearing history doesn't reset a level's best score.
+
+### Quest Arena (games)
+
+Each subject's Study Mode has a third choice, **Quest Arena**. Maths has
+**⏱️ Beat the Clock** (times tables, 1 digit × 1 digit — questions come from
+Multiplication Level 1, ×1 to ×9 only, never repeated within a game):
+
+| | Rule | Badge |
+|---|---|---|
+| Lives | ❤️❤️❤️ for the whole game; each wrong answer costs one (the right answer flashes up) | |
+| Round 1 | 15 questions, a stopwatch runs, no time limit | 🥷 **Times Table Ninja** (silver) |
+| Round 2 | 15 more questions in **30 seconds** (clock starts on "Go") | 🧙 **Multiplication Wizard** (gold) |
+
+Badges belong to the player, sync across devices (the first date earned is
+kept) and show on the menu, in the Arena and in the Parent Report. Games and
+badges are set up in `js/data.js` (`GAMES`, `BADGES`).
 
 ### Admin page (parents only)
 

@@ -21,6 +21,7 @@
   let exam = null;        // the assessment in progress
 
   function show(html, subjectId) {
+    stopGameTimer();
     const el = screen();
     el.dataset.subject = subjectId || "";
     el.innerHTML = html;
@@ -256,7 +257,7 @@
           <div class="player-chip-avatar">${ART.student(p.gender)}</div>
           <div class="player-chip-text">
             <div class="player-chip-hello">${hist.length ? "Welcome back" : "Welcome"}, <b>${esc(p.name)}</b>!</div>
-            <div class="muted">${stars || points ? `⭐ ${plural(stars, "star")} · ${ART.coin(14)} <b class="gold">${plural(points, "point")}</b>` : "Pick a subject to start your quest"}${hist.length ? ` · ${plural(hist.length, "assessment")}` : ""}</div>
+            <div class="muted">${stars || points ? `⭐ ${plural(stars, "star")} · ${ART.coin(14)} <b class="gold">${plural(points, "point")}</b>` : "Pick a subject to start your quest"}${hist.length ? ` · ${plural(hist.length, "assessment")}` : ""}${Object.keys(STORE.badges()).length ? ` · 🏅 ${plural(Object.keys(STORE.badges()).length, "badge")}` : ""}</div>
           </div>
           <button class="btn ghost sm" id="switch" type="button">Switch</button>
         </div>
@@ -304,7 +305,8 @@
         <p>🏆 <b>Mastery</b> — ${esc(REPORT.MASTERY_RULE)} Along the way a level shows <i>Needs practice</i>, <i>Developing</i> or <i>Almost mastered</i>.</p>
         <p>⭐ <b>Stars</b> — 50% = 1 star, 70% = 2 stars, 90% = 3 stars. Your best score on each level counts.</p>
         <p>${ART.coin(16)} <b>Points</b> — earned by <b>beating your own best score</b> on a level. Every 1% above your old best earns points (a parent sets how many for each subject). Repeating a level without beating your best earns nothing — so aim higher each time!</p>
-        <p>📊 <b>Parent Report</b> — mastery for every topic and level across all three subjects, the levels that need help, and recent mistakes.</p>
+        <p>🎮 <b>Quest Arena</b> — games that use what you've learned. In Maths, <b>Beat the Clock</b> gives you 15 times-table questions and 3 lives; survive to become a 🥷 <b>Times Table Ninja</b>, then answer 15 more in 30 seconds to become a 🧙 <b>Multiplication Wizard</b>!</p>
+        <p>📊 <b>Parent Report</b> — mastery for every topic and level across all three subjects, the levels that need help, badges, and recent mistakes.</p>
         <p>☁️ <b>Same results everywhere</b> — sign in with the same email on a phone, tablet or computer and you get the same players, scores and reports. Assessments finished offline are kept and uploaded automatically next time the app is online.</p>
         <div class="row" style="margin-top:18px"><button class="btn primary" id="backBtn" type="button">← Back to the menu</button></div>
       </div>`);
@@ -334,6 +336,7 @@
 
   const ICON_BOOK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 5.5C4.6 4 8.2 4 12 6c3.8-2 7.4-2 10-.5V19c-2.6-1.5-6.2-1.5-10 .5-3.8-2-7.4-2-10-.5z"/><path d="M12 6v13.5"/></svg>`;
   const ICON_CAP = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9.5 12 4.5l10 5-10 5z"/><path d="M6 11.5v4.8c0 1.4 2.7 3.2 6 3.2s6-1.8 6-3.2v-4.8"/><path d="M22 9.5v5.5"/></svg>`;
+  const ICON_GAME = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 11h4M8 9v4"/><path d="M15 12h.01M18 10h.01"/><path d="M17.32 5H6.68a4 4 0 0 0-3.98 3.59C2.6 9.42 2 14.46 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.41-1.41A2 2 0 0 1 9.83 16h4.34a2 2 0 0 1 1.41.59L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.55-.6-6.58-.69-7.26A4 4 0 0 0 17.32 5z"/></svg>`;
 
   function subjectHero(subj, hist) {
     return `<div class="subject-hero">
@@ -357,6 +360,8 @@
     const names = subj.topics.map(t => t.label);
     const topicLine = names.length ? esc(names.slice(0, 3).join(", ")) + (names.length > 3 ? "…" : "") : "Coming soon";
     const readyYears = DATA.SCHOOL_YEARS.filter(y => DATA.yearTopics(subjectId, y).length);
+    const arenaGames = DATA.games(subjectId);
+    const arenaBadges = [].concat.apply([], arenaGames.map(gm => gm.rounds.map(r => r.badge).filter(Boolean)));
     show(`
       <div class="topbar"><span class="back" id="bk">← Menu</span><h2>${esc(subj.label)}</h2></div>
       <div class="page narrow">
@@ -379,6 +384,17 @@
               <span class="study-eg">Year ${DATA.SCHOOL_YEARS.join(", ")}</span>
               ${readyYears.length ? `<span class="study-ready">Ready now: ${readyYears.map(y => "Year " + y).join(", ")}</span>` : ""}
             </button>
+            <button class="study-card" id="byGame" type="button">
+              ${last === "game" ? `<span class="study-last">Last used</span>` : ""}
+              <span class="study-icon">${ICON_GAME}</span>
+              <span class="study-title">Quest Arena</span>
+              <span class="study-desc">Play games and battles that use what you've learned.</span>
+              ${arenaGames.length
+                ? `<span class="study-eg">${esc(arenaGames.map(gm => gm.label).join(", "))}</span>
+                   <span class="study-ready">🏅 ${arenaBadges.filter(b => STORE.badges()[b]).length}/${arenaBadges.length} badges</span>`
+                : `<span class="study-eg">Battles · Races · Puzzles</span>
+                   <span class="soon-pill sm">Coming soon</span>`}
+            </button>
           </div>
         </div>
         <button class="btn full" id="histBtn" type="button" style="margin-top:18px">📈 ${esc(subj.label)} history &amp; analysis${hist.length ? ` <span class="muted">· ${plural(hist.length, "assessment")}</span>` : ""}</button>
@@ -386,7 +402,354 @@
     $("#bk").onclick = renderMenu;
     $("#byTopic").onclick = () => { rememberStudy(subjectId, "topic"); renderTopicList(subjectId); };
     $("#byYear").onclick = () => { rememberStudy(subjectId, "year"); renderYearList(subjectId); };
+    $("#byGame").onclick = () => { rememberStudy(subjectId, "game"); renderArena(subjectId); };
     $("#histBtn").onclick = () => renderHistory(subjectId, () => renderStudyMode(subjectId));
+  }
+
+  /* ===================== Quest Arena (games) =====================
+     A subject's arena lists its games (DATA.games). Beat the Clock:
+       Round 1 — N questions, a stopwatch runs, lives only;
+       Round 2 — N more questions against a countdown.
+     Lives last the whole game. Clearing a round earns its badge. */
+  let game = null;          // the run in progress
+  let gameTimer = null;
+  function stopGameTimer() { if (gameTimer) { clearInterval(gameTimer); gameTimer = null; } }
+  const mmss = (ms) => { const sec = Math.max(0, Math.floor(ms / 1000)); return Math.floor(sec / 60) + ":" + String(sec % 60).padStart(2, "0"); };
+  const countdown = (ms) => { const sec = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(sec / 60) + ":" + String(sec % 60).padStart(2, "0"); };
+
+  function badgeChip(badgeId, earnedTs, isNew) {
+    const b = DATA.BADGES[badgeId] || { label: badgeId };
+    return `<span class="badge-chip${earnedTs ? " on" : ""}${isNew ? " new" : ""}">${ART.badge(badgeId, isNew ? 56 : 40, !!earnedTs)}
+      <span class="badge-text"><b>${esc(b.label)}</b><small>${isNew ? "NEW BADGE!" : earnedTs ? "Earned " + esc(REPORT.shortDate(earnedTs)) : "Not earned yet"}</small></span></span>`;
+  }
+
+  // Best results line for a game, from the player's runs.
+  function gameBest(def, log) {
+    if (!log.length) return "Not played yet — be the first to try!";
+    const parts = [plural(log.length, "game") + " played"];
+    const full = log.filter(e => e.cleared >= def.rounds.length && e.r2LeftMs != null);
+    const r1 = log.filter(e => e.cleared >= 1 && e.r1Ms).map(e => e.r1Ms);
+    if (full.length) parts.push("best finish: " + countdown(Math.max.apply(null, full.map(e => e.r2LeftMs))) + " left on the clock");
+    if (r1.length) parts.push("fastest Round 1: " + mmss(Math.min.apply(null, r1)));
+    if (!full.length && !r1.length) parts.push("best: " + Math.max.apply(null, log.map(e => e.correct || 0)) + " correct");
+    return parts.join(" · ");
+  }
+
+  // Questions for a game: the level's bank, 1-digit × 1-digit only, no repeats.
+  function gamePool(def) {
+    const src = def.source || {};
+    const bank = DATA.bank(def.subjectId, src.topicId, src.levelId) || [];
+    const seen = {}, pool = [];
+    bank.forEach(q => {
+      const m = String(q.q || "").match(/^\s*(\d+)\s*×\s*(\d+)/);
+      if (!m || q.word == null) return;
+      if (src.maxFactor && (+m[1] > src.maxFactor || +m[2] > src.maxFactor)) return;
+      const key = m[1] + "×" + m[2];
+      if (seen[key]) return;
+      seen[key] = true;
+      pool.push({ text: m[1] + " × " + m[2], answer: String(q.word) });
+    });
+    return pool;
+  }
+
+  function renderArena(subjectId) {
+    const subj = DATA.subject(subjectId);
+    if (!subj) return renderMenu();
+    current = () => renderArena(subjectId);
+    const list = DATA.games(subjectId);
+    const top = `<div class="topbar"><span class="back" id="bk">← Study mode</span><h2>${esc(subj.label)} · Quest Arena</h2></div>`;
+    if (!list.length) {
+      show(`${top}
+        <div class="page narrow">
+          ${soonCard("The Quest Arena is being built",
+            `Games and battles for <b>${esc(subj.label)}</b> are on the way — use what you've learned to beat challenges and earn badges. Meanwhile, keep levelling up in <b>By Topic</b>!`)}
+          <div class="row" style="margin-top:18px"><button class="btn primary" id="toTopics" type="button">📚 Go to By Topic</button></div>
+        </div>`, subjectId);
+      $("#bk").onclick = () => renderStudyMode(subjectId);
+      $("#toTopics").onclick = () => { rememberStudy(subjectId, "topic"); renderTopicList(subjectId); };
+      return;
+    }
+    const earned = STORE.badges();
+    const cards = list.map(def => `<div class="game-card">
+        <div class="game-head"><span class="game-icon">${def.icon || "🎮"}</span>
+          <div><div class="game-title">${esc(def.label)}</div><div class="muted small">${esc(def.desc)}</div></div></div>
+        <div class="game-badges">${def.rounds.filter(r => r.badge).map(r => badgeChip(r.badge, earned[r.badge])).join("")}</div>
+        <div class="muted small">${esc(gameBest(def, STORE.gameLog(def.id)))}</div>
+        <button class="btn primary" data-game="${esc(def.id)}" type="button">Play →</button>
+      </div>`).join("");
+    show(`${top}
+      <div class="page narrow">
+        <div class="lead" style="margin-top:4px">Use what you've learned to beat the challenge and win badges.</div>
+        <div class="game-list">${cards}</div>
+      </div>`, subjectId);
+    $("#bk").onclick = () => renderStudyMode(subjectId);
+    $$("[data-game]").forEach(b => { b.onclick = () => renderGameIntro(subjectId, b.dataset.game); });
+  }
+
+  function renderGameIntro(subjectId, gameId) {
+    const def = DATA.game(gameId);
+    if (!def) return renderArena(subjectId);
+    current = () => renderGameIntro(subjectId, gameId);
+    const earned = STORE.badges();
+    const hearts = "❤️".repeat(def.lives);
+    const rules = def.rounds.map((r, i) => {
+      const b = r.badge && DATA.BADGES[r.badge];
+      return `<li><b>Round ${i + 1}:</b> ${r.questions} ${i ? "more " : ""}questions${r.seconds ? ` in <b>${r.seconds} seconds</b>` : " — a stopwatch runs, but there's no time limit"}.${b ? ` Make it through to win the <b>${esc(b.label)}</b> badge.` : ""}</li>`;
+    }).join("");
+    show(`
+      <div class="topbar"><span class="back" id="bk">← Quest Arena</span><h2>${def.icon || "🎮"} ${esc(def.label)}</h2></div>
+      <div class="page narrow">
+        <div class="card wide center">
+          <div class="big-emoji">${def.icon || "🎮"}</div>
+          <h2 class="card-h">${esc(def.label)}</h2>
+          <div class="muted">${esc(def.desc)}</div>
+          <ul class="game-rules">
+            <li><b>${hearts} ${def.lives} lives</b> for the whole game — every wrong answer costs one.</li>
+            ${rules}
+            <li>Type the answer on the number pad and tap <b>✓</b> (or press Enter).</li>
+          </ul>
+          <div class="game-badges center-row">${def.rounds.filter(r => r.badge).map(r => badgeChip(r.badge, earned[r.badge])).join("")}</div>
+          <div class="muted small" style="margin-top:8px">${esc(gameBest(def, STORE.gameLog(def.id)))}</div>
+          <div class="row" style="margin-top:18px">
+            <button class="btn ghost" id="backBtn" type="button">← Back</button>
+            <button class="btn primary" id="startBtn" type="button">Start ▶</button>
+          </div>
+        </div>
+      </div>`, subjectId);
+    $("#bk").onclick = () => renderArena(subjectId);
+    $("#backBtn").onclick = () => renderArena(subjectId);
+    $("#startBtn").onclick = () => startGame(subjectId, gameId);
+  }
+
+  function startGame(subjectId, gameId) {
+    const def = DATA.game(gameId);
+    const pool = def ? gamePool(def) : [];
+    if (!pool.length) { toast("This game's questions aren't ready yet.", "bad"); return; }
+    const need = def.rounds.reduce((n, r) => n + r.questions, 0);
+    let qs = shuffle(pool);
+    while (qs.length < need) qs = qs.concat(shuffle(pool));
+    game = {
+      def, subjectId, qs: qs.slice(0, need), qi: 0, round: 0, inRound: 0,
+      lives: def.lives, correct: 0, answered: 0, cleared: 0,
+      times: [], r2LeftMs: null, newBadges: [], typed: "", busy: false, over: false,
+      roundStart: 0, deadline: 0, lastTick: 0
+    };
+    renderGameRound();
+  }
+
+  function renderGameRound() {
+    const g = game;
+    if (!g) return;
+    const r = g.def.rounds[g.round];
+    current = null;
+    show(`
+      <div class="topbar"><span class="back" id="bk">✕ Quit</span><h2>${g.def.icon || "🎮"} ${esc(g.def.label)}</h2></div>
+      <div class="qwrap bc-wrap">
+        <div class="bc-hud">
+          <span class="bc-lives" id="bcLives"></span>
+          <span class="bc-round">Round ${g.round + 1} · <b id="bcNum">1</b>/${r.questions}</span>
+          <span class="bc-clock${r.seconds ? " countdown" : ""}" id="bcClock">${r.seconds ? countdown(r.seconds * 1000) : "0:00"}</span>
+        </div>
+        <div class="progress"><i id="bcProg" style="width:0%"></i></div>
+        <div class="bc-q" id="bcQ"></div>
+        <div class="bc-ans" id="bcAns"></div>
+        <div class="bc-flash" id="bcFlash"></div>
+        <div class="keyboard numeric bc-pad">
+          ${["123", "456", "789"].map(row => `<div class="kb-row">${row.split("").map(c => `<button type="button" class="kb-key" data-key="${c}">${c}</button>`).join("")}</div>`).join("")}
+          <div class="kb-row"><button type="button" class="kb-key kb-back" data-key="back" aria-label="Delete">⌫</button><button type="button" class="kb-key" data-key="0">0</button><button type="button" class="kb-key kb-ok" data-key="ok" aria-label="Check">✓</button></div>
+        </div>
+      </div>`, g.subjectId);
+    g.inRound = 0; g.typed = ""; g.busy = false; g.lastTick = 0;
+    g.roundStart = Date.now();
+    g.deadline = r.seconds ? g.roundStart + r.seconds * 1000 : 0;
+    $("#bk").onclick = () => {
+      showConfirm("Quit the game?", g.cleared ? "Your badge stays, but this run ends here." : "This run won't count.", "Quit", () => {
+        if (game !== g || g.over) return;
+        if (g.cleared) endGame("quit");
+        else { g.over = true; stopGameTimer(); game = null; renderGameIntro(g.subjectId, g.def.id); }
+      });
+    };
+    $$(".bc-pad .kb-key").forEach(b => { b.onclick = () => gamePress(b.dataset.key); });
+    keyHandler = (e) => {
+      if (/^[0-9]$/.test(e.key)) { gamePress(e.key); return true; }
+      if (e.key === "Backspace") { gamePress("back"); return true; }
+      if (e.key === "Enter") { gamePress("ok"); return true; }
+    };
+    paintGame();
+    stopGameTimer();
+    gameTimer = setInterval(tickGame, 100);
+    tickGame();
+  }
+
+  function paintGame() {
+    const g = game; if (!g) return;
+    const r = g.def.rounds[g.round], q = g.qs[g.qi];
+    $("#bcLives").innerHTML = Array.from({ length: g.def.lives }, (_, i) => `<span class="heart${i < g.lives ? "" : " lost"}">${i < g.lives ? "❤️" : "🖤"}</span>`).join("");
+    $("#bcNum").textContent = Math.min(g.inRound + 1, r.questions);
+    $("#bcProg").style.width = Math.round(g.inRound / r.questions * 100) + "%";
+    $("#bcQ").textContent = q.text + " = ?";
+    const ans = $("#bcAns");
+    ans.textContent = g.typed || "?";
+    ans.className = "bc-ans" + (g.typed ? "" : " empty");
+    $("#bcFlash").innerHTML = "";
+  }
+
+  function tickGame() {
+    const g = game;
+    const el = $("#bcClock");
+    if (!g || g.over || !el) { stopGameTimer(); return; }
+    const now = Date.now();
+    if (!g.deadline) { el.textContent = mmss(now - g.roundStart); return; }
+    const left = g.deadline - now;
+    el.textContent = countdown(left);
+    el.classList.toggle("warn", left <= 10000);
+    const sec = Math.ceil(left / 1000);
+    if (sec <= 5 && sec > 0 && sec !== g.lastTick) { g.lastTick = sec; SOUND.play("tick"); }
+    if (left <= 0) endGame("time");
+  }
+
+  function gamePress(k) {
+    const g = game;
+    if (!g || g.busy || g.over) return;
+    if (k === "ok") return gameSubmit();
+    if (k === "back") g.typed = g.typed.slice(0, -1);
+    else if (g.typed.length < 3) g.typed += k;
+    const ans = $("#bcAns");
+    ans.textContent = g.typed || "?";
+    ans.className = "bc-ans" + (g.typed ? "" : " empty");
+  }
+
+  function gameSubmit() {
+    const g = game;
+    if (!g || g.busy || g.over || !g.typed) return;
+    const q = g.qs[g.qi];
+    const ok = Number(g.typed) === Number(q.answer);
+    g.answered++;
+    g.busy = true;
+    const ans = $("#bcAns");
+    if (ok) {
+      g.correct++;
+      SOUND.play("correct");
+      ans.classList.add("ok");
+      setTimeout(() => gameNext(g), 250);
+      return;
+    }
+    g.lives--;
+    SOUND.play("wrong");
+    ans.classList.add("bad");
+    $("#bcFlash").innerHTML = `${esc(q.text)} = <b>${esc(q.answer)}</b>`;
+    $("#bcLives").innerHTML = Array.from({ length: g.def.lives }, (_, i) => `<span class="heart${i < g.lives ? "" : " lost"}${i === g.lives ? " breaking" : ""}">${i < g.lives ? "❤️" : "🖤"}</span>`).join("");
+    if (g.lives <= 0) setTimeout(() => { if (game === g && !g.over) endGame("lives"); }, 1100);
+    else setTimeout(() => gameNext(g), 1000);
+  }
+
+  function gameNext(g) {
+    if (game !== g || g.over) return;
+    g.qi++; g.inRound++; g.typed = ""; g.busy = false;
+    const r = g.def.rounds[g.round];
+    if (g.inRound >= r.questions) return roundCleared();
+    paintGame();
+  }
+
+  function roundCleared() {
+    const g = game;
+    const r = g.def.rounds[g.round];
+    const now = Date.now();
+    g.times[g.round] = now - g.roundStart;
+    if (g.deadline) g.r2LeftMs = Math.max(0, g.deadline - now);
+    stopGameTimer();
+    g.cleared = g.round + 1;
+    if (r.badge && STORE.awardBadge(r.badge)) g.newBadges.push(r.badge);
+    SOUND.play("win");
+    if (g.round + 1 < g.def.rounds.length) renderRoundBreak();
+    else endGame("won");
+  }
+
+  function renderRoundBreak() {
+    const g = game;
+    const done = g.def.rounds[g.round], next = g.def.rounds[g.round + 1];
+    const earned = STORE.badges();
+    current = null;
+    show(`
+      <div class="topbar"><span class="back" id="bk">✕ Stop</span><h2>${g.def.icon || "🎮"} ${esc(g.def.label)}</h2></div>
+      <div class="page narrow">
+        <div class="card wide center">
+          <div class="big-emoji">🎉</div>
+          <h2 class="card-h">Round ${g.round + 1} cleared!</h2>
+          <div class="muted" style="font-weight:700">${g.correct} correct · time ${mmss(g.times[g.round])} · lives left ${"❤️".repeat(g.lives)}</div>
+          ${done.badge ? `<div class="game-badges center-row" style="margin-top:14px">${badgeChip(done.badge, earned[done.badge], g.newBadges.indexOf(done.badge) > -1)}</div>` : ""}
+          <div class="summary-box" style="margin-top:16px;text-align:left">
+            <b>Round ${g.round + 2}:</b> ${next.questions} more questions${next.seconds ? ` in <b>${next.seconds} seconds</b>` : ""}. Your lives carry on (${"❤️".repeat(g.lives)}).
+            ${next.badge ? `Make it to win the <b>${esc(DATA.BADGES[next.badge].label)}</b> badge.` : ""} The clock starts when you tap <b>Go</b>.
+          </div>
+          <div class="row" style="margin-top:18px">
+            <button class="btn ghost" id="stopBtn" type="button">Stop here</button>
+            <button class="btn primary" id="goBtn" type="button">Go! ⚡</button>
+          </div>
+        </div>
+      </div>`, g.subjectId);
+    const stop = () => { if (game === g && !g.over) endGame("stopped"); };
+    $("#bk").onclick = stop;
+    $("#stopBtn").onclick = stop;
+    $("#goBtn").onclick = () => { if (game !== g) return; g.round++; renderGameRound(); };
+    keyHandler = (e) => { if (e.key === "Enter") { $("#goBtn").click(); return true; } };
+  }
+
+  function endGame(reason) {
+    const g = game;
+    if (!g || g.over) return;
+    g.over = true;
+    stopGameTimer();
+    const overlay = document.querySelector(".overlay");
+    if (overlay) overlay.remove();
+    if ((reason === "time" || reason === "lives") && g.roundStart && g.times[g.round] == null) g.times[g.round] = Date.now() - g.roundStart;
+    const rec = STORE.recordGame({
+      game: g.def.id, subjectId: g.subjectId, ts: Date.now(),
+      cleared: g.cleared, reached: g.round + 1, correct: g.correct, answered: g.answered, livesLeft: g.lives,
+      r1Ms: g.cleared >= 1 ? g.times[0] : null, r2Ms: g.cleared >= 2 ? g.times[1] : null,
+      r2LeftMs: g.cleared >= 2 ? g.r2LeftMs : null, reason: reason
+    });
+    game = null;
+    renderGameResult(g, rec, reason);
+  }
+
+  function renderGameResult(g, rec, reason) {
+    const def = g.def;
+    current = null;
+    const won = g.cleared >= def.rounds.length;
+    const head = won ? "You beat the clock!"
+      : reason === "time" ? "Time's up!"
+      : reason === "lives" ? "Out of lives!"
+      : g.cleared ? "Well played!" : "Game over";
+    const emoji = won ? "🏆" : reason === "time" ? "⏰" : reason === "lives" ? "💔" : "👏";
+    const earned = STORE.badges();
+    const stats = [`<b>${g.correct}</b> correct out of ${g.answered}`];
+    if (rec.r1Ms) stats.push(`Round 1 in <b>${mmss(rec.r1Ms)}</b>`);
+    if (rec.r2LeftMs != null) stats.push(`Round 2 with <b>${countdown(rec.r2LeftMs)}</b> to spare`);
+    const tip = won ? "Amazing! Can you finish Round 2 with even more time to spare?"
+      : reason === "time" ? "So close! Practise your quickest tables and try again."
+      : reason === "lives" ? `Practise the tricky ones in <b>By Topic → ${esc(DATA.topicLabel(def.subjectId, def.source.topicId))} → ${esc(DATA.levelLabel(def.subjectId, def.source.topicId, def.source.levelId))}</b>, then come back!`
+      : "Come back and try for the next badge!";
+    show(`
+      <div class="topbar"><span class="back" id="bk">← Quest Arena</span><h2>${def.icon || "🎮"} ${esc(def.label)}</h2></div>
+      <div class="page narrow">
+        <div class="card wide center results-card">
+          <div class="big-emoji">${emoji}</div>
+          <h2 class="card-h">${head}</h2>
+          <div class="muted" style="font-weight:700;line-height:1.7">${stats.join(" · ")}</div>
+          ${g.newBadges.length ? `<div class="badge-won">${g.newBadges.map(id => badgeChip(id, earned[id], true)).join("")}</div>` : ""}
+          <div class="game-badges center-row" style="margin-top:14px">${def.rounds.filter(r => r.badge && g.newBadges.indexOf(r.badge) < 0).map(r => badgeChip(r.badge, earned[r.badge])).join("")}</div>
+          <div class="summary-box" style="margin-top:16px;text-align:left">${tip}</div>
+          <div class="row" style="margin-top:18px">
+            <button class="btn ghost" id="arenaBtn" type="button">← Quest Arena</button>
+            <button class="btn primary" id="againBtn" type="button">🔁 Play again</button>
+          </div>
+        </div>
+      </div>`, def.subjectId);
+    if (g.newBadges.length) setTimeout(() => SOUND.play("star"), 500);
+    $("#bk").onclick = () => renderArena(def.subjectId);
+    $("#arenaBtn").onclick = () => renderArena(def.subjectId);
+    $("#againBtn").onclick = () => startGame(def.subjectId, def.id);
   }
 
   /* ---------- By Topic ---------- */
@@ -1364,6 +1727,13 @@
         <div class="sub">${plural(l.attempts, "attempt")} · avg ${l.avg}% · latest ${l.latest}% · last ${esc(REPORT.timeAgo(l.lastTs))}</div>
         ${l.weakAreas[0] ? `<div class="sub">🎯 Weak area: <b class="bad">${esc(l.weakAreas[0].label)}</b> (${l.weakAreas[0].pct}%)</div>` : ""}
       </button>`).join("");
+    const myBadges = STORE.badges();
+    const badgeSection = DATA.GAMES.length ? `<h3 class="section-h">Quest Arena badges</h3>
+      <div class="rep-grid">${DATA.GAMES.map(def => `<div class="rep-card">
+          <div class="t"><span>${def.icon || "🎮"} ${esc(def.label)} ${subjectPill(def.subjectId)}</span></div>
+          <div class="sub">${esc(gameBest(def, STORE.gameLog(def.id)))}</div>
+          <div class="game-badges" style="margin-top:8px">${def.rounds.filter(r => r.badge).map(r => badgeChip(r.badge, myBadges[r.badge])).join("")}</div>
+        </div>`).join("")}</div>` : "";
     const earnedLog = STORE.pointsLog().filter(e => e.pts > 0).slice(-10).reverse();
     const pointsCards = earnedLog.map(e => `<div class="rep-card">
         <div class="t"><span>${esc(DATA.fullLabel(e.s, e.t, e.l))} ${subjectPill(e.s)}</span><span class="pts-gain">+${e.pts}</span></div>
@@ -1398,6 +1768,7 @@
           <div class="ov-wrap">${overview}</div>
           <div class="muted small" style="margin-top:6px">${esc(REPORT.MASTERY_RULE)} Tap a level for its progress report.</div>` : ""}
         ${weakCards ? `<h3 class="section-h">Levels that need help</h3><div class="rep-grid">${weakCards}</div>` : ""}
+        ${badgeSection}
         ${pointsCards ? `<h3 class="section-h">Points earned</h3><div class="rep-grid">${pointsCards}</div>` : ""}
         ${recent}
         <div class="row" style="margin-top:22px">
@@ -1774,7 +2145,7 @@
   function route() {
     if (!AUTH.ready) return renderSplash();
     const needLogin = AUTH.configured ? !(AUTH.user && AUTH.session) : !AUTH.session;
-    if (needLogin) { exam = null; adminUnlocked = false; return renderAuth(); }
+    if (needLogin) { exam = null; game = null; adminUnlocked = false; return renderAuth(); }
     const profiles = STORE.profilesList();
     if (!profiles.length) return renderProfileSelect({ autoAdd: true });
     if (!STORE.active()) STORE.selectProfile(profiles[0].id);

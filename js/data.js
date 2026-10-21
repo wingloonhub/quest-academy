@@ -90,7 +90,34 @@
     }
   ];
 
+  /* Quest Arena games. A game takes its questions from a level's bank.
+     rounds[].seconds = 0 → no time limit (a stopwatch runs);
+     rounds[].badge   → the badge for clearing that round (see BADGES). */
+  const GAMES = [
+    {
+      id: "beat_the_clock",
+      subjectId: "maths",
+      label: "Beat the Clock",
+      desc: "Multiplication · 1 digit × 1 digit",
+      icon: "⏱️",
+      source: { topicId: "multiplication", levelId: "level1", maxFactor: 9 },   // only 1-digit × 1-digit
+      lives: 3,                                                                 // for the whole game
+      rounds: [
+        { questions: 15, seconds: 0,  badge: "times_table_ninja" },
+        { questions: 15, seconds: 30, badge: "multiplication_wizard" }
+      ]
+    }
+  ];
+  const BADGES = {
+    times_table_ninja:     { label: "Times Table Ninja",     tier: "silver", icon: "ninja",
+                             desc: "Survived Round 1 of Beat the Clock — 15 times-table questions with only 3 lives! 🥷" },
+    multiplication_wizard: { label: "Multiplication Wizard", tier: "gold",   icon: "wizard",
+                             desc: "Beat Round 2 of Beat the Clock — 15 more times-table questions in 30 seconds! 🧙" }
+  };
+
   const byId = (list, id) => (list || []).filter(x => x.id === id)[0] || null;
+  function games(subjectId) { return GAMES.filter(g => g.subjectId === subjectId); }
+  function game(gameId) { return byId(GAMES, gameId); }
 
   function subject(subjectId) { return byId(SUBJECTS, subjectId); }
   function topic(subjectId, topicId) { const s = subject(subjectId); return s ? byId(s.topics, topicId) : null; }
@@ -151,7 +178,7 @@
   }
 
   window.DATA = {
-    YEAR_LABEL, DEFAULT_SESSION_SIZE, SCHOOL_YEARS, SUBJECTS,
+    YEAR_LABEL, DEFAULT_SESSION_SIZE, SCHOOL_YEARS, SUBJECTS, GAMES, BADGES, games, game,
     subject, topic, level, bank, lesson, levelCount, levelYears, yearTopics,
     topicLabel, levelLabel, fullLabel, catLabel
   };

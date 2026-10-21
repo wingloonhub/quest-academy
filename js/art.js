@@ -153,6 +153,45 @@
     return `<svg class="coin" width="${s}" height="${s}" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11.5" fill="#d99a1e"/><circle cx="12" cy="12" r="9" fill="#f7c948" stroke="#c98a1b" stroke-width="1"/><polygon points="${starPoints(12, 12.6, 5.8, 2.5)}" fill="#c98a1b"/></svg>`;
   }
 
+  // Badge medal (silver / gold). Icons: "ninja" = crossed swords making a ×,
+  // "wizard" = wizard hat with a ×, anything else = a star. earned === false → greyed out.
+  function badge(id, size, earned) {
+    const b = (window.DATA && DATA.BADGES && DATA.BADGES[id]) || { tier: "silver", icon: "star" };
+    const s = size || 40;
+    const gold = b.tier === "gold";
+    const c1 = gold ? "#ffe08a" : "#f8fafc", c2 = gold ? "#c98a1b" : "#94a3b8", rim = gold ? "#9a6510" : "#5b6b82";
+    const icon = b.icon === "ninja"
+      ? `<g stroke-linecap="round">
+          <path d="M18 15 40 37M46 15 24 37" stroke="#334155" stroke-width="4.6"/>
+          <path d="M18 15 40 37M46 15 24 37" stroke="#e2e8f0" stroke-width="2.6"/>
+          <path d="M37 40.5 43.5 34M27 40.5 20.5 34" stroke="#b45309" stroke-width="3.2"/>
+          <path d="M40 37 45.5 42.5M24 37 18.5 42.5" stroke="#111827" stroke-width="4"/>
+        </g>
+        <circle cx="32" cy="28.5" r="10.5" fill="#1e293b"/>
+        <rect x="22.5" y="20.5" width="19" height="3.2" rx="1.6" fill="#dc2626"/>
+        <path d="M41 21.5c3 -1.5 5 -1 6.5 0.5c-2 0.4 -3.6 1.4 -4.5 3z" fill="#dc2626"/>
+        <rect x="23.5" y="25.5" width="17" height="6.2" rx="3.1" fill="#f5cfa6"/>
+        <circle cx="28.6" cy="28.6" r="1.5" fill="#111827"/>
+        <circle cx="35.4" cy="28.6" r="1.5" fill="#111827"/>
+        <path d="M26.6 26.6l3 .8M37.4 26.6l-3 .8" stroke="#111827" stroke-width="1" stroke-linecap="round"/>`
+      : b.icon === "wizard"
+      ? `<path d="M32 10.5 22.5 36h19z" fill="#6d28d9" stroke="#4c1d95" stroke-width="1.2" stroke-linejoin="round"/>
+        <ellipse cx="32" cy="37" rx="13.5" ry="3.4" fill="#4c1d95"/>
+        <path d="M29 24.5l6 6M35 24.5l-6 6" stroke="#fde68a" stroke-width="2.4" stroke-linecap="round"/>
+        <polygon points="${starPoints(44.5, 17, 3.8, 1.6)}" fill="#fff"/>
+        <polygon points="${starPoints(19.5, 23, 2.7, 1.1)}" fill="#fff"/>`
+      : `<polygon points="${starPoints(32, 30.5, 11, 4.8)}" fill="${rim}"/>`;
+    const gid = gold ? "qaBadgeGold" : "qaBadgeSilver";
+    return `<svg class="badge-medal${earned === false ? " locked" : ""}" width="${s}" height="${s}" viewBox="0 0 64 64" aria-hidden="true">
+      <defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient></defs>
+      <path d="M21 42 15 62l8.5-3.5L28 64l6-19z" fill="#3b82f6"/>
+      <path d="M43 42l6 20-8.5-3.5L36 64l-6-19z" fill="#ef4444"/>
+      <circle cx="32" cy="30" r="21" fill="url(#${gid})" stroke="${rim}" stroke-width="2.5"/>
+      <circle cx="32" cy="30" r="16.5" fill="none" stroke="#fff" stroke-opacity=".6" stroke-width="1.5"/>
+      ${icon}
+    </svg>`;
+  }
+
   // Row of 3 stars, `n` of them lit.
   function stars(n, size) {
     const s = size || 22;
@@ -164,7 +203,7 @@
   }
 
   window.ART = {
-    crest, student, owl, subject, stars, coin,
+    crest, student, owl, subject, stars, coin, badge,
     player: function (_pose, gender) { return student(gender); }
   };
 })();

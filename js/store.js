@@ -15,7 +15,10 @@
      moment, so changing the rate later never changes points already earned,
      and clearing history never lets points be earned twice.
    - SETTINGS (points rates, admin PIN) belong to the whole account; the
-     newest saved version wins on every device. */
+     newest saved version wins on every device.
+   - QUEST ARENA: every finished game run is kept in "games" (newest first),
+     and badges in "badges" as { badgeId: first-earned timestamp } — once
+     earned on any device, a badge stays earned everywhere. */
 (function () {
   "use strict";
   const LS_PREFIX = "qa_save_";
@@ -23,6 +26,7 @@
   const DETAIL_KEEP = 20;      // newest sessions that keep every question for "View details"
   const MISTAKES_MAX = 8;      // mistakes kept per session for the Parent Report
   const DEFAULT_RATE = 1;      // points for each 1% improvement on a level's best score
+  const GAMES_MAX = 100;       // game runs kept per player
 
   let uidKey = "guest";
   let syncer = null;           // set by firebase.js
@@ -48,7 +52,9 @@
       lastPlayed: now,
       history: [],             // finished sessions, newest first, all subjects
       cleared: {},             // { english: ts, all: ts } — sessions at/before ts are gone
-      bests: []                // points ledger: one entry per new best score on a level
+      bests: [],               // points ledger: one entry per new best score on a level
+      games: [],               // Quest Arena runs, newest first
+      badges: {}               // { badgeId: ts first earned }
     };
   }
 
@@ -97,6 +103,26 @@
       if ((e.pct || 0) > prev) best[k] = e.pct || 0;
       return Object.assign({}, e, { prev: prev, gain: gain, pts: Math.round(gain * cleanRate(e.rate)) });
     });
+  }
+
+  function tidyGames(list) {
+    const seen = {};
+    return (list || []).filter(function (e) {
+      if (!isObj(e) || e.ts == null || !e.game) return false;
+      const k = e.game + "|" + e.ts;
+      if (seen[k]) return false;
+      seen[k] = true;
+      return true;
+    }).sort(function (a, b) { return (b.ts || 0) - (a.ts || 0); }).slice(0, GAMES_MAX);
+  }
+  // Earliest timestamp per key (badges keep the date they were FIRST earned).
+  function minMap(a, b) {
+    const out = Object.assign({}, isObj(a) ? a : {});
+    Object.keys(isObj(b) ? b : {}).forEach(function (k) {
+      if (!b[k]) return;
+      out[k] = out[k] ? Math.min(out[k], b[k]) : b[k];
+    });
+    return out;
   }
 
   function blankState() {
@@ -155,6 +181,8 @@
     p.cleared = isObj(p.cleared) ? p.cleared : {};
     p.history = tidyHistory(Array.isArray(p.history) ? p.history : [], p.cleared);
     p.bests = tidyBests(Array.isArray(p.bests) ? p.bests : []);
+    p.games = tidyGames(Array.isArray(p.games) ? p.games : []);
+    p.badges = isObj(p.badges) ? p.badges : {};
     return p;
   }
 
@@ -194,6 +222,8 @@
       p.cleared = maxMap(pa.cleared, pb.cleared);
       p.history = tidyHistory(pb.history.concat(pa.history), p.cleared);
       p.bests = tidyBests(pb.bests.concat(pa.bests));
+      p.games = tidyGames(pb.games.concat(pa.games));
+      p.badges = minMap(pa.badges, pb.badges);
       out.profiles[id] = p;
     });
 
@@ -338,6 +368,34 @@
     },
     points(profile, subjectId) {
       return STORE.pointsLog(profile, subjectId).reduce(function (a, e) { return a + e.pts; }, 0);
+    },
+
+    /* ---------------- Quest Arena: games + badges ---------------- */
+    // entry: { game, subjectId, ts, cleared, reached, correct, answered, livesLeft, r1Ms, r2Ms, r2LeftMs, reason }
+    recordGame(entry) {
+      const p = STORE.active(); if (!p || !entry || !entry.game) return null;
+      const clean = JSON.parse(JSON.stringify(Object.assign({ ts: Date.now() }, entry)));
+      p.games.unshift(clean);
+      p.games = tidyGames(p.games);
+      p.lastPlayed = Date.now();
+      STORE.save({ immediate: true });
+      return clean;
+    },
+    gameLog(gameId, profile) {
+      const p = profile || STORE.active();
+      return ((p && p.games) || []).filter(function (e) { return !gameId || e.game === gameId; });
+    },
+    badges(profile) {
+      const p = profile || STORE.active();
+      return (p && p.badges) || {};
+    },
+    // Returns true if this is the first time the badge is earned.
+    awardBadge(badgeId) {
+      const p = STORE.active(); if (!p || !badgeId) return false;
+      if (p.badges[badgeId]) return false;
+      p.badges[badgeId] = Date.now();
+      STORE.save({ immediate: true });
+      return true;
     },
 
     /* ---------------- account settings (admin) ---------------- */
