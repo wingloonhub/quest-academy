@@ -18,7 +18,11 @@
      newest saved version wins on every device.
    - QUEST ARENA: every finished game run is kept in "games" (newest first),
      and badges in "badges" as { badgeId: first-earned timestamp } — once
-     earned on any device, a badge stays earned everywhere. */
+     earned on any device, a badge stays earned everywhere.
+   - SHOP: spending points is a request ("redemptions") that a parent approves
+     or rejects on the admin page. While pending, its points are ON HOLD
+     (can't be used). Approved → the points are used up; rejected → they go
+     back. Available = earned − on hold − used. */
 (function () {
   "use strict";
   const LS_PREFIX = "qa_save_";
@@ -65,7 +69,8 @@
       bests: [],               // points ledger: one entry per new best score on a level
       games: [],               // Quest Arena runs, newest first
       badges: {},              // { badgeId: ts first earned }
-      arenaWins: {}            // { "gameId#round": { deviceId: wins } } — Quest Arena points
+      arenaWins: {},           // { "gameId#round": { deviceId: wins } } — Quest Arena points
+      redemptions: []          // shop requests { id, ts, item, myr, points, rate, status, decidedTs }
     };
   }
 
@@ -73,8 +78,14 @@
     return {
       updatedAt: 0,                                              // newest saved settings win
       pointsPerPercent: { english: DEFAULT_RATE, bahasa: DEFAULT_RATE, maths: DEFAULT_RATE },
-      pin: null                                                  // { salt, hash } of the admin PIN
+      pin: null,                                                 // { salt, hash } of the admin PIN
+      myrPerPoint: 0                                             // cash value of 1 point (0 = cash redemption off)
     };
+  }
+  // Money: MYR with 2 decimals, never negative.
+  function cleanMyr(v) {
+    const n = Number(v);
+    return isFinite(n) && n > 0 ? Math.min(1000, Math.round(n * 100) / 100) : 0;
   }
   function cleanRate(v) {
     const n = Number(v);
@@ -88,7 +99,26 @@
       Object.keys(raw.pointsPerPercent).forEach(function (k) { out.pointsPerPercent[k] = cleanRate(raw.pointsPerPercent[k]); });
     }
     out.pin = isObj(raw.pin) && raw.pin.hash && raw.pin.salt ? { salt: String(raw.pin.salt), hash: String(raw.pin.hash) } : null;
+    out.myrPerPoint = cleanMyr(raw.myrPerPoint);
     return out;
+  }
+
+  // Shop requests: one per id; a decision (approved / rejected) beats "pending",
+  // and if two devices disagree the later decision wins.
+  const STATUSES = { pending: 1, approved: 1, rejected: 1 };
+  function tidyRedemptions(list) {
+    const byId = {};
+    (list || []).forEach(function (r) {
+      if (!isObj(r) || !r.id || !(r.points > 0)) return;
+      const c = Object.assign({}, r);
+      c.status = STATUSES[c.status] ? c.status : "pending";
+      const old = byId[c.id];
+      if (!old) { byId[c.id] = c; return; }
+      if (old.status === "pending" && c.status !== "pending") byId[c.id] = c;
+      else if (old.status !== "pending" && c.status !== "pending" && (c.decidedTs || 0) > (old.decidedTs || 0)) byId[c.id] = c;
+    });
+    return Object.keys(byId).map(function (k) { return byId[k]; })
+      .sort(function (a, b) { return (b.ts || 0) - (a.ts || 0); });
   }
 
   // Points ledger: one entry per new best { s, t, l, ts, pct, rate }.
@@ -208,6 +238,7 @@
     p.games = tidyGames(Array.isArray(p.games) ? p.games : []);
     p.badges = isObj(p.badges) ? p.badges : {};
     p.arenaWins = isObj(p.arenaWins) ? p.arenaWins : {};
+    p.redemptions = tidyRedemptions(Array.isArray(p.redemptions) ? p.redemptions : []);
     return p;
   }
 
@@ -250,6 +281,7 @@
       p.games = tidyGames(pb.games.concat(pa.games));
       p.badges = minMap(pa.badges, pb.badges);
       p.arenaWins = mergeCounters(pa.arenaWins, pb.arenaWins);
+      p.redemptions = tidyRedemptions(pb.redemptions.concat(pa.redemptions));
       out.profiles[id] = p;
     });
 
@@ -486,6 +518,59 @@
       st.updatedAt = Date.now();
       STORE.save({ immediate: true });
     },
+    // Cash value of 1 point in MYR (2 decimals). 0 switches cash redemption off.
+    myrPerPoint() { return cleanMyr(STORE.settings().myrPerPoint); },
+    setMyrPerPoint(v) {
+      const st = STORE.state.settings = normaliseSettings(STORE.state.settings);
+      st.myrPerPoint = cleanMyr(v);
+      st.updatedAt = Date.now();
+      STORE.save({ immediate: true });
+    },
+
+    /* ---------------- Shop: balance + redemption requests ---------------- */
+    // earned (assessments + Quest Arena) − on hold (pending) − used (approved) = available
+    pointsSummary(profile) {
+      const p = profile || STORE.active();
+      const earned = STORE.points(p);
+      let onHold = 0, used = 0;
+      ((p && p.redemptions) || []).forEach(function (r) {
+        if (r.status === "pending") onHold += r.points;
+        else if (r.status === "approved") used += r.points;
+      });
+      return { earned: earned, onHold: onHold, used: used, available: Math.max(0, earned - onHold - used) };
+    },
+    redemptions(profile) {
+      const p = profile || STORE.active();
+      return (p && p.redemptions) || [];
+    },
+    // Put points on hold for a shop item. Returns the request, or null if the
+    // player doesn't have enough available points.
+    requestRedemption(req) {
+      const p = STORE.active(); if (!p || !req) return null;
+      const points = Math.round(Number(req.points) || 0);
+      if (points <= 0 || points > STORE.pointsSummary(p).available) return null;
+      const r = {
+        id: "r_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+        ts: Date.now(), item: req.item || "cash", label: req.label || "",
+        myr: cleanMyr(req.myr), points: points, rate: cleanMyr(req.rate),
+        status: "pending", decidedTs: null
+      };
+      p.redemptions = tidyRedemptions([r].concat(p.redemptions || []));
+      STORE.save({ immediate: true });
+      return r;
+    },
+    // Admin: approve (points used) or reject (points go back) — any player.
+    decideRedemption(profileId, id, decision) {
+      const p = STORE.state.profiles[profileId];
+      if (!p || (decision !== "approved" && decision !== "rejected")) return false;
+      const r = (p.redemptions || []).filter(function (x) { return x.id === id; })[0];
+      if (!r || r.status !== "pending") return false;
+      r.status = decision;
+      r.decidedTs = Date.now();
+      STORE.save({ immediate: true });
+      return true;
+    },
+
     setPin(pin) {      // pin = { salt, hash } or null
       const st = STORE.state.settings = normaliseSettings(STORE.state.settings);
       st.pin = pin && pin.salt && pin.hash ? { salt: pin.salt, hash: pin.hash } : null;

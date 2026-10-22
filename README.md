@@ -25,14 +25,15 @@ Subject   English · Bahasa · Maths          (the three cards on the menu)
 | Cloud database — same results on every device, works offline and catches up | ✅ built |
 | Players (several kids under one account) | ✅ built |
 | Main menu → English · Bahasa · Maths | ✅ built |
-| Dashboard: big **My points** panel (assessments + Quest Arena), Trophy Room and 🛍️ Shop cards | ✅ built — Shop items *coming soon* |
+| Dashboard: big **My points** panel (points available, on hold and used — tap it for the points history), Trophy Room and 🛍️ Shop cards | ✅ built |
+| 🛍️ Shop → **Redeem cash** (parent approves on the admin page) · 📜 Points history | ✅ built — more shop items to come |
 | Study Mode inside each subject: **By Topic**, **By School Year** (Year 1–6) or **Quest Arena** (games) | ✅ built |
 | Quest Arena → Maths → Beat the Clock, with 2 badges · 🏆 Trophy Room | ✅ built |
 | Maths → 12 topics (Addition, Subtraction, Multiplication, Division, Fractions, Length, Mass (weight), Capacity & volume, Perimeter, Time, Money, Word Problems) | ✅ built |
 | Maths levels ready: Addition L1: 2- and 3-digit (50 questions, 10 per test) · Multiplication L1: 1 digit × 1 digit (tables 2–10, 90 questions, 20 per test) · Multiplication L2: 2 digits × 1 digit (80 questions, 15 per test) · Multiplication L3: identify groups & items in each group (80 word problems with two answer boxes, 15 per test) — not linked to a school year yet | ✅ loaded |
 | Level page → Assessment · Progress report | ✅ built — fills in as levels are added |
 | English and Bahasa topics | ⏳ *coming soon* — same topic → level layout as Maths |
-| History & Analysis, Parent Report (mastery grid for every topic and level) | ✅ built |
+| History & Analysis, Parent Report (mastery grid for every topic and level) — assessment history can't be cleared | ✅ built |
 | Installable on phones (Add to Home Screen) | ✅ built |
 
 **Mastery status** for each level: *Not started → Needs practice → Developing →
@@ -59,8 +60,11 @@ So repeating a level can never farm points, and one level pays at most
 *Max points* box on the level page, next to the question counter during the
 assessment, and on the results ("Next try: up to 20 points"). The max is
 (100 − best %) × the subject's points per 1% from the admin page, so after
-scoring 80% at 1 point per 1% the next try shows a max of 20. Points already earned keep the value they were earned at,
-and clearing history doesn't reset a level's best score.
+scoring 80% at 1 point per 1% the next try shows a max of 20. Points already earned keep the value they were earned at.
+
+Assessment history **can't be cleared** — there's no clear button anywhere, so
+scores, reports and points always add up. Deleting a whole player is on the
+admin page only.
 
 ### Quest Arena (games)
 
@@ -87,6 +91,35 @@ colour with the date, locked ones greyed out with how to win them. They also
 show in the Arena and the Parent Report. Games and
 badges are set up in `js/data.js` (`GAMES`, `BADGES`).
 
+### 🛍️ Shop and points history
+
+The Shop is on the main menu. Everything in it is a **request a parent
+approves** — cash is the first item; more will be added.
+
+**💵 Redeem cash**
+
+1. He types an amount in MYR (e.g. `5.00`). The screen shows how many points
+   it uses, at the cash value you set on the admin page (e.g. MYR 0.10 per
+   point → MYR 5.00 = 50 points).
+2. **Submit** stays greyed out unless the amount is valid: more than 0, up to
+   2 decimals, a whole number of points, and **no more points than he has
+   available**. Tapping it asks him to confirm.
+3. The points go **on hold** 🔒. On-hold points show on the menu, in the Shop
+   and in the points history, and can't be spent again.
+4. You **approve** or **reject** it on the admin page. Approve → the points
+   are used up (remember to hand over the cash). Reject → the points go back.
+
+**Points available = earned − on hold − used.** If the cash value is 0.00,
+cash redemption is switched off and the Shop says "ask a parent".
+
+**📜 Points history** (tap the points panel on the menu, or the button in the
+Shop) lists every change, newest first: points earned on each assessment
+(old best → new best), Quest Arena wins, and each redemption — on hold,
+redeemed (−points) or not approved (returned).
+
+Requests sync like everything else: if a request is approved on one device
+and still pending on another, the decision wins.
+
 ### Admin page (parents only)
 
 **Menu → 🔒 Admin** (bottom of the menu). The first time, it asks for the
@@ -95,7 +128,13 @@ unlocks it on every device. On the admin page you can:
 
 - set **points per 1%** for English, Bahasa and Maths (0 switches a subject's
   points off; halves like 1.5 are fine),
-- see each player's points,
+- set the **💵 cash value of 1 point** in MYR with 2 decimals (e.g. 0.10 →
+  1 point = MYR 0.10, so 100 points = MYR 10.00; 0.00 switches cash off).
+  Requests already waiting keep the value they were made at,
+- **approve or reject redemption requests** (the menu's Admin link shows how
+  many are waiting), and see past requests,
+- see each player's points — available, on hold, used and earned,
+- delete a player (the only place this can be done),
 - change the PIN or lock the page. Leaving the page locks it again.
 
 Forgot the PIN? Tap **Forgot the PIN?** and confirm the account password to

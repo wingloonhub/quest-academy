@@ -268,9 +268,9 @@
     current = renderMenu;
     const hist = STORE.history();
     const stars = totalStars(hist);
-    const points = STORE.points();
-    const arenaPts = STORE.arenaPoints();
+    const sum = STORE.pointsSummary();
     const badgeCount = Object.keys(STORE.badges()).length;
+    const pendingAll = STORE.profilesList().reduce((n, pl) => n + STORE.redemptions(pl).filter(r => r.status === "pending").length, 0);
     const email = (STORE.state.account || {}).email || "";
     show(`
       <div class="page menu-page">
@@ -286,18 +286,18 @@
           </div>
           <button class="btn ghost sm" id="switch" type="button">Switch</button>
         </div>
-        <div class="points-hero">
-          <div class="ph-coin">${ART.coin(64)}</div>
-          <div class="ph-main">
-            <div class="ph-label">My points</div>
-            <div class="ph-num">${points.toLocaleString("en-GB")}</div>
-            <div class="ph-sub">${(points - arenaPts).toLocaleString("en-GB")} from assessments · ${arenaPts.toLocaleString("en-GB")} from Quest Arena</div>
-          </div>
-          <div class="ph-extra">
+        <button class="points-hero clickable" id="pointsBtn" type="button">
+          <span class="ph-coin">${ART.coin(64)}</span>
+          <span class="ph-main">
+            <span class="ph-label">My points</span>
+            <span class="ph-num">${sum.available.toLocaleString("en-GB")}</span>
+            <span class="ph-sub">${sum.onHold ? `<span class="ph-hold">🔒 ${sum.onHold.toLocaleString("en-GB")} on hold</span> · ` : ""}${sum.used ? sum.used.toLocaleString("en-GB") + " used · " : ""}${sum.earned.toLocaleString("en-GB")} earned · <u>see history</u></span>
+          </span>
+          <span class="ph-extra">
             <span>⭐ <b>${stars}</b> ${stars === 1 ? "star" : "stars"}</span>
             <span>🏅 <b>${badgeCount}</b> ${badgeCount === 1 ? "badge" : "badges"}</span>
-          </div>
-        </div>
+          </span>
+        </button>
         <h2 class="section-h">Choose a subject</h2>
         <div class="subject-grid">${DATA.SUBJECTS.map(s => subjectCard(s, hist)).join("")}</div>
         <div class="menu-cards">
@@ -308,8 +308,8 @@
             </button>` : ""; })()}
           <button class="trophy-card shop-card" id="shopBtn" type="button">
             <span class="trophy-card-icon">🛍️</span>
-            <span class="trophy-card-text"><b>Shop</b><small>Spend your ${points.toLocaleString("en-GB")} points</small></span>
-            <span class="soon-pill sm">Coming soon</span>
+            <span class="trophy-card-text"><b>Shop</b><small>Spend your ${sum.available.toLocaleString("en-GB")} points${sum.onHold ? " · 🔒 " + sum.onHold.toLocaleString("en-GB") + " on hold" : ""}</small></span>
+            <span class="shop-tag">💵 Cash &amp; more</span>
           </button>
         </div>
         <div class="menu-actions">
@@ -321,7 +321,7 @@
         <div class="menu-foot">
           ${syncBadge()}
           <div class="row">
-            <button class="link-btn" id="adminBtn" type="button">🔒 Admin</button>
+            <button class="link-btn" id="adminBtn" type="button">🔒 Admin${pendingAll ? ` · <b class="gold">${plural(pendingAll, "request")} waiting</b>` : ""}</button>
             ${AUTH.user ? `<button class="link-btn" id="out" type="button">Sign out (${esc(email)})</button>`
                         : `<button class="link-btn" id="out" type="button">Back to the login screen</button>`}
           </div>
@@ -331,6 +331,7 @@
     $("#adminBtn").onclick = renderAdmin;
     if ($("#trophyBtn")) $("#trophyBtn").onclick = () => renderTrophyRoom(renderMenu);
     $("#shopBtn").onclick = renderShop;
+    $("#pointsBtn").onclick = () => renderPointsHistory(renderMenu);
     $("#switch").onclick = () => renderProfileSelect();
     $("#report").onclick = renderReport;
     $("#hist").onclick = () => renderHistory("all", renderMenu);
@@ -356,7 +357,7 @@
         <p>⭐ <b>Stars</b> — 50% = 1 star, 70% = 2 stars, 90% = 3 stars. Your best score on each level counts.</p>
         <p>${ART.coin(16)} <b>Points</b> — earned by <b>beating your own best score</b> on a level. Every 1% above your old best earns points (a parent sets how many for each subject). Repeating a level without beating your best earns nothing — so aim higher each time!</p>
         <p>🎮 <b>Quest Arena</b> — games that use what you've learned. In Maths, <b>Beat the Clock</b> gives you 3 lives and 15 times-table questions with 10 seconds each — survive to become a 🥷 <b>Times Table Ninja</b>. Then 15 more with just 5 seconds each to become a 🧙 <b>Multiplication Wizard</b>! Every badge you win lives in the 🏆 <b>Trophy Room</b>. Winning a round also pays points: <b>+50</b> the first time you win Round 1, <b>+60</b> the first time you win Round 2, then <b>+5</b> every time you win a round again.</p>
-        <p>🛍️ <b>Shop</b> — spend the points you've earned. Coming soon!</p>
+        <p>🛍️ <b>Shop</b> — spend the points you've earned. <b>Redeem cash</b>: type an amount in MYR and submit; a parent approves it on the admin page. Until then those points are <b>on hold</b> — if it isn't approved, they come back. Tap your points on the menu to see your <b>points history</b>.</p>
         <p>📊 <b>Parent Report</b> — mastery for every topic and level across all three subjects, the levels that need help, badges, and recent mistakes.</p>
         <p>☁️ <b>Same results everywhere</b> — sign in with the same email on a phone, tablet or computer and you get the same players, scores and reports. Assessments finished offline are kept and uploaded automatically next time the app is online.</p>
         <div class="row" style="margin-top:18px"><button class="btn primary" id="backBtn" type="button">← Back to the menu</button></div>
@@ -874,28 +875,218 @@
   }
 
   /* ===================== Shop =====================
-     Where points get spent. The items haven't been chosen yet, so for now it
-     shows the balance and a "being stocked" message. */
+     Players spend points here. Every purchase is a request a parent approves
+     or rejects on the admin page; until then its points are ON HOLD.
+     Cash redemption is the first item — more items will be added. */
+  const MYR = (n) => "MYR " + (Math.round((Number(n) || 0) * 100) / 100).toFixed(2);
+  const fmtPts = (n) => (Number(n) || 0).toLocaleString("en-GB");
+
+  function balanceHero(sum, label) {
+    return `<div class="points-hero">
+        <div class="ph-coin">${ART.coin(56)}</div>
+        <div class="ph-main">
+          <div class="ph-label">${esc(label || "Points to spend")}</div>
+          <div class="ph-num">${fmtPts(sum.available)}</div>
+          <div class="ph-sub">${sum.onHold ? `<span class="ph-hold">🔒 ${fmtPts(sum.onHold)} on hold</span> · ` : ""}${sum.used ? fmtPts(sum.used) + " used · " : ""}${fmtPts(sum.earned)} earned in total</div>
+        </div>
+      </div>`;
+  }
+  function holdBox(sum) {
+    const pending = STORE.redemptions().filter(r => r.status === "pending");
+    if (!pending.length) return "";
+    return `<div class="hold-box">🔒 <b>${plural(sum.onHold, "point")} on hold</b> — ${pending.map(r => esc((r.label || "Cash") + " " + MYR(r.myr))).join(", ")} waiting for a parent to approve. These points can't be used until then; if a request isn't approved, its points come back.</div>`;
+  }
+
   function renderShop() {
     current = renderShop;
-    const points = STORE.points();
+    const sum = STORE.pointsSummary();
+    const rate = STORE.myrPerPoint();
+    const cashText = !rate ? "Not switched on yet — ask a parent."
+      : `Swap points for real money. <b>1 point = ${MYR(rate)}</b>. Your ${fmtPts(sum.available)} points are worth <b>${MYR(sum.available * rate)}</b>.`;
     show(`
       <div class="topbar"><span class="back" id="bk">← Menu</span><h2>🛍️ Shop</h2></div>
       <div class="page narrow">
-        <div class="points-hero">
-          <div class="ph-coin">${ART.coin(56)}</div>
-          <div class="ph-main">
-            <div class="ph-label">Points to spend</div>
-            <div class="ph-num">${points.toLocaleString("en-GB")}</div>
-            <div class="ph-sub">Earn more by beating your best scores and winning Quest Arena rounds.</div>
+        ${balanceHero(sum)}
+        ${holdBox(sum)}
+        <h3 class="section-h">What would you like?</h3>
+        <div class="shop-grid">
+          <div class="shop-item">
+            <div class="shop-icon">💵</div>
+            <div class="shop-name">Redeem cash</div>
+            <div class="shop-desc">${cashText}</div>
+            <button class="btn primary" id="cashBtn" type="button"${rate && sum.available > 0 ? "" : " disabled"}>${!rate ? "Coming soon" : sum.available > 0 ? "Redeem cash →" : "Earn points first"}</button>
+          </div>
+          <div class="shop-item soon">
+            <div class="shop-icon">🎁</div>
+            <div class="shop-name">More items</div>
+            <div class="shop-desc">New things to spend your points on are coming soon.</div>
           </div>
         </div>
-        ${soonCard("The shop is being stocked!",
-          "Keep collecting points in <b>English</b>, <b>Bahasa</b> and <b>Maths</b> — great things to spend them on are coming soon.")}
-        <div class="row" style="margin-top:18px"><button class="btn primary" id="backBtn" type="button">← Back to the menu</button></div>
+        <div class="row" style="margin-top:18px">
+          <button class="btn ghost" id="backBtn" type="button">← Menu</button>
+          <button class="btn" id="histBtn" type="button">📜 Points history</button>
+        </div>
       </div>`);
     $("#bk").onclick = renderMenu;
     $("#backBtn").onclick = renderMenu;
+    $("#histBtn").onclick = () => renderPointsHistory(renderShop);
+    $("#cashBtn").onclick = renderRedeemCash;
+  }
+
+  function renderRedeemCash() {
+    const rate = STORE.myrPerPoint();
+    const sum = STORE.pointsSummary();
+    if (!rate || sum.available <= 0) return renderShop();
+    current = null;                              // keep what's being typed
+    const rateCents = Math.round(rate * 100);
+    const maxMyr = sum.available * rate;
+    show(`
+      <div class="topbar"><span class="back" id="bk">← Shop</span><h2>💵 Redeem cash</h2></div>
+      <div class="page narrow">
+        <div class="card wide redeem-card">
+          <div class="redeem-rate">1 point = <b>${MYR(rate)}</b></div>
+          <div class="muted">You have <b>${plural(sum.available, "point")}</b> available — worth up to <b>${MYR(maxMyr)}</b>.</div>
+          <div class="field" style="margin-top:16px">
+            <label for="myrIn">How much cash would you like?</label>
+            <div class="myr-wrap"><span class="myr-prefix">MYR</span><input id="myrIn" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00" autocomplete="off"/></div>
+          </div>
+          <button class="btn ghost sm" id="maxBtn" type="button">Use all my points (${MYR(maxMyr)})</button>
+          <div class="redeem-preview" id="preview">Type an amount to see how many points it uses.</div>
+          <div class="err" id="redeemErr"></div>
+          <div class="row" style="margin-top:6px">
+            <button class="btn ghost" id="cancelBtn" type="button">Cancel</button>
+            <button class="btn primary" id="submitBtn" type="button" disabled>Submit request</button>
+          </div>
+          <p class="muted small" style="margin-top:12px;line-height:1.6">A parent has to approve it. Until then the points are <b>on hold</b> and can't be used. If it isn't approved, the points come back.</p>
+        </div>
+      </div>`);
+    const input = $("#myrIn"), submit = $("#submitBtn");
+    let want = null;                              // { myr, points } when valid
+    const evaluate = () => {
+      want = null;
+      const raw = input.value.trim();
+      const myr = Number(raw);
+      let msg = "", preview = "Type an amount to see how many points it uses.";
+      if (raw) {
+        const cents = Math.round(myr * 100);
+        if (!isFinite(myr) || myr <= 0) msg = "Type an amount bigger than MYR 0.00.";
+        else if (Math.abs(myr * 100 - cents) > 1e-6) msg = "Use up to 2 decimals, e.g. 5.50.";
+        else if (cents % rateCents !== 0) msg = `Amounts go up in steps of ${MYR(rate)} (1 point each).`;
+        else {
+          const points = cents / rateCents;
+          preview = `<b>${MYR(myr)}</b> = ${ART.coin(16)} <b>${plural(points, "point")}</b>`;
+          if (points > sum.available) msg = `That needs ${plural(points, "point")} — you only have ${fmtPts(sum.available)} available (up to ${MYR(maxMyr)}).`;
+          else want = { myr: cents / 100, points: points };
+        }
+      }
+      $("#preview").innerHTML = preview;
+      $("#redeemErr").textContent = msg;
+      submit.disabled = !want;
+    };
+    input.oninput = evaluate;
+    $("#maxBtn").onclick = () => { input.value = (Math.round(maxMyr * 100) / 100).toFixed(2); evaluate(); };
+    $("#bk").onclick = renderShop;
+    $("#cancelBtn").onclick = renderShop;
+    submit.onclick = () => {
+      if (!want) return;
+      const w = want;
+      showConfirm(`Redeem ${MYR(w.myr)}?`,
+        `This uses ${plural(w.points, "point")}. They'll be on hold until a parent approves. If the parent says no, the points come back to you.`,
+        "Yes, submit", () => {
+          const r = STORE.requestRedemption({ item: "cash", label: "Cash", myr: w.myr, points: w.points, rate: rate });
+          if (!r) { toast("Not enough points available for that amount.", "bad"); renderRedeemCash(); return; }
+          SOUND.play("coin");
+          renderRedeemDone(r);
+        });
+    };
+    setTimeout(() => { try { input.focus(); } catch (e) { } }, 50);
+  }
+
+  function renderRedeemDone(r) {
+    current = null;
+    const sum = STORE.pointsSummary();
+    show(`
+      <div class="topbar"><span class="back" id="bk">← Shop</span><h2>💵 Request sent</h2></div>
+      <div class="page narrow">
+        <div class="card wide center">
+          <div class="big-emoji">🔒</div>
+          <h2 class="card-h">${MYR(r.myr)} is on hold</h2>
+          <p class="muted" style="line-height:1.7">${plural(r.points, "point")} are on hold until a parent approves your request.<br/>If it isn't approved, the points come back to you.</p>
+          <div class="kpi-grid three" style="margin-top:14px">
+            <div class="kpi-box"><div class="kpi-label">On hold</div><div class="kpi">🔒 ${fmtPts(sum.onHold)}</div></div>
+            <div class="kpi-box"><div class="kpi-label">Available</div><div class="kpi">${fmtPts(sum.available)}</div></div>
+            <div class="kpi-box"><div class="kpi-label">Earned</div><div class="kpi">${fmtPts(sum.earned)}</div></div>
+          </div>
+          <div class="row" style="margin-top:18px">
+            <button class="btn ghost" id="shopBtn2" type="button">← Shop</button>
+            <button class="btn primary" id="histBtn" type="button">📜 Points history</button>
+          </div>
+        </div>
+      </div>`);
+    $("#bk").onclick = renderShop;
+    $("#shopBtn2").onclick = renderShop;
+    $("#histBtn").onclick = () => renderPointsHistory(renderShop);
+  }
+
+  /* ---------- Points history: every point earned, on hold, used or returned ---------- */
+  function pointsEntries(p) {
+    const out = [];
+    STORE.pointsLog(p).filter(e => e.pts > 0).forEach(e => out.push({
+      ts: e.ts, kind: "earn", amount: e.pts, icon: "📝", subj: e.s,
+      title: DATA.fullLabel(e.s, e.t, e.l), sub: e.prev ? "New best: " + e.prev + "% → " + e.pct + "%" : "First score: " + e.pct + "%"
+    }));
+    let listed = 0;
+    STORE.gameLog(null, p).filter(r => r.points > 0).forEach(r => {
+      listed += r.points;
+      const def = DATA.game(r.game) || { label: r.game, icon: "🎮" };
+      out.push({ ts: r.ts, kind: "earn", amount: r.points, icon: def.icon || "🎮", subj: def.subjectId,
+        title: def.label, sub: "Quest Arena — won " + plural(r.cleared || 0, "round") });
+    });
+    const arena = STORE.arenaPoints(p);
+    if (arena > listed) out.push({ ts: 0, kind: "earn", amount: arena - listed, icon: "🎮", title: "Earlier Quest Arena wins", sub: "Round bonuses from before this list started" });
+    STORE.redemptions(p).forEach(r => out.push({
+      ts: r.ts, kind: r.status, amount: r.points, icon: "💵",
+      title: (r.label || "Cash") + " " + MYR(r.myr),
+      sub: r.status === "pending" ? "🔒 On hold — waiting for a parent to approve"
+        : r.status === "approved" ? "✓ Redeemed" + (r.decidedTs ? " on " + REPORT.shortDate(r.decidedTs) : "")
+        : "↩ Not approved — points returned" + (r.decidedTs ? " on " + REPORT.shortDate(r.decidedTs) : "")
+    }));
+    return out.sort((x, y) => (y.ts || 0) - (x.ts || 0));
+  }
+
+  function renderPointsHistory(onBack) {
+    onBack = onBack || renderMenu;
+    current = () => renderPointsHistory(onBack);
+    const p = STORE.active() || {};
+    const sum = STORE.pointsSummary();
+    const rows = pointsEntries(p).map(e => {
+      const amt = e.kind === "earn" ? "+" + fmtPts(e.amount)
+        : e.kind === "pending" ? "🔒 " + fmtPts(e.amount)
+        : e.kind === "approved" ? "−" + fmtPts(e.amount)
+        : fmtPts(e.amount);
+      return `<div class="pl-row pl-${e.kind}">
+          <span class="pl-icon">${e.icon}</span>
+          <span class="pl-main"><span class="pl-title"><b>${esc(e.title)}</b>${e.subj ? subjectPill(e.subj) : ""}</span><small>${esc(e.sub)}</small>${e.ts ? `<small class="pl-date">${esc(REPORT.shortDate(e.ts))} · ${esc(REPORT.timeAgo(e.ts))}</small>` : ""}</span>
+          <span class="pl-amt">${amt}</span>
+        </div>`;
+    }).join("");
+    show(`
+      <div class="topbar"><span class="back" id="bk">← Back</span><h2>📜 Points history</h2></div>
+      <div class="page narrow">
+        <div class="kpi-grid">
+          <div class="kpi-box"><div class="kpi-label">Earned</div><div class="kpi">${fmtPts(sum.earned)}</div></div>
+          <div class="kpi-box hold"><div class="kpi-label">On hold</div><div class="kpi">🔒 ${fmtPts(sum.onHold)}</div></div>
+          <div class="kpi-box"><div class="kpi-label">Used</div><div class="kpi">${fmtPts(sum.used)}</div></div>
+          <div class="kpi-box avail"><div class="kpi-label">Available</div><div class="kpi">${fmtPts(sum.available)}</div></div>
+        </div>
+        <div class="muted small" style="margin-top:8px">Available = earned − on hold − used.</div>
+        ${holdBox(sum)}
+        <h3 class="section-h">Every change</h3>
+        <div class="pl-list">${rows || `<div class="empty-note">No points yet — beat your best score on a level or win a Quest Arena round to earn some!</div>`}</div>
+        <div class="row" style="margin-top:20px"><button class="btn primary" id="backBtn" type="button">← Back</button></div>
+      </div>`);
+    $("#bk").onclick = onBack;
+    $("#backBtn").onclick = onBack;
   }
 
   /* ===================== Trophy Room — every badge ===================== */
@@ -1770,7 +1961,6 @@
       </button>`;
     }).join("");
 
-    const clearLabel = subjectId ? `🗑️ Clear ${DATA.subject(subjectId).label} history` : "🗑️ Clear all history";
     show(`${top}
       <div class="page narrow">
         <div class="chips">${chips}</div>
@@ -1780,17 +1970,10 @@
         <h3 class="section-h">Recent assessments</h3>
         <div class="session-list">${recent}</div>
         <div class="row" style="margin-top:20px">
-          <button class="btn ghost sm" id="clearBtn" type="button">${clearLabel}</button>
           <button class="btn primary" id="backBtn" type="button">← Back</button>
         </div>
       </div>`, subjectId);
     wireHistoryCommon(onBack);
-    $("#clearBtn").onclick = () => {
-      const p = STORE.active();
-      showConfirm(subjectId ? `Clear ${DATA.subject(subjectId).label} history?` : "Clear all history?",
-        `Every recorded assessment${subjectId ? " for this subject" : ""} for ${p ? p.name : "this player"} will be deleted on all devices. This can't be undone.`,
-        "Clear", () => { STORE.clearHistory(subjectId || "all"); self(); });
-    };
     $$(".hist-card").forEach(c => { c.onclick = () => renderLevelReport(c.dataset.subj, c.dataset.topic, c.dataset.level, self); });
     $$(".session-row").forEach(r => { r.onclick = () => renderSessionDetail(r.dataset.subj, r.dataset.topic, r.dataset.level, Number(r.dataset.ts), self); });
   }
@@ -2134,15 +2317,32 @@
         </span>
         <span class="rate-example muted small" id="ex_${esc(s.id)}">${example(STORE.rate(s.id))}</span>
       </div>`).join("");
-    const players = STORE.profilesList().map(p => {
+    const profiles = STORE.profilesList();
+    const players = profiles.map(p => {
+      const sum = STORE.pointsSummary(p);
       const log = STORE.pointsLog(p).filter(e => e.pts > 0);
       const last = log[log.length - 1];
       return `<div class="rep-card">
-        <div class="t"><span>${esc(p.name)}</span>${ptsChip(STORE.points(p), 17)}</div>
+        <div class="t"><span>${esc(p.name)}</span>${ptsChip(sum.available, 17)}</div>
+        <div class="sub">Available <b>${sum.available}</b> · on hold <b>${sum.onHold}</b> · used <b>${sum.used}</b> · earned <b>${sum.earned}</b></div>
         <div class="sub">${DATA.SUBJECTS.map(s => esc(s.label) + " " + STORE.points(p, s.id)).join(" · ")}</div>
-        <div class="sub">${last ? "Last earned: +" + last.pts + " on " + esc(DATA.fullLabel(last.s, last.t, last.l)) + ", " + esc(REPORT.timeAgo(last.ts)) : "No points yet."}</div>
+        <div class="sub">${last ? "Last earned: +" + last.pts + " on " + esc(DATA.fullLabel(last.s, last.t, last.l)) + ", " + esc(REPORT.timeAgo(last.ts)) : "No assessment points yet."}</div>
+        <div class="row" style="justify-content:flex-start;margin-top:8px"><button class="btn ghost sm" data-delplayer="${esc(p.id)}" type="button">🗑️ Delete player</button></div>
       </div>`;
     }).join("");
+    const myrRate = STORE.myrPerPoint();
+    const reqs = [];
+    profiles.forEach(p => STORE.redemptions(p).forEach(r => reqs.push({ p, r })));
+    const pending = reqs.filter(x => x.r.status === "pending").sort((x, y) => x.r.ts - y.r.ts);
+    const decided = reqs.filter(x => x.r.status !== "pending").sort((x, y) => (y.r.decidedTs || 0) - (x.r.decidedTs || 0));
+    const reqCard = (x, actions) => `<div class="req-card${x.r.status !== "pending" ? " " + x.r.status : ""}">
+        <div class="req-main"><span><b>${esc(x.p.name)}</b> — ${esc(x.r.label || "Cash")} <b>${MYR(x.r.myr)}</b></span>
+          <small>${plural(x.r.points, "point")} · 1 point = ${MYR(x.r.rate)} · asked ${esc(REPORT.shortDate(x.r.ts))} (${esc(REPORT.timeAgo(x.r.ts))})${x.r.decidedTs ? " · " + (x.r.status === "approved" ? "approved" : "rejected") + " " + esc(REPORT.shortDate(x.r.decidedTs)) : ""}</small></div>
+        ${actions ? `<div class="req-actions">
+            <button class="btn ghost sm" data-reject="${esc(x.p.id)}|${esc(x.r.id)}" type="button">✕ Reject</button>
+            <button class="btn primary sm" data-approve="${esc(x.p.id)}|${esc(x.r.id)}" type="button">✓ Approve</button>
+          </div>` : `<span class="req-status">${x.r.status === "approved" ? "✓ Approved" : "↩ Rejected"}</span>`}
+      </div>`;
     show(`
       <div class="topbar"><span class="back" id="bk">← Menu</span><h2>🔒 Admin</h2></div>
       <div class="page narrow">
@@ -2154,7 +2354,17 @@
           <p class="muted small" style="margin-top:12px;line-height:1.6">New values count from the next assessment — points already earned don't change. Set a subject to 0 to switch its points off.<br/>Quest Arena games pay their own fixed points (Beat the Clock: +50 for the first Round 1 win, +60 for the first Round 2 win, then +5 per round won).</p>
           <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn primary" id="saveRates" type="button">💾 Save points values</button></div>
         </div>
-        <h3 class="section-h">Points so far</h3>
+        <h3 class="section-h">💵 Cash value of 1 point</h3>
+        <div class="card wide admin-card">
+          <p class="muted small" style="line-height:1.6;margin-bottom:12px">What one point is worth when a player redeems cash in the Shop. Set it to 0.00 to switch cash redemption off. Requests already waiting keep the value they were made at.</p>
+          <div class="myr-wrap admin-myr"><span class="myr-prefix">MYR</span><input id="myrRate" type="number" inputmode="decimal" min="0" step="0.01" value="${myrRate.toFixed(2)}" aria-label="MYR per point"/><span class="myr-suffix">per point</span></div>
+          <div class="muted small" id="myrEx" style="margin-top:8px"></div>
+          <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn primary" id="saveMyr" type="button">💾 Save cash value</button></div>
+        </div>
+        <h3 class="section-h">Redemption requests ${pending.length ? `<span class="hold-count">${pending.length} waiting</span>` : ""}</h3>
+        <div class="req-list">${pending.length ? pending.map(x => reqCard(x, true)).join("") : `<div class="muted">No requests waiting.</div>`}</div>
+        ${decided.length ? `<details class="past-reqs"><summary>Past requests (${decided.length})</summary><div class="req-list">${decided.slice(0, 30).map(x => reqCard(x, false)).join("")}</div></details>` : ""}
+        <h3 class="section-h">Players &amp; points</h3>
         <div class="rep-grid">${players || `<div class="muted">No players yet.</div>`}</div>
         <h3 class="section-h">Admin PIN</h3>
         <div class="row" style="justify-content:flex-start">
@@ -2179,6 +2389,47 @@
       toast("Saved — the new points values apply on every device.", "good");
       renderAdminPage();
     };
+    const myrIn = $("#myrRate");
+    const readMyr = () => { const v = Number(myrIn.value); return isFinite(v) && v > 0 ? Math.round(v * 100) / 100 : 0; };
+    const myrEx = () => { const v = readMyr(); $("#myrEx").innerHTML = v ? `So <b>100 points = ${MYR(100 * v)}</b> and 1 point = ${MYR(v)}.` : "Cash redemption is <b>off</b>."; };
+    myrIn.oninput = myrEx;
+    myrEx();
+    $("#saveMyr").onclick = () => {
+      STORE.setMyrPerPoint(readMyr());
+      toast(readMyr() ? "Saved — 1 point = " + MYR(readMyr()) + "." : "Saved — cash redemption is off.", "good");
+      renderAdminPage();
+    };
+    const findReq = (key) => { const [pid, rid] = key.split("|"); const pl = STORE.state.profiles[pid]; return { pl, r: pl && STORE.redemptions(pl).filter(r => r.id === rid)[0], pid, rid }; };
+    $$("[data-approve]").forEach(btn => {
+      btn.onclick = () => {
+        const x = findReq(btn.dataset.approve); if (!x.r) return;
+        showConfirm(`Approve ${MYR(x.r.myr)} for ${x.pl.name}?`, `${plural(x.r.points, "point")} will be used up. Remember to give ${x.pl.name} the cash.`, "Approve", () => {
+          STORE.decideRedemption(x.pid, x.rid, "approved");
+          toast("Approved — " + MYR(x.r.myr) + " for " + x.pl.name + ".", "good");
+          renderAdminPage();
+        });
+      };
+    });
+    $$("[data-reject]").forEach(btn => {
+      btn.onclick = () => {
+        const x = findReq(btn.dataset.reject); if (!x.r) return;
+        showConfirm(`Reject ${MYR(x.r.myr)} for ${x.pl.name}?`, `The ${plural(x.r.points, "point")} go back to ${x.pl.name}'s balance.`, "Reject", () => {
+          STORE.decideRedemption(x.pid, x.rid, "rejected");
+          toast("Rejected — the points went back to " + x.pl.name + ".", "");
+          renderAdminPage();
+        });
+      };
+    });
+    $$("[data-delplayer]").forEach(btn => {
+      btn.onclick = () => {
+        const pl = STORE.state.profiles[btn.dataset.delplayer]; if (!pl) return;
+        showConfirm("Delete " + pl.name + "?", "All of " + pl.name + "'s assessments, points, badges and reports will be deleted on every device. This can't be undone.", "Delete", () => {
+          STORE.deleteProfile(pl.id);
+          if (!STORE.active() && STORE.profilesList().length) STORE.selectProfile(STORE.profilesList()[0].id);
+          renderAdminPage();
+        });
+      };
+    });
     $("#changePin").onclick = () => renderPinCreate("change");
     $("#lockAdmin").onclick = leaveAdmin;
     $("#bk").onclick = leaveAdmin;
@@ -2199,7 +2450,6 @@
         <div class="profile-meta">⭐ ${stars} · ${ART.coin(13)} ${STORE.points(p)} · ${plural(hist.length, "assessment")}${avg != null ? ` · ${avg}%` : ""}</div>
         <div class="profile-actions">
           <button class="btn ghost sm" data-edit="${esc(p.id)}" type="button">Edit</button>
-          ${profiles.length > 1 ? `<button class="btn ghost sm" data-delete="${esc(p.id)}" type="button">Delete</button>` : ""}
         </div>
       </div>`;
     }).join("");
@@ -2243,16 +2493,6 @@
           STORE.updateProfile(id, { name, gender });
           renderProfileSelect();
         });
-      };
-    });
-    $$("[data-delete]").forEach(b => {
-      b.onclick = (ev) => {
-        ev.stopPropagation();
-        const id = b.dataset.delete;
-        const cur = STORE.state.profiles[id];
-        showConfirm("Delete " + ((cur && cur.name) || "this player") + "?",
-          "All of this player's assessments and reports will be deleted on every device. The account stays.",
-          "Delete", () => { STORE.deleteProfile(id); renderProfileSelect(); });
       };
     });
     const addFlow = (prefill) => editProfileModal("Add player", prefill || "", "boy", (name, gender) => {
