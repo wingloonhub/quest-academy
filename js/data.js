@@ -36,7 +36,13 @@
       tagline: "Grammar, spelling, reading & writing",
       voice: "en-GB",            // voice used by listen-and-spell questions
       topics: [
-        // Topics go here once the worksheets are in, e.g.
+        { id: "conjunctions", label: "Conjunctions", icon: "🔗", desc: "Joining words — and, but, so, because, if, unless…", levels: [
+            { id: "level1", label: "Level 1", desc: "Choose the right conjunction", sessionSize: 15, hideCat: true,
+              catLabels: { BECAUSE: "because (reason)", SO: "so (result)", AND: "and (adding)", BUT: "but (contrast)",
+                           OR: "or (choice)", IF: "If (condition)", UNLESS: "unless (if not)", BEFORE: "before (time)",
+                           AFTER: "after (time)", CONTRAST: "although & yet (surprise)", TIME: "while, since, until & as" } }
+          ] }
+        // More topics go here as the worksheets come in, e.g.
         // { id: "nouns", label: "Nouns", icon: "🏷️", desc: "Common, proper & collective nouns", levels: [] },
       ]
     },
