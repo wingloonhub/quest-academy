@@ -32,7 +32,7 @@ Subject   English · Bahasa · Maths          (the three cards on the menu)
 | Maths → 12 topics (Addition, Subtraction, Multiplication, Division, Fractions, Length, Mass (weight), Capacity & volume, Perimeter, Time, Money, Word Problems) | ✅ built |
 | Maths levels ready: Addition L1: 2- and 3-digit (50 questions, 10 per test) · Multiplication L1: 1 digit × 1 digit (tables 2–10, 90 questions, 20 per test) · Multiplication L2: 2 digits × 1 digit (80 questions, 15 per test) · Multiplication L3: identify groups & items in each group (80 word problems with two answer boxes, 15 per test) — not linked to a school year yet | ✅ loaded |
 | Level page → Assessment · Progress report | ✅ built — fills in as levels are added |
-| English → Conjunctions L1: choose the right conjunction (80 multiple-choice questions, 15 per test) — not linked to a school year yet | ✅ loaded |
+| English levels ready: Conjunctions L1: choose the right conjunction (80 multiple-choice questions, 15 per test) · Pronouns L1: write the right pronoun — I, you, he, she, it, we, they (80 typed one-word answers, 15 per test) — not linked to a school year yet | ✅ loaded |
 | More English topics, and Bahasa topics | ⏳ *coming soon* — same topic → level layout as Maths |
 | History & Analysis, Parent Report (mastery grid for every topic and level) — assessment history can't be cleared | ✅ built |
 | Installable on phones (Add to Home Screen) | ✅ built |

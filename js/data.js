@@ -41,6 +41,12 @@
               catLabels: { BECAUSE: "because (reason)", SO: "so (result)", AND: "and (adding)", BUT: "but (contrast)",
                            OR: "or (choice)", IF: "If (condition)", UNLESS: "unless (if not)", BEFORE: "before (time)",
                            AFTER: "after (time)", CONTRAST: "although & yet (surprise)", TIME: "while, since, until & as" } }
+          ] },
+        { id: "pronouns", label: "Pronouns", icon: "🙋", desc: "I, you, he, she, it, we, they — words that stand for nouns", levels: [
+            { id: "level1", label: "Level 1", desc: "Write the right pronoun", sessionSize: 15, hideCat: true,
+              catLabels: { I: "I (myself)", YOU: "you (the person I'm talking to)", HE: "he (one boy or man)",
+                           SHE: "she (one girl or woman)", IT: "it (one thing or animal)", WE: "we (me and others)",
+                           THEY: "they (more than one)" } }
           ] }
         // More topics go here as the worksheets come in, e.g.
         // { id: "nouns", label: "Nouns", icon: "🏷️", desc: "Common, proper & collective nouns", levels: [] },
