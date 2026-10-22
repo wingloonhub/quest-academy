@@ -15,7 +15,6 @@ Subject   English · Bahasa · Maths          (the three cards on the menu)
   └ Topic    e.g. Maths → Addition … Word Problems
       └ Level   Level 1, Level 2, …         (you add these as worksheets come in)
           ├ 📝 Assessment       questions picked at random from the level's bank
-          ├ 📖 Learn            lesson cards with worked examples
           └ 📊 Progress report  score history, attempts, weak areas,
                                  last practice date, mastery status
 ```
@@ -26,11 +25,12 @@ Subject   English · Bahasa · Maths          (the three cards on the menu)
 | Cloud database — same results on every device, works offline and catches up | ✅ built |
 | Players (several kids under one account) | ✅ built |
 | Main menu → English · Bahasa · Maths | ✅ built |
+| Dashboard: big **My points** panel (assessments + Quest Arena), Trophy Room and 🛍️ Shop cards | ✅ built — Shop items *coming soon* |
 | Study Mode inside each subject: **By Topic**, **By School Year** (Year 1–6) or **Quest Arena** (games) | ✅ built |
 | Quest Arena → Maths → Beat the Clock, with 2 badges · 🏆 Trophy Room | ✅ built |
 | Maths → 12 topics (Addition, Subtraction, Multiplication, Division, Fractions, Length, Mass (weight), Capacity & volume, Perimeter, Time, Money, Word Problems) | ✅ built |
 | Maths levels ready: Addition L1: 2- and 3-digit (50 questions, 10 per test) · Multiplication L1: 1 digit × 1 digit (tables 2–10, 90 questions, 20 per test) · Multiplication L2: 2 digits × 1 digit (80 questions, 15 per test) · Multiplication L3: identify groups & items in each group (80 word problems with two answer boxes, 15 per test) — not linked to a school year yet | ✅ loaded |
-| Level page → Assessment · Learn · Progress report | ✅ built — fills in as levels are added |
+| Level page → Assessment · Progress report | ✅ built — fills in as levels are added |
 | English and Bahasa topics | ⏳ *coming soon* — same topic → level layout as Maths |
 | History & Analysis, Parent Report (mastery grid for every topic and level) | ✅ built |
 | Installable on phones (Add to Home Screen) | ✅ built |
@@ -53,7 +53,13 @@ Points are earned only by **beating your own best score on a level**:
 | Fourth try | 90% | 0 — same as the best |
 
 So repeating a level can never farm points, and one level pays at most
-100 × the value. Points already earned keep the value they were earned at,
+100 × the value.
+
+**Max points are always shown** — on each level card ("up to 20 points"), in a
+*Max points* box on the level page, next to the question counter during the
+assessment, and on the results ("Next try: up to 20 points"). The max is
+(100 − best %) × the subject's points per 1% from the admin page, so after
+scoring 80% at 1 point per 1% the next try shows a max of 20. Points already earned keep the value they were earned at,
 and clearing history doesn't reset a level's best score.
 
 ### Quest Arena (games)
@@ -62,11 +68,18 @@ Each subject's Study Mode has a third choice, **Quest Arena**. Maths has
 **⏱️ Beat the Clock** (times tables, 1 digit × 1 digit — questions come from
 Multiplication Level 1, ×1 to ×9 only, never repeated within a game):
 
-| | Rule | Badge |
-|---|---|---|
-| Lives | ❤️❤️❤️ for the whole game; a wrong answer — or running out of time — costs one (the right answer flashes up) | |
-| Round 1 | 15 questions, **10 seconds for each one** | 🥷 **Times Table Ninja** (silver) |
-| Round 2 | 15 more questions, **only 5 seconds for each one** | 🧙 **Multiplication Wizard** (gold) |
+| | Rule | Badge | Points |
+|---|---|---|---|
+| Lives | ❤️❤️❤️ for the whole game; a wrong answer — or running out of time — costs one (the right answer flashes up) | | |
+| Round 1 | 15 questions, **10 seconds for each one** | 🥷 **Times Table Ninja** (silver) | **+50** the first win, then +5 per win |
+| Round 2 | 15 more questions, **only 5 seconds for each one** | 🧙 **Multiplication Wizard** (gold) | **+60** the first win, then +5 per win |
+
+The game page shows the points each round will pay before he starts ("Points
+you can win"), and the points won appear between rounds and on the results
+screen. Arena points add to the player's total; round wins are counted per
+device so two devices can't double-count. A badge earned before points existed
+still credits its first-win bonus. Points per round are set in `js/data.js`
+(`rounds[].points`).
 
 Badges belong to the player, sync across devices (the first date earned is
 kept) and live in the **🏆 Trophy Room** (on the main menu): earned badges in
@@ -101,7 +114,7 @@ game/
   service-worker.js  favicon.svg  README.md
   css/style.css
   icons/...
-  js/...   (including js/questions/ and js/learn/)
+  js/...   (including js/questions/)
 ```
 
 ## Step 1 — Put it on GitHub
@@ -180,7 +193,7 @@ or **Install app** (Android) so it opens like a normal app.
 
 ## Adding a level (example: Maths → Addition → Level 1)
 
-Three files, same ids everywhere.
+Two files, same ids in both.
 
 **1. `js/data.js`** — add the level inside the topic:
 
@@ -206,21 +219,6 @@ window.QUESTIONS.maths = {
 };
 ```
 
-**3. `js/learn/maths.js`** — the lesson (optional):
-
-```js
-window.LEARN.maths = {
-  addition: {
-    level1: [
-      { title: "Column addition",
-        text: "Line the numbers up so the ones are under the ones.\nAdd the ones first.",
-        example: "  46\n+ 35\n----\n  81",
-        tip: "If the ones make 10 or more, carry the ten." }
-    ]
-  }
-};
-```
-
 Re-upload the changed files to GitHub — Vercel redeploys automatically.
 
 ### Question formats
@@ -233,6 +231,11 @@ Re-upload the changed files to GitHub — Vercel redeploys automatically.
 | Reading passage — same `pid` + `passage` on each question, and `passageMode: true` on the level | `{ pid: "fox1", passage: "…", q, options, answer }` |
 | Picture above any question (shapes, clocks, scales…) | `visual: "<svg …>…</svg>"` |
 | Several answer boxes (e.g. *Number of groups* + *Items in each group*) — tap a box, type, “Next box”; correct only if every box is right | `{ q: "story…", fields: [{ label: "Number of groups", word: "4" }, { label: "Items in each group", word: "6" }] }` |
+
+**No repeats in a test:** an assessment or game never shows the same question
+twice — including look-alikes with the same numbers and answer, such as
+`6 × 7` and `7 × 6`, or two stories that are both 2 groups of 6. (To group
+questions some other way, give them the same `same: "key"`.)
 
 Optional on any question: `cat` (powers *weak areas* in the progress report —
 give codes friendly names with `catLabels` on the level) and `explain` (shown
@@ -247,7 +250,7 @@ Optional on a level: `sessionSize: 20` (questions per assessment, default 10),
 
 English and Bahasa work the same way: add topics to their `topics: [...]` list
 in `js/data.js`, then levels, questions (`js/questions/english.js`,
-`js/questions/bahasa.js`) and lessons (`js/learn/…`).
+`js/questions/bahasa.js`).
 
 ---
 
@@ -262,7 +265,6 @@ The `.claude/launch.json` one folder up starts a small local server on port
 |---|---|
 | `js/data.js` | Subjects → topics → levels |
 | `js/questions/*.js` | Assessment questions, per subject → topic → level |
-| `js/learn/*.js` | Learn lessons, per subject → topic → level |
 | `js/store.js` | Players, saved results, points ledger, admin settings, merge logic (device + cloud) |
 | `js/firebase.js` | Email login + cloud sync |
 | `js/report.js` | Mastery, per-level progress reports, Parent Report |

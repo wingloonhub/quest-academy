@@ -28,6 +28,16 @@
   const DEFAULT_RATE = 1;      // points for each 1% improvement on a level's best score
   const GAMES_MAX = 100;       // game runs kept per player
 
+  // A random id for this device. Quest Arena round wins are counted per
+  // device, so wins made on two devices (even offline) add up correctly.
+  function deviceId() {
+    try {
+      let id = localStorage.getItem("qa_device");
+      if (!id) { id = "d" + Math.random().toString(36).slice(2, 10); localStorage.setItem("qa_device", id); }
+      return id;
+    } catch (e) { return "d_unknown"; }
+  }
+
   let uidKey = "guest";
   let syncer = null;           // set by firebase.js
   let saveTimer = null;
@@ -54,7 +64,8 @@
       cleared: {},             // { english: ts, all: ts } — sessions at/before ts are gone
       bests: [],               // points ledger: one entry per new best score on a level
       games: [],               // Quest Arena runs, newest first
-      badges: {}               // { badgeId: ts first earned }
+      badges: {},              // { badgeId: ts first earned }
+      arenaWins: {}            // { "gameId#round": { deviceId: wins } } — Quest Arena points
     };
   }
 
@@ -125,6 +136,19 @@
     return out;
   }
 
+  // Per-key, per-device counters: keep the highest count each device reported.
+  function mergeCounters(a, b) {
+    const out = {};
+    [a, b].forEach(function (src) {
+      Object.keys(isObj(src) ? src : {}).forEach(function (k) {
+        const per = isObj(src[k]) ? src[k] : {};
+        out[k] = out[k] || {};
+        Object.keys(per).forEach(function (d) { out[k][d] = Math.max(out[k][d] || 0, Number(per[d]) || 0); });
+      });
+    });
+    return out;
+  }
+
   function blankState() {
     return {
       v: 1,
@@ -183,6 +207,7 @@
     p.bests = tidyBests(Array.isArray(p.bests) ? p.bests : []);
     p.games = tidyGames(Array.isArray(p.games) ? p.games : []);
     p.badges = isObj(p.badges) ? p.badges : {};
+    p.arenaWins = isObj(p.arenaWins) ? p.arenaWins : {};
     return p;
   }
 
@@ -224,6 +249,7 @@
       p.bests = tidyBests(pb.bests.concat(pa.bests));
       p.games = tidyGames(pb.games.concat(pa.games));
       p.badges = minMap(pa.badges, pb.badges);
+      p.arenaWins = mergeCounters(pa.arenaWins, pb.arenaWins);
       out.profiles[id] = p;
     });
 
@@ -366,8 +392,58 @@
       const p = profile || STORE.active();
       return scoreBests((p && p.bests) || []).filter(function (e) { return !subjectId || e.s === subjectId; });
     },
+    // All points: assessment points + Quest Arena points.
     points(profile, subjectId) {
-      return STORE.pointsLog(profile, subjectId).reduce(function (a, e) { return a + e.pts; }, 0);
+      return STORE.pointsLog(profile, subjectId).reduce(function (a, e) { return a + e.pts; }, 0) +
+             STORE.arenaPoints(profile, subjectId);
+    },
+
+    /* ---------------- Quest Arena points ---------------- */
+    // How many times a game round has been won (all devices). A badge earned
+    // before arena points existed counts as one win, so it still gets its bonus.
+    arenaWins(gameId, roundIdx, profile) {
+      const p = profile || STORE.active(); if (!p) return 0;
+      const per = (p.arenaWins || {})[gameId + "#" + roundIdx] || {};
+      let n = Object.keys(per).reduce(function (a, d) { return a + (Number(per[d]) || 0); }, 0);
+      const D = window.DATA, def = D && D.game ? D.game(gameId) : null;
+      const badge = def && def.rounds[roundIdx] && def.rounds[roundIdx].badge;
+      if (badge && (p.badges || {})[badge]) n = Math.max(n, 1);
+      return n;
+    },
+    // Points a round has paid after `wins` wins: first-win bonus + repeat points.
+    arenaRoundPoints(round, wins) {
+      const pts = (round && round.points) || {};
+      return wins > 0 ? (pts.first || 0) + (wins - 1) * (pts.repeat || 0) : 0;
+    },
+    // Points the NEXT win of a round will pay.
+    arenaNextPoints(gameId, roundIdx, profile) {
+      const D = window.DATA, def = D && D.game ? D.game(gameId) : null;
+      const round = def && def.rounds[roundIdx];
+      const n = STORE.arenaWins(gameId, roundIdx, profile);
+      return STORE.arenaRoundPoints(round, n + 1) - STORE.arenaRoundPoints(round, n);
+    },
+    arenaPoints(profile, subjectId, gameId) {
+      const D = window.DATA;
+      if (!D || !D.GAMES) return 0;
+      return D.GAMES.filter(function (g) { return (!subjectId || g.subjectId === subjectId) && (!gameId || g.id === gameId); })
+        .reduce(function (sum, g) {
+          return sum + g.rounds.reduce(function (s2, r, i) { return s2 + STORE.arenaRoundPoints(r, STORE.arenaWins(g.id, i, profile)); }, 0);
+        }, 0);
+    },
+    // Record one round win on this device; returns the points it earned.
+    recordArenaWin(gameId, roundIdx) {
+      const p = STORE.active(); if (!p) return 0;
+      const def = window.DATA && DATA.game ? DATA.game(gameId) : null;
+      const round = def && def.rounds[roundIdx];
+      const key = gameId + "#" + roundIdx, dev = deviceId();
+      const before = STORE.arenaWins(gameId, roundIdx, p);
+      const per = p.arenaWins[key] = p.arenaWins[key] || {};
+      const counted = Object.keys(per).reduce(function (a, d) { return a + (Number(per[d]) || 0); }, 0);
+      // A win credited from an older badge isn't in the counters yet — add it too.
+      per[dev] = (per[dev] || 0) + 1 + (before > counted ? before - counted : 0);
+      const after = STORE.arenaWins(gameId, roundIdx, p);
+      STORE.save({ immediate: true });
+      return STORE.arenaRoundPoints(round, after) - STORE.arenaRoundPoints(round, before);
     },
 
     /* ---------------- Quest Arena: games + badges ---------------- */

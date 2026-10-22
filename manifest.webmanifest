@@ -1,7 +1,7 @@
 {
   "name": "Quest Academy",
   "short_name": "Quest Academy",
-  "description": "Year 4 practice in English, Bahasa and Maths — topic drills, progress history and a parent report that syncs across devices.",
+  "description": "Practice in English, Bahasa and Maths — topic drills, progress history and a parent report that syncs across devices.",
   "start_url": "./",
   "scope": "./",
   "id": "/",

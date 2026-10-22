@@ -1,6 +1,6 @@
 /* ui.js — every Quest Academy screen:
      login → players → menu → subject → topic → level
-     level = Assessment · Learn · Progress report
+     level = Assessment · Progress report
    plus results, history & analysis and the parent report. */
 (function () {
   "use strict";
@@ -102,10 +102,33 @@
     if (t === "down") return `<span class="trend down">▼ latest score dropped</span>`;
     return `<span class="trend flat">— steady</span>`;
   }
+  // Two questions count as "the same" when they use the same numbers and have the
+  // same answer (6 × 7 and 7 × 6, or two stories that are both 2 groups of 6) —
+  // otherwise when their text and answer match. A question can set its own
+  // `same` key to override this. No assessment or game ever shows both.
+  function sameKey(q) {
+    if (q.same) return "k:" + q.same;
+    const ans = (Array.isArray(q.fields) ? q.fields.map(f => f.word).join("|")
+      : (q.spelling || q.typed) ? String(q.word)
+      : Array.isArray(q.options) ? String(q.options[q.answer]) : "").toLowerCase();
+    const nums = (String(q.q || "").match(/\d+/g) || []).map(Number).sort((a, b) => a - b);
+    if (nums.length >= 2) return "n:" + nums.join(",") + "=" + ans;
+    return "t:" + String(q.q || q.word || "").toLowerCase().replace(/\s+/g, " ").trim() + "=" + ans;
+  }
+  function uniqueCount(bank) { return new Set(bank.map(sameKey)).size; }
+
+  // Most points an assessment can still pay: (100 − best %) × the subject's
+  // points per 1% (set on the admin page). Score 80% once → next time up to 20.
+  function maxPoints(subjectId, topicId, levelId) {
+    const best = STORE.bestScore(subjectId, topicId, levelId);
+    const rate = STORE.rate(subjectId);
+    return { best: best, rate: rate, max: Math.round((100 - best) * rate), full: Math.round(100 * rate) };
+  }
+
   function sessionSizeFor(level, bank) {
     const allSpelling = bank.every(q => q.spelling);
     const base = (level && level.sessionSize) || (allSpelling ? 10 : DATA.DEFAULT_SESSION_SIZE);
-    return Math.min(base, bank.length);
+    return Math.min(base, uniqueCount(bank));
   }
 
   /* ===================== cloud sync badge ===================== */
@@ -159,7 +182,7 @@
     show(`
       <div class="center-wrap"><div class="card auth-card">
         <div class="crest">${ART.crest()}</div>
-        <div class="title">Quest<br/>Academy<small>${esc(DATA.YEAR_LABEL.toUpperCase())} · ENGLISH · BAHASA · MATHS</small></div>
+        <div class="title">Quest<br/>Academy<small>ENGLISH · BAHASA · MATHS</small></div>
         <div class="subtitle">${up ? "Create your academy account" : "Sign in — your progress follows you to every phone and computer"}</div>
         <form id="authForm" autocomplete="on">
           ${up ? `<div class="field"><label for="dn">Student name</label><input id="dn" type="text" placeholder="e.g. Preston" maxlength="24" autocomplete="nickname" required/></div>` : ""}
@@ -246,28 +269,49 @@
     const hist = STORE.history();
     const stars = totalStars(hist);
     const points = STORE.points();
+    const arenaPts = STORE.arenaPoints();
+    const badgeCount = Object.keys(STORE.badges()).length;
     const email = (STORE.state.account || {}).email || "";
     show(`
       <div class="page menu-page">
         <header class="menu-head">
           <div class="menu-crest">${ART.crest()}</div>
-          <div class="menu-title">Quest Academy<small>${esc(DATA.YEAR_LABEL)} · English · Bahasa · Maths</small></div>
+          <div class="menu-title">Quest Academy<small>English · Bahasa · Maths</small></div>
         </header>
         <div class="player-chip">
           <div class="player-chip-avatar">${ART.student(p.gender)}</div>
           <div class="player-chip-text">
             <div class="player-chip-hello">${hist.length ? "Welcome back" : "Welcome"}, <b>${esc(p.name)}</b>!</div>
-            <div class="muted">${stars || points ? `⭐ ${plural(stars, "star")} · ${ART.coin(14)} <b class="gold">${plural(points, "point")}</b>` : "Pick a subject to start your quest"}${hist.length ? ` · ${plural(hist.length, "assessment")}` : ""}${Object.keys(STORE.badges()).length ? ` · 🏅 ${plural(Object.keys(STORE.badges()).length, "badge")}` : ""}</div>
+            <div class="muted">${hist.length ? plural(hist.length, "assessment") + " done — keep going!" : "Pick a subject to start your quest"}</div>
           </div>
           <button class="btn ghost sm" id="switch" type="button">Switch</button>
         </div>
+        <div class="points-hero">
+          <div class="ph-coin">${ART.coin(64)}</div>
+          <div class="ph-main">
+            <div class="ph-label">My points</div>
+            <div class="ph-num">${points.toLocaleString("en-GB")}</div>
+            <div class="ph-sub">${(points - arenaPts).toLocaleString("en-GB")} from assessments · ${arenaPts.toLocaleString("en-GB")} from Quest Arena</div>
+          </div>
+          <div class="ph-extra">
+            <span>⭐ <b>${stars}</b> ${stars === 1 ? "star" : "stars"}</span>
+            <span>🏅 <b>${badgeCount}</b> ${badgeCount === 1 ? "badge" : "badges"}</span>
+          </div>
+        </div>
         <h2 class="section-h">Choose a subject</h2>
         <div class="subject-grid">${DATA.SUBJECTS.map(s => subjectCard(s, hist)).join("")}</div>
-        ${(() => { const t = badgeTotals(); return t.ids.length ? `<button class="trophy-card" id="trophyBtn" type="button">
-            <span class="trophy-card-icon">🏆</span>
-            <span class="trophy-card-text"><b>Trophy Room</b><small>${t.got} of ${plural(t.ids.length, "badge")} collected</small></span>
-            <span class="trophy-card-medals">${t.ids.map(id => ART.badge(id, 34, !!t.earned[id])).join("")}</span>
-          </button>` : ""; })()}
+        <div class="menu-cards">
+          ${(() => { const t = badgeTotals(); return t.ids.length ? `<button class="trophy-card" id="trophyBtn" type="button">
+              <span class="trophy-card-icon">🏆</span>
+              <span class="trophy-card-text"><b>Trophy Room</b><small>${t.got} of ${plural(t.ids.length, "badge")} collected</small></span>
+              <span class="trophy-card-medals">${t.ids.map(id => ART.badge(id, 34, !!t.earned[id])).join("")}</span>
+            </button>` : ""; })()}
+          <button class="trophy-card shop-card" id="shopBtn" type="button">
+            <span class="trophy-card-icon">🛍️</span>
+            <span class="trophy-card-text"><b>Shop</b><small>Spend your ${points.toLocaleString("en-GB")} points</small></span>
+            <span class="soon-pill sm">Coming soon</span>
+          </button>
+        </div>
         <div class="menu-actions">
           <button class="btn" id="report" type="button">📊 Parent Report</button>
           <button class="btn" id="hist" type="button">📈 History &amp; Analysis</button>
@@ -286,6 +330,7 @@
     $$(".subject-card").forEach(c => { c.onclick = () => renderSubject(c.dataset.subject); });
     $("#adminBtn").onclick = renderAdmin;
     if ($("#trophyBtn")) $("#trophyBtn").onclick = () => renderTrophyRoom(renderMenu);
+    $("#shopBtn").onclick = renderShop;
     $("#switch").onclick = () => renderProfileSelect();
     $("#report").onclick = renderReport;
     $("#hist").onclick = () => renderHistory("all", renderMenu);
@@ -304,14 +349,14 @@
       <div class="topbar"><span class="back" id="bk">← Menu</span><h2>❓ How it works</h2></div>
       <div class="page narrow prose">
         <p>📚 <b>Pick a subject</b> — English, Bahasa or Maths — then a <b>topic</b> (for example Maths → Fractions), then a <b>level</b>.</p>
-        <p>Every level has three parts:</p>
+        <p>Every level has two parts:</p>
         <p>📝 <b>Assessment</b> — a short set of questions picked at random from that level, so it's different every time. Tap an answer, type it, or listen and spell. Wrong answers show the correct one before moving on.</p>
-        <p>📖 <b>Learn</b> — lesson cards that explain the idea with worked examples. Read them before the assessment, or come back after a tricky one.</p>
         <p>📊 <b>Progress report</b> — every score, how many attempts, the weak areas, the last practice date and the mastery status.</p>
         <p>🏆 <b>Mastery</b> — ${esc(REPORT.MASTERY_RULE)} Along the way a level shows <i>Needs practice</i>, <i>Developing</i> or <i>Almost mastered</i>.</p>
         <p>⭐ <b>Stars</b> — 50% = 1 star, 70% = 2 stars, 90% = 3 stars. Your best score on each level counts.</p>
         <p>${ART.coin(16)} <b>Points</b> — earned by <b>beating your own best score</b> on a level. Every 1% above your old best earns points (a parent sets how many for each subject). Repeating a level without beating your best earns nothing — so aim higher each time!</p>
-        <p>🎮 <b>Quest Arena</b> — games that use what you've learned. In Maths, <b>Beat the Clock</b> gives you 3 lives and 15 times-table questions with 10 seconds each — survive to become a 🥷 <b>Times Table Ninja</b>. Then 15 more with just 5 seconds each to become a 🧙 <b>Multiplication Wizard</b>! Every badge you win lives in the 🏆 <b>Trophy Room</b>.</p>
+        <p>🎮 <b>Quest Arena</b> — games that use what you've learned. In Maths, <b>Beat the Clock</b> gives you 3 lives and 15 times-table questions with 10 seconds each — survive to become a 🥷 <b>Times Table Ninja</b>. Then 15 more with just 5 seconds each to become a 🧙 <b>Multiplication Wizard</b>! Every badge you win lives in the 🏆 <b>Trophy Room</b>. Winning a round also pays points: <b>+50</b> the first time you win Round 1, <b>+60</b> the first time you win Round 2, then <b>+5</b> every time you win a round again.</p>
+        <p>🛍️ <b>Shop</b> — spend the points you've earned. Coming soon!</p>
         <p>📊 <b>Parent Report</b> — mastery for every topic and level across all three subjects, the levels that need help, badges, and recent mistakes.</p>
         <p>☁️ <b>Same results everywhere</b> — sign in with the same email on a phone, tablet or computer and you get the same players, scores and reports. Assessments finished offline are kept and uploaded automatically next time the app is online.</p>
         <div class="row" style="margin-top:18px"><button class="btn primary" id="backBtn" type="button">← Back to the menu</button></div>
@@ -445,21 +490,24 @@
     return parts.join(" · ");
   }
 
-  // Questions for a game: the level's bank, 1-digit × 1-digit only, no repeats.
+  // Facts for a game from the level's bank (1-digit × 1-digit only). 6 × 7 and
+  // 7 × 6 are ONE fact: each pool entry lists the ways to write it, and a game
+  // shows each fact once, written one of those ways at random.
   function gamePool(def) {
     const src = def.source || {};
     const bank = DATA.bank(def.subjectId, src.topicId, src.levelId) || [];
-    const seen = {}, pool = [];
+    const facts = {}, order = [];
     bank.forEach(q => {
       const m = String(q.q || "").match(/^\s*(\d+)\s*×\s*(\d+)/);
       if (!m || q.word == null) return;
-      if (src.maxFactor && (+m[1] > src.maxFactor || +m[2] > src.maxFactor)) return;
-      const key = m[1] + "×" + m[2];
-      if (seen[key]) return;
-      seen[key] = true;
-      pool.push({ text: m[1] + " × " + m[2], answer: String(q.word) });
+      const a = +m[1], b = +m[2];
+      if (src.maxFactor && (a > src.maxFactor || b > src.maxFactor)) return;
+      const key = Math.min(a, b) + "×" + Math.max(a, b);
+      if (!facts[key]) { facts[key] = []; order.push(key); }
+      const text = a + " × " + b;
+      if (!facts[key].some(v => v.text === text)) facts[key].push({ text: text, answer: String(q.word) });
     });
-    return pool;
+    return order.map(k => facts[k]);
   }
 
   function renderArena(subjectId) {
@@ -484,6 +532,7 @@
         <div class="game-head"><span class="game-icon">${def.icon || "🎮"}</span>
           <div><div class="game-title">${esc(def.label)}</div><div class="muted small">${esc(def.desc)}</div></div></div>
         <div class="game-badges">${def.rounds.filter(r => r.badge).map(r => badgeChip(r.badge, earned[r.badge])).join("")}</div>
+        <div class="pts-line small">${ART.coin(15)} Win points: ${def.rounds.map((r, i) => `Round ${i + 1} <b>+${STORE.arenaNextPoints(def.id, i)}</b>`).join(" · ")}${STORE.arenaPoints(null, null, def.id) ? ` · earned so far <b>${STORE.arenaPoints(null, null, def.id)}</b>` : ""}</div>
         <div class="muted small">${esc(gameBest(def, STORE.gameLog(def.id)))}</div>
         <button class="btn primary" data-game="${esc(def.id)}" type="button">Play →</button>
       </div>`).join("");
@@ -503,6 +552,29 @@
     return `<b>Round ${i + 1}:</b> ${r.questions} ${i ? "more " : ""}questions — ${i ? "only " : ""}<b>${r.perQuestion} seconds</b> for each one${i ? "!" : "."}${b ? ` Make it through to win the <b>${esc(b.label)}</b> badge.` : ""}`;
   }
 
+  // "Points you can win" box — shown before the game starts.
+  function pointsPlan(def) {
+    let total = 0;
+    const rows = def.rounds.map((r, i) => {
+      const next = STORE.arenaNextPoints(def.id, i);
+      const claimed = STORE.arenaWins(def.id, i) > 0;
+      const b = r.badge && DATA.BADGES[r.badge];
+      total += next;
+      return `<div class="pp-row">
+          <span class="pp-name">Round ${i + 1}${b ? ` · ${esc(b.label)}` : ""}</span>
+          <span class="pp-pts">${ART.coin(18)} +${next}</span>
+          <span class="pp-note">${claimed
+            ? `first-win bonus (+${(r.points || {}).first || 0}) already claimed — +${(r.points || {}).repeat || 0} for every win now`
+            : `first-win bonus! After that, +${(r.points || {}).repeat || 0} each time you win it`}</span>
+        </div>`;
+    }).join("");
+    return `<div class="points-plan">
+        <div class="pp-title">${ART.coin(20)} Points you can win</div>
+        ${rows}
+        <div class="pp-total">Win every round this time: <b>+${total} points</b></div>
+      </div>`;
+  }
+
   function renderGameIntro(subjectId, gameId) {
     const def = DATA.game(gameId);
     if (!def) return renderArena(subjectId);
@@ -520,6 +592,7 @@
             ${def.rounds.map((r, i) => `<li>${roundRule(r, i)}</li>`).join("")}
             <li>Type the answer on the number pad and tap <b>✓</b> (or press Enter).</li>
           </ul>
+          ${pointsPlan(def)}
           <div class="game-badges center-row">${def.rounds.filter(r => r.badge).map(r => badgeChip(r.badge, earned[r.badge])).join("")}</div>
           <div class="muted small" style="margin-top:8px">${esc(gameBest(def, STORE.gameLog(def.id)))}</div>
           <div class="row" style="margin-top:18px">
@@ -538,12 +611,13 @@
     const pool = def ? gamePool(def) : [];
     if (!pool.length) { toast("This game's questions aren't ready yet.", "bad"); return; }
     const need = def.rounds.reduce((n, r) => n + r.questions, 0);
-    let qs = shuffle(pool);
-    while (qs.length < need) qs = qs.concat(shuffle(pool));
+    let facts = shuffle(pool);
+    while (facts.length < need) facts = facts.concat(shuffle(pool));   // only if a game needs more facts than exist
+    const qs = facts.slice(0, need).map(ways => ways[Math.floor(Math.random() * ways.length)]);
     game = {
-      def, subjectId, qs: qs.slice(0, need), qi: 0, round: 0, inRound: 0,
+      def, subjectId, qs: qs, qi: 0, round: 0, inRound: 0,
       lives: def.lives, correct: 0, answered: 0, tooSlow: 0, cleared: 0,
-      times: [], roundMs: 0, newBadges: [], typed: "", busy: false, over: false,
+      times: [], roundMs: 0, newBadges: [], points: 0, roundPts: [], typed: "", busy: false, over: false,
       qStart: 0, qDeadline: 0, lastTick: 0
     };
     renderGameRound();
@@ -700,8 +774,12 @@
     g.times[g.round] = g.roundMs;
     stopGameTimer();
     g.cleared = g.round + 1;
+    const gained = STORE.recordArenaWin(g.def.id, g.round);
+    g.roundPts[g.round] = gained;
+    g.points += gained;
     if (r.badge && STORE.awardBadge(r.badge)) g.newBadges.push(r.badge);
     SOUND.play("win");
+    if (gained) setTimeout(() => SOUND.play("coin"), 600);
     if (g.round + 1 < g.def.rounds.length) renderRoundBreak();
     else endGame("won");
   }
@@ -718,9 +796,10 @@
           <div class="big-emoji">🎉</div>
           <h2 class="card-h">Round ${g.round + 1} cleared!</h2>
           <div class="muted" style="font-weight:700">${g.correct} correct · answered in ${secs(g.times[g.round])} · lives left ${"❤️".repeat(g.lives)}</div>
+          ${g.roundPts[g.round] ? `<div class="points-won">${ART.coin(30)}<div><b>+${plural(g.roundPts[g.round], "point")}!</b><span>for winning Round ${g.round + 1}</span></div></div>` : ""}
           ${done.badge ? `<div class="game-badges center-row" style="margin-top:14px">${badgeChip(done.badge, earned[done.badge], g.newBadges.indexOf(done.badge) > -1)}</div>` : ""}
           <div class="summary-box" style="margin-top:16px;text-align:left">
-            ${roundRule(next, g.round + 1)} Your lives carry on (${"❤️".repeat(g.lives)}). The first question starts when you tap <b>Go</b>.
+            ${roundRule(next, g.round + 1)} Win it for <b>${ART.coin(14)} +${STORE.arenaNextPoints(g.def.id, g.round + 1)} points</b>. Your lives carry on (${"❤️".repeat(g.lives)}). The first question starts when you tap <b>Go</b>.
           </div>
           <div class="row" style="margin-top:18px">
             <button class="btn ghost" id="stopBtn" type="button">Stop here</button>
@@ -745,7 +824,7 @@
     const rec = STORE.recordGame({
       game: g.def.id, subjectId: g.subjectId, ts: Date.now(),
       cleared: g.cleared, reached: g.round + 1, correct: g.correct, answered: g.answered,
-      tooSlow: g.tooSlow, livesLeft: g.lives,
+      tooSlow: g.tooSlow, livesLeft: g.lives, points: g.points,
       r1Ms: g.cleared >= 1 ? g.times[0] : null, r2Ms: g.cleared >= 2 ? g.times[1] : null,
       reason: reason
     });
@@ -774,6 +853,9 @@
           <div class="big-emoji">${emoji}</div>
           <h2 class="card-h">${head}</h2>
           <div class="muted" style="font-weight:700;line-height:1.7">${stats.join(" · ")}</div>
+          ${g.points
+            ? `<div class="points-won">${ART.coin(30)}<div><b>+${plural(g.points, "point")}!</b><span>${g.roundPts.map((p, i) => p ? "Round " + (i + 1) + " +" + p : "").filter(Boolean).join(" · ")}</span></div></div>`
+            : `<div class="points-none">${ART.coin(18)} No points this time — win Round 1 for <b>+${STORE.arenaNextPoints(def.id, 0)}</b>!</div>`}
           ${g.newBadges.length ? `<div class="badge-won">${g.newBadges.map(id => badgeChip(id, earned[id], true)).join("")}</div>` : ""}
           <div class="game-badges center-row" style="margin-top:14px">${def.rounds.filter(r => r.badge && g.newBadges.indexOf(r.badge) < 0).map(r => badgeChip(r.badge, earned[r.badge])).join("")}</div>
           <div class="summary-box" style="margin-top:16px;text-align:left">${tip}</div>
@@ -789,6 +871,31 @@
     $("#arenaBtn").onclick = () => renderArena(def.subjectId);
     $("#trophyBtn").onclick = () => renderTrophyRoom(() => renderArena(def.subjectId));
     $("#againBtn").onclick = () => startGame(def.subjectId, def.id);
+  }
+
+  /* ===================== Shop =====================
+     Where points get spent. The items haven't been chosen yet, so for now it
+     shows the balance and a "being stocked" message. */
+  function renderShop() {
+    current = renderShop;
+    const points = STORE.points();
+    show(`
+      <div class="topbar"><span class="back" id="bk">← Menu</span><h2>🛍️ Shop</h2></div>
+      <div class="page narrow">
+        <div class="points-hero">
+          <div class="ph-coin">${ART.coin(56)}</div>
+          <div class="ph-main">
+            <div class="ph-label">Points to spend</div>
+            <div class="ph-num">${points.toLocaleString("en-GB")}</div>
+            <div class="ph-sub">Earn more by beating your best scores and winning Quest Arena rounds.</div>
+          </div>
+        </div>
+        ${soonCard("The shop is being stocked!",
+          "Keep collecting points in <b>English</b>, <b>Bahasa</b> and <b>Maths</b> — great things to spend them on are coming soon.")}
+        <div class="row" style="margin-top:18px"><button class="btn primary" id="backBtn" type="button">← Back to the menu</button></div>
+      </div>`);
+    $("#bk").onclick = renderMenu;
+    $("#backBtn").onclick = renderMenu;
   }
 
   /* ===================== Trophy Room — every badge ===================== */
@@ -863,7 +970,7 @@
       <div class="page narrow">
         ${subj.topics.length
           ? `<h3 class="section-h" style="margin-top:4px">Topics</h3><div class="topic-grid">${cards}</div>`
-          : soonCard("Topics are on the way", `The ${esc(subj.label)} topics will appear here as soon as the worksheets are added. Each topic will have its own levels, and every level gets an <b>Assessment</b>, a <b>Learn</b> lesson and a <b>Progress report</b>.`)}
+          : soonCard("Topics are on the way", `The ${esc(subj.label)} topics will appear here as soon as the worksheets are added. Each topic will have its own levels, and every level gets an <b>Assessment</b> and a <b>Progress report</b>.`)}
       </div>`, subjectId);
     $("#bk").onclick = () => renderStudyMode(subjectId);
     $$(".topic-card").forEach(card => { card.onclick = () => renderTopic(subjectId, card.dataset.topic); });
@@ -929,18 +1036,23 @@
   }
 
   /* ===================== topic → levels ===================== */
+  function maxChip(mp) {
+    if (mp.rate <= 0) return "";
+    return mp.max > 0
+      ? ` · <span class="max-chip">${ART.coin(13)} up to <b>${mp.max}</b> points</span>`
+      : ` · <span class="max-chip done">${ART.coin(13)} all points earned</span>`;
+  }
+
   function levelCard(subjectId, topicId, levelId) {
     const ls = REPORT.levelStats(subjectId, topicId, levelId);
     const l = DATA.level(subjectId, topicId, levelId);
     const bank = DATA.bank(subjectId, topicId, levelId);
-    const lesson = DATA.lesson(subjectId, topicId, levelId);
     const parts = [];
     parts.push(bank ? "📝 " + plural(sessionSizeFor(l, bank), "question") : "📝 questions coming soon");
-    parts.push(lesson ? "📖 " + lesson.length + "-card lesson" : "📖 lesson coming soon");
     return `<button class="level-card" data-topic="${esc(topicId)}" data-level="${esc(levelId)}" type="button">
         <span class="level-head"><span class="level-name">${esc(l.label)}${l.desc ? `: ${esc(l.desc)}` : ""}</span>${masteryBadge(ls.mastery)}</span>
         <span class="level-foot">
-          <span class="muted small">${parts.join(" · ")}</span>
+          <span class="muted small">${parts.join(" · ")}${bank ? maxChip(maxPoints(subjectId, topicId, levelId)) : ""}</span>
           ${ls.attempts ? `<span class="topic-best">${ART.stars(starsFor(ls.best), 14)} best ${ls.best}% · ${esc(REPORT.timeAgo(ls.lastTs))}</span>` : ""}
         </span>
       </button>`;
@@ -967,7 +1079,7 @@
           ? `<h3 class="section-h">Levels</h3><div class="level-list">${sum.levels.map(ls => levelCard(subjectId, topicId, ls.levelId)).join("")}</div>`
           : soonCard("Levels are on the way",
               `The <b>${esc(t.label)}</b> levels will appear here once they're added. Every level will have:` +
-              `<span class="soon-parts"><span>📝 <b>Assessment</b></span><span>📖 <b>Learn</b></span><span>📊 <b>Progress report</b></span></span>`)}
+              `<span class="soon-parts"><span>📝 <b>Assessment</b></span><span>📊 <b>Progress report</b></span></span>`)}
       </div>`, subjectId);
     $("#bk").onclick = () => renderTopicList(subjectId);
     $$(".level-card").forEach(c => { c.onclick = () => renderLevel(subjectId, topicId, c.dataset.level); });
@@ -982,13 +1094,12 @@
       : { label: DATA.topicLabel(subjectId, topicId), go: () => renderTopic(subjectId, topicId) };
   }
 
-  /* ===================== level hub: Assessment · Learn · Progress ===================== */
+  /* ===================== level hub: Assessment · Progress report ===================== */
   function renderLevel(subjectId, topicId, levelId) {
     const t = DATA.topic(subjectId, topicId), l = DATA.level(subjectId, topicId, levelId);
     if (!t || !l) return renderTopic(subjectId, topicId);
     current = () => renderLevel(subjectId, topicId, levelId);
     const bank = DATA.bank(subjectId, topicId, levelId);
-    const lesson = DATA.lesson(subjectId, topicId, levelId);
     const st = REPORT.levelStats(subjectId, topicId, levelId);
     const back = levelBack(subjectId, topicId, levelId);
 
@@ -1001,13 +1112,16 @@
       assessInfo = `${plural(sessionSizeFor(l, bank), "question")} picked at random from ${bank.length}. No timer — take your time.`;
     }
     const best = st.attempts ? `<div class="sec-stat">${ART.stars(starsFor(st.best), 16)} Best <b>${st.best}%</b> · Latest <b>${st.latest}%</b></div>` : "";
-    const bestEver = STORE.bestScore(subjectId, topicId, levelId);
-    const rate = STORE.rate(subjectId);
-    const left = Math.round((100 - bestEver) * rate);
-    const pointsLine = !bank || rate <= 0 ? ""
-      : bestEver >= 100 ? `<div class="sec-stat pts-line">${ART.coin(16)} All the points on this level are earned — 100%!</div>`
-      : bestEver > 0 ? `<div class="sec-stat pts-line">${ART.coin(16)} Beat your best (${bestEver}%) to earn up to <b>${left}</b> more points</div>`
-      : `<div class="sec-stat pts-line">${ART.coin(16)} Earn up to <b>${left}</b> points — ${ratePhrase(rate)} for every 1%</div>`;
+    const mp = maxPoints(subjectId, topicId, levelId);
+    const pointsLine = !bank ? ""
+      : mp.rate <= 0 ? `<div class="max-box off">${ART.coin(24)}<div><div class="max-num">No points right now</div><div class="max-sub">Points are switched off for ${esc(DATA.subject(subjectId).label)} at the moment.</div></div></div>`
+      : mp.max <= 0 ? `<div class="max-box done">${ART.coin(24)}<div><div class="max-num">All ${mp.full} points earned!</div><div class="max-sub">Your best is 100% — you can still practise to stay sharp.</div></div></div>`
+      : `<div class="max-box">${ART.coin(28)}<div>
+          <div class="max-num">Max points: <b>${mp.max}</b></div>
+          <div class="max-sub">${mp.best > 0
+            ? `Your best is ${mp.best}%. Every 1% above it pays ${ratePhrase(mp.rate)} — score 100% to get all ${mp.max}.`
+            : `${ratePhrase(mp.rate)} for every 1% you score — 100% gets all ${mp.max}.`}</div>
+        </div></div>`;
 
     show(`
       <div class="topbar"><span class="back" id="bk">← ${esc(back.label)}</span><h2>${esc(l.label)}</h2></div>
@@ -1034,14 +1148,6 @@
             <button class="btn primary" id="goAssess" type="button"${bank ? "" : " disabled"}>${bank ? (st.attempts ? "Try again →" : "Start →") : "Coming soon"}</button>
           </div>
           <div class="sec-card">
-            <div class="sec-icon">📖</div>
-            <div class="sec-body">
-              <div class="sec-title">Learn</div>
-              <div class="sec-text">${lesson ? `A ${lesson.length}-card lesson with worked examples. Read it before the assessment, or come back after a tricky one.` : "The lesson for this level hasn't been added yet."}</div>
-            </div>
-            <button class="btn" id="goLearn" type="button"${lesson ? "" : " disabled"}>${lesson ? "Open lesson →" : "Coming soon"}</button>
-          </div>
-          <div class="sec-card">
             <div class="sec-icon">📊</div>
             <div class="sec-body">
               <div class="sec-title">Progress report</div>
@@ -1056,47 +1162,7 @@
     const self = () => renderLevel(subjectId, topicId, levelId);
     $("#bk").onclick = back.go;
     $("#goAssess").onclick = () => startSession(subjectId, topicId, levelId);
-    $("#goLearn").onclick = () => renderLearn(subjectId, topicId, levelId, 0);
     $("#goReport").onclick = () => renderLevelReport(subjectId, topicId, levelId, self);
-  }
-
-  /* ===================== Learn — lesson cards ===================== */
-  function renderLearn(subjectId, topicId, levelId, idx) {
-    const cards = DATA.lesson(subjectId, topicId, levelId);
-    if (!cards) return renderLevel(subjectId, topicId, levelId);
-    idx = Math.max(0, Math.min(idx || 0, cards.length - 1));
-    current = () => renderLearn(subjectId, topicId, levelId, idx);
-    const c = cards[idx] || {};
-    const last = idx === cards.length - 1;
-    const hasBank = !!DATA.bank(subjectId, topicId, levelId);
-    show(`
-      <div class="topbar"><span class="back" id="bk">← ${esc(DATA.levelLabel(subjectId, topicId, levelId))}</span><h2>📖 Learn · ${esc(DATA.fullLabel(subjectId, topicId, levelId))}</h2></div>
-      <div class="qwrap">
-        <div class="progress-label"><span>Card ${idx + 1} of ${cards.length}</span><span>${esc(DATA.topicLabel(subjectId, topicId))}</span></div>
-        <div class="dots">${cards.map((_, i) => `<i class="${i === idx ? "on" : i < idx ? "done" : ""}"></i>`).join("")}</div>
-        <div class="lesson-card">
-          <h2 class="lesson-title">${esc(c.title || "")}</h2>
-          ${c.visual ? `<div class="q-visual">${c.visual}</div>` : ""}
-          ${c.text ? `<div class="lesson-text">${fmt(c.text)}</div>` : ""}
-          ${c.example ? `<div class="lesson-example"><span class="label">Example</span><pre>${esc(c.example)}</pre></div>` : ""}
-          ${c.tip ? `<div class="lesson-tip">💡 ${fmt(c.tip)}</div>` : ""}
-        </div>
-        <div class="lesson-nav">
-          <button class="btn ghost" id="prevBtn" type="button"${idx === 0 ? " disabled" : ""}>← Back</button>
-          ${last
-            ? (hasBank ? `<button class="btn primary" id="doneBtn" type="button">Start the assessment →</button>` : `<button class="btn primary" id="doneBtn" type="button">Finish ✓</button>`)
-            : `<button class="btn primary" id="nextBtn" type="button">Next →</button>`}
-        </div>
-      </div>`, subjectId);
-    const go = (i) => renderLearn(subjectId, topicId, levelId, i);
-    $("#bk").onclick = () => renderLevel(subjectId, topicId, levelId);
-    $("#prevBtn").onclick = () => go(idx - 1);
-    if ($("#nextBtn")) $("#nextBtn").onclick = () => go(idx + 1);
-    if ($("#doneBtn")) $("#doneBtn").onclick = () => hasBank ? startSession(subjectId, topicId, levelId) : renderLevel(subjectId, topicId, levelId);
-    keyHandler = (e) => {
-      if (e.key === "ArrowRight" && !last) { go(idx + 1); return true; }
-      if (e.key === "ArrowLeft" && idx > 0) { go(idx - 1); return true; }
-    };
   }
 
   /* ===================== Progress report for one level ===================== */
@@ -1135,13 +1201,11 @@
       </div>`;
     const buttons = `<div class="row" style="margin-top:22px">
         <button class="btn ghost" id="backBtn" type="button">← Back</button>
-        ${lvl && DATA.lesson(subjectId, topicId, levelId) ? `<button class="btn" id="learnBtn" type="button">📖 Learn</button>` : ""}
         ${lvl && DATA.bank(subjectId, topicId, levelId) ? `<button class="btn primary" id="assessBtn" type="button">📝 Take the assessment</button>` : ""}
       </div>`;
     const wire = () => {
       $("#bk").onclick = onBack;
       $("#backBtn").onclick = onBack;
-      if ($("#learnBtn")) $("#learnBtn").onclick = () => renderLearn(subjectId, topicId, levelId, 0);
       if ($("#assessBtn")) $("#assessBtn").onclick = () => startSession(subjectId, topicId, levelId);
     };
     const top = `<div class="topbar"><span class="back" id="bk">← Back</span><h2>📊 Progress report</h2></div>`;
@@ -1172,7 +1236,7 @@
       ? `<div class="rep-grid">${st.areas.map(a => barCard((a.acc < 0.7 ? "🎯 " : "") + a.label, a.correct, a.total, `${a.correct} / ${a.total} correct in the last ${plural(st.areaSpan, "assessment")}`, a.acc < 0.7)).join("")}</div>`
       : "";
     const weakLine = st.weakAreas.length
-      ? `<div class="summary-box" style="margin-bottom:10px">Weak areas: <b class="bad">${st.weakAreas.map(a => esc(a.label) + " (" + a.pct + "%)").join(", ")}</b>. Practise these first — the Learn lesson is a good place to start.</div>`
+      ? `<div class="summary-box" style="margin-bottom:10px">Weak areas: <b class="bad">${st.weakAreas.map(a => esc(a.label) + " (" + a.pct + "%)").join(", ")}</b>. Practise these first.</div>`
       : `<div class="summary-box" style="margin-bottom:10px">No weak areas — every question type is at 70% or above. 👏</div>`;
     const mistakes = [];
     st.sessions.slice(0, 3).forEach(s => (s.mistakes || []).forEach(m => { if (mistakes.length < 8) mistakes.push({ m, when: REPORT.timeAgo(s.ts) }); }));
@@ -1211,13 +1275,20 @@
     bank.forEach(q => { const c = q.cat || "?"; (byCat[c] = byCat[c] || []).push(q); });
     Object.keys(byCat).forEach(c => { byCat[c] = shuffle(byCat[c]); });
     const cats = shuffle(Object.keys(byCat));
-    const picked = [];
+    const picked = [], used = {};
     let progressed = true;
     while (picked.length < n && progressed) {
       progressed = false;
       for (const c of cats) {
         if (picked.length >= n) break;
-        if (byCat[c].length) { picked.push(byCat[c].shift()); progressed = true; }
+        // skip anything that's the same as a question already picked
+        while (byCat[c].length && used[sameKey(byCat[c][0])]) byCat[c].shift();
+        if (byCat[c].length) {
+          const q = byCat[c].shift();
+          used[sameKey(q)] = true;
+          picked.push(q);
+          progressed = true;
+        }
       }
     }
     return shuffle(picked).map(shuffleOpts);
@@ -1237,7 +1308,7 @@
     if (!lvl || !bank) { toast("This level's questions haven't been added yet.", "bad"); return; }
     const questions = lvl.passageMode ? samplePassages(bank, lvl.passageCount || 3) : sampleBalanced(bank, sessionSizeFor(lvl, bank));
     if (!questions.length) { toast("No questions found for this level.", "bad"); return; }
-    exam = { subjectId, topicId, levelId, questions, idx: 0, answers: [], byCat: {} };
+    exam = { subjectId, topicId, levelId, questions, idx: 0, answers: [], byCat: {}, maxPts: maxPoints(subjectId, topicId, levelId) };
     renderQuestion();
   }
 
@@ -1373,7 +1444,7 @@
     show(`
       <div class="topbar"><span class="back" id="bk">✕ Quit</span><h2>📝 ${esc(DATA.fullLabel(st.subjectId, st.topicId, st.levelId))}</h2></div>
       <div class="qwrap">
-        <div class="progress-label"><span>Question ${num} of ${total}</span><span>✓ ${correctSoFar} correct</span></div>
+        <div class="progress-label"><span>Question ${num} of ${total}</span><span>${st.maxPts && st.maxPts.rate > 0 && st.maxPts.max > 0 ? `<span class="max-chip">${ART.coin(13)} up to <b>${st.maxPts.max}</b> pts</span> · ` : ""}✓ ${correctSoFar} correct</span></div>
         <div class="progress"><i style="width:${Math.round((st.idx / total) * 100)}%"></i></div>
         ${tag ? `<div class="qtag">${esc(tag)}</div>` : ""}
         ${body}
@@ -1574,6 +1645,10 @@
     } else {
       pointsBox = `<div class="points-none">${ART.coin(18)} No new points this time — your best is still <b>${saved ? saved.prevBest : 0}%</b>. Beat it to earn more!</div>`;
     }
+    const nextMp = maxPoints(st.subjectId, st.topicId, st.levelId);
+    pointsBox += nextMp.rate <= 0 ? ""
+      : nextMp.max > 0 ? `<div class="max-next">Next try: up to <b>${ART.coin(14)} ${nextMp.max} points</b> — beat ${nextMp.best}% to earn them.</div>`
+      : `<div class="max-next">🎉 You've earned all ${nextMp.full} points on this level!</div>`;
     const justMastered = after.mastery.id === "mastered" && before.mastery.id !== "mastered";
     const masteryUp = after.mastery.rank > before.mastery.rank && before.attempts > 0;
     SOUND.play(pct >= 80 ? "win" : "finish");
@@ -1821,6 +1896,7 @@
       <div class="rep-grid">${DATA.GAMES.map(def => `<div class="rep-card">
           <div class="t"><span>${def.icon || "🎮"} ${esc(def.label)} ${subjectPill(def.subjectId)}</span></div>
           <div class="sub">${esc(gameBest(def, STORE.gameLog(def.id)))}</div>
+          <div class="sub">${ART.coin(13)} <b class="gold">${plural(STORE.arenaPoints(null, null, def.id), "point")}</b> from this game</div>
           <div class="game-badges" style="margin-top:8px">${def.rounds.filter(r => r.badge).map(r => badgeChip(r.badge, myBadges[r.badge])).join("")}</div>
         </div>`).join("")}</div>` : "";
     const earnedLog = STORE.pointsLog().filter(e => e.pts > 0).slice(-10).reverse();
@@ -2075,7 +2151,7 @@
         <div class="card wide admin-card">
           <p class="muted small" style="line-height:1.6;margin-bottom:12px">Points are paid only when a player <b>beats their own best score</b> on a level: (new best − old best) × the value below. Repeating a level without beating the best earns nothing, so one level can never pay more than 100 × the value.</p>
           <div class="rate-list">${rows}</div>
-          <p class="muted small" style="margin-top:12px;line-height:1.6">New values count from the next assessment — points already earned don't change. Set a subject to 0 to switch its points off.</p>
+          <p class="muted small" style="margin-top:12px;line-height:1.6">New values count from the next assessment — points already earned don't change. Set a subject to 0 to switch its points off.<br/>Quest Arena games pay their own fixed points (Beat the Clock: +50 for the first Round 1 win, +60 for the first Round 2 win, then +5 per round won).</p>
           <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn primary" id="saveRates" type="button">💾 Save points values</button></div>
         </div>
         <h3 class="section-h">Points so far</h3>

@@ -241,7 +241,7 @@ button:focus-visible,.profile-card:focus-visible{outline:2px solid var(--gold);o
 .m-mastered{background:rgba(78,196,106,.2);border-color:rgba(78,196,106,.6);color:#a8f0bb}
 .mastery-block{margin-top:10px}
 
-/* level hub: Assessment · Learn · Progress report */
+/* level hub: Assessment · Progress report */
 .section-cards{display:flex;flex-direction:column;gap:12px;margin-top:16px}
 .sec-card{display:flex;align-items:center;gap:14px;background:var(--panel-solid);border:1px solid var(--border);border-radius:16px;padding:16px}
 .sec-icon{font-size:30px;width:54px;height:54px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:var(--accent-glow);flex-shrink:0}
@@ -255,18 +255,6 @@ button:focus-visible,.profile-card:focus-visible{outline:2px solid var(--gold);o
   .sec-card .btn{width:100%}
 }
 
-/* Learn lesson cards */
-.dots{display:flex;gap:6px;justify-content:center;margin:10px 0 14px;flex-wrap:wrap}
-.dots i{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.15)}
-.dots i.done{background:var(--accent-deep)}
-.dots i.on{background:var(--accent);transform:scale(1.25)}
-.lesson-card{background:var(--panel);border:1px solid var(--border);border-top:3px solid var(--accent);border-radius:18px;padding:22px 20px;box-shadow:var(--shadow)}
-.lesson-title{font-family:var(--display);font-size:24px;color:var(--ink-strong);margin-bottom:12px}
-.lesson-text{font-size:17px;line-height:1.7}
-.lesson-example{margin-top:14px;background:rgba(0,0,0,.3);border:1px dashed var(--accent);border-radius:12px;padding:10px 14px}
-.lesson-example pre{font-family:Consolas,"Courier New",monospace;font-size:19px;line-height:1.5;color:var(--ink-strong);white-space:pre-wrap;margin-top:4px}
-.lesson-tip{margin-top:14px;background:rgba(242,193,78,.1);border:1px solid rgba(242,193,78,.35);border-radius:12px;padding:10px 14px;font-weight:700;line-height:1.55}
-.lesson-nav{display:flex;justify-content:space-between;gap:10px;margin-top:16px}
 
 /* progress report */
 .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}
@@ -634,3 +622,50 @@ button:focus-visible,.profile-card:focus-visible{outline:2px solid var(--gold);o
 .trophy-date{font-size:12.5px;font-weight:800;color:var(--gold-bright);margin-top:2px}
 .trophy-date.locked{color:var(--muted)}
 .trophy .btn{margin-top:4px}
+
+/* Quest Arena — points you can win */
+.points-plan{margin:14px auto 12px;max-width:480px;text-align:left;background:linear-gradient(180deg,rgba(242,193,78,.16),rgba(242,193,78,.05));border:1px solid var(--border-strong);border-radius:14px;padding:12px 14px}
+.pp-title{display:flex;align-items:center;gap:8px;font-family:var(--display);font-size:17px;font-weight:800;color:var(--gold-bright);margin-bottom:6px}
+.pp-row{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:7px 0;border-top:1px solid rgba(255,255,255,.08)}
+.pp-name{font-weight:800;color:var(--ink-strong);font-size:14px}
+.pp-pts{display:inline-flex;align-items:center;gap:5px;font-weight:800;font-size:18px;color:var(--gold-bright);justify-self:end}
+.pp-note{grid-column:1 / -1;color:var(--muted);font-size:12.5px;line-height:1.45}
+.pp-total{border-top:1px solid rgba(255,255,255,.12);padding-top:8px;margin-top:2px;font-size:14px;color:var(--ink)}
+.pp-total b{color:var(--gold-bright)}
+
+/* Max points an assessment can still pay */
+.max-box{display:flex;align-items:center;gap:10px;margin-top:10px;padding:10px 12px;border-radius:12px;background:linear-gradient(180deg,rgba(242,193,78,.18),rgba(242,193,78,.06));border:1px solid var(--border-strong)}
+.max-box.done{background:rgba(78,196,106,.12);border-color:rgba(78,196,106,.5)}
+.max-box.off{background:rgba(255,255,255,.04);border-color:var(--border)}
+.max-num{font-family:var(--display);font-size:18px;font-weight:800;color:var(--ink-strong)}
+.max-num b{color:var(--gold-bright);font-size:22px}
+.max-sub{font-size:12.5px;color:var(--muted);line-height:1.45;margin-top:2px}
+.max-chip{display:inline-flex;align-items:center;gap:4px;color:var(--gold-bright);font-weight:800;text-transform:none;letter-spacing:0}
+.max-chip.done{color:#9cf0b3}
+.max-next{margin-top:8px;font-size:13.5px;font-weight:700;color:var(--muted)}
+.max-next b{color:var(--gold-bright)}
+
+/* ---------- Dashboard: points panel, Trophy Room + Shop ---------- */
+.points-hero{display:flex;align-items:center;gap:16px;margin-top:14px;padding:16px 20px;border-radius:20px;
+  background:radial-gradient(circle at 12% 50%,rgba(255,223,138,.30),transparent 55%),linear-gradient(135deg,#3a2c08,#1c1a3a 70%);
+  border:2px solid var(--gold);box-shadow:0 10px 30px rgba(0,0,0,.45),0 0 26px rgba(242,193,78,.18)}
+.ph-coin{flex-shrink:0;filter:drop-shadow(0 6px 12px rgba(0,0,0,.45))}
+.ph-coin .coin{display:block}
+.ph-main{flex:1;min-width:0}
+.ph-label{font-size:12.5px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:var(--gold-bright)}
+.ph-num{font-family:var(--display);font-size:52px;font-weight:800;line-height:1.05;color:#fff7e0;text-shadow:0 0 22px rgba(242,193,78,.55),0 3px 0 rgba(0,0,0,.6)}
+.ph-sub{font-size:12.5px;color:var(--muted);font-weight:700;margin-top:2px}
+.ph-extra{display:flex;flex-direction:column;gap:6px;flex-shrink:0}
+.ph-extra span{background:rgba(0,0,0,.28);border:1px solid var(--border);border-radius:99px;padding:5px 12px;font-size:13px;font-weight:700;white-space:nowrap}
+.ph-extra b{color:var(--ink-strong)}
+@media(max-width:560px){
+  .points-hero{flex-wrap:wrap;padding:14px 16px}
+  .ph-num{font-size:44px}
+  .ph-extra{flex-direction:row;width:100%}
+}
+.menu-cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+.menu-cards .trophy-card{margin-top:0}
+@media(max-width:700px){.menu-cards{grid-template-columns:1fr}}
+.shop-card{background:linear-gradient(160deg,#173a35,var(--panel-solid));border-color:rgba(52,211,153,.5)}
+.shop-card .trophy-card-text small{color:#7fe0c4}
+.shop-card .soon-pill{border-color:#34d399;background:rgba(52,211,153,.18)}

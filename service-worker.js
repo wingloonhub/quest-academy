@@ -3,7 +3,7 @@
    shows up straight away — no stale versions), with the cache as the offline
    fallback. The versioned Firebase SDK files are cache-first. Firebase login
    and database calls are never cached. */
-const CACHE = "quest-academy-v1";
+const CACHE = "quest-academy-v2";
 const CORE = [
   "./",
   "./index.html",
@@ -13,9 +13,6 @@ const CORE = [
   "./js/questions/english.js",
   "./js/questions/bahasa.js",
   "./js/questions/maths.js",
-  "./js/learn/english.js",
-  "./js/learn/bahasa.js",
-  "./js/learn/maths.js",
   "./js/data.js",
   "./js/store.js",
   "./js/sound.js",

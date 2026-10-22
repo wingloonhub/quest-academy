@@ -4,14 +4,12 @@
        └ TOPIC   (e.g. Maths → Addition, Subtraction, … Word Problems)
            └ LEVEL  (Level 1, Level 2, … — added as worksheets come in)
                ├ Assessment       questions from js/questions/<subject>.js
-               ├ Learn            lesson cards from js/learn/<subject>.js
                └ Progress report  built automatically from finished assessments
 
    To add a level later (example: Addition, Level 1):
    1. Add it to the topic's `levels` list below:
         { id: "level1", label: "Level 1", desc: "Adding 2-digit numbers" }
    2. Add its questions in js/questions/maths.js under  addition → level1
-   3. (optional) Add its lesson in js/learn/maths.js under  addition → level1
    Nothing else changes — the screens, scoring, progress reports and the
    Parent Report pick it up automatically.
 
@@ -28,7 +26,6 @@
 (function () {
   "use strict";
 
-  const YEAR_LABEL = "Year 4";
   const DEFAULT_SESSION_SIZE = 10;   // questions per assessment, picked at random from the level
   const SCHOOL_YEARS = [1, 2, 3, 4, 5, 6];   // shown in Study Mode → By School Year
 
@@ -93,7 +90,9 @@
   /* Quest Arena games. A game takes its questions from a level's bank.
      rounds[].perQuestion → seconds allowed for EACH question (running out
                             of time costs a life, like a wrong answer);
-     rounds[].badge       → the badge for clearing that round (see BADGES). */
+     rounds[].badge       → the badge for clearing that round (see BADGES);
+     rounds[].points      → { first: bonus for the FIRST win of the round,
+                              repeat: points for every win after that }. */
   const GAMES = [
     {
       id: "beat_the_clock",
@@ -104,8 +103,8 @@
       source: { topicId: "multiplication", levelId: "level1", maxFactor: 9 },   // only 1-digit × 1-digit
       lives: 3,                                                                 // for the whole game
       rounds: [
-        { questions: 15, perQuestion: 10, badge: "times_table_ninja" },
-        { questions: 15, perQuestion: 5,  badge: "multiplication_wizard" }
+        { questions: 15, perQuestion: 10, badge: "times_table_ninja",     points: { first: 50, repeat: 5 } },
+        { questions: 15, perQuestion: 5,  badge: "multiplication_wizard", points: { first: 60, repeat: 5 } }
       ]
     }
   ];
@@ -129,12 +128,6 @@
     const s = (window.QUESTIONS && window.QUESTIONS[subjectId]) || {};
     const b = (s[topicId] || {})[levelId];
     return Array.isArray(b) && b.length ? b : null;
-  }
-  // Lesson cards for one level — js/learn/<subject>.js → topic → level.
-  function lesson(subjectId, topicId, levelId) {
-    const s = (window.LEARN && window.LEARN[subjectId]) || {};
-    const l = (s[topicId] || {})[levelId];
-    return Array.isArray(l) && l.length ? l : null;
   }
   // School years a level belongs to (accepts years: [3, 4] or year: 3).
   function levelYears(lvl) {
@@ -179,8 +172,8 @@
   }
 
   window.DATA = {
-    YEAR_LABEL, DEFAULT_SESSION_SIZE, SCHOOL_YEARS, SUBJECTS, GAMES, BADGES, games, game,
-    subject, topic, level, bank, lesson, levelCount, levelYears, yearTopics,
+    DEFAULT_SESSION_SIZE, SCHOOL_YEARS, SUBJECTS, GAMES, BADGES, games, game,
+    subject, topic, level, bank, levelCount, levelYears, yearTopics,
     topicLabel, levelLabel, fullLabel, catLabel
   };
 })();
