@@ -12,12 +12,21 @@ same players, scores, progress reports and Parent Report.**
 
 ```
 Subject   English · Bahasa · Maths          (the three cards on the menu)
-  └ Topic    e.g. Maths → Addition … Word Problems
-      └ Level   Level 1, Level 2, …         (you add these as worksheets come in)
-          ├ 📝 Assessment       questions picked at random from the level's bank
-          └ 📊 Progress report  score history, attempts, weak areas,
-                                 last practice date, mastery status
+  └ Module   e.g. English → Grammar, Maths → Operations   (+ 📊 module report)
+      └ Topic    e.g. Grammar → Conjunctions, Operations → Multiplication   (+ 📊 topic report)
+          └ Level   Level 1, Level 2, …     (you add these as worksheets come in)
+              ├ 📝 Assessment       questions picked at random from the level's bank
+              └ 📊 Progress report  score history, attempts, weak areas,
+                                     last practice date, mastery status
 ```
+
+There is a progress report at every step, so you can see where he's weak:
+
+| Report | Where | Shows |
+|---|---|---|
+| **📊 Module report** | tap the 📊 card on every module page (e.g. Grammar) | each **topic** — average, best, levels mastered, weak areas — **weakest topic first**. *Full module report* adds the weak areas across the whole module, recent mistakes and a link to each topic report |
+| **📊 Topic report** | tap the 📊 card on every topic page (e.g. Pronouns) | each **level** weakest first, and the **question types** he's weak at across the topic (e.g. *she*, *they*), weakest first. *Full topic report* adds every question type and recent mistakes |
+| **📊 Progress report** | every level page | score history, attempts, weak areas, last practice date, mastery status |
 
 | Part | Status |
 |---|---|
@@ -27,14 +36,16 @@ Subject   English · Bahasa · Maths          (the three cards on the menu)
 | Main menu → English · Bahasa · Maths | ✅ built |
 | Dashboard: big **My points** panel (points available, on hold and used — tap it for the points history), Trophy Room and 🛍️ Shop cards | ✅ built |
 | 🛍️ Shop → **Redeem cash** (parent approves on the admin page) · 📜 Points history | ✅ built — more shop items to come |
-| Study Mode inside each subject: **By Topic**, **By School Year** (Year 1–6) or **Quest Arena** (games) | ✅ built |
+| Study Mode inside each subject: **By Module**, **By School Year** (Year 1–6) or **Quest Arena** (games) | ✅ built |
 | Quest Arena → Maths → Beat the Clock, with 2 badges · 🏆 Trophy Room | ✅ built |
-| Maths → 12 topics (Addition, Subtraction, Multiplication, Division, Fractions, Length, Mass (weight), Capacity & volume, Perimeter, Time, Money, Word Problems) | ✅ built |
-| Maths levels ready: Addition L1: 2- and 3-digit (50 questions, 10 per test) · Multiplication L1: 1 digit × 1 digit (tables 2–10, 90 questions, 20 per test) · Multiplication L2: 2 digits × 1 digit (80 questions, 15 per test) · Multiplication L3: identify groups & items in each group (80 word problems with two answer boxes, 15 per test) — not linked to a school year yet | ✅ loaded |
-| Level page → Assessment · Progress report | ✅ built — fills in as levels are added |
-| English levels ready: Conjunctions L1: choose the right conjunction (80 multiple-choice questions, 15 per test) · Pronouns L1: write the right pronoun — I, you, he, she, it, we, they (80 typed one-word answers, 15 per test) — not linked to a school year yet | ✅ loaded |
-| More English topics, and Bahasa topics | ⏳ *coming soon* — same topic → level layout as Maths |
-| History & Analysis, Parent Report (mastery grid for every topic and level) — assessment history can't be cleared | ✅ built |
+| Maths → 8 modules (Numbers & Place value, Operations, Fractions, Decimals & Percentages, Measurement, Geometry, Statistics & probability, Word problems, Mathematical reasoning) · Operations → 6 topics (Addition, Subtraction, Multiplication, Division, Missing numbers, Mixed operations) | ✅ built |
+| Maths levels ready: Operations → Addition → Level 1: 2- and 3-digit (50 questions, 10 per test) · Operations → Multiplication → Level 1: 1 digit × 1 digit (tables 2–10, 90 questions, 20 per test) · Level 2: 2 digits × 1 digit (80 questions, 15 per test) · Mathematical reasoning → Equal groups → Level 1: identify groups & items in each group (80 word problems with two answer boxes, 15 per test) — not linked to a school year yet | ✅ loaded |
+| English → 7 modules (Grammar, Tenses & verbs, Vocabulary, Spelling, Punctuation & capitalisation, Reading comprehension, Writing) | ✅ built |
+| English levels ready: Grammar → Pronouns → Level 1: write the right pronoun — I, you, he, she, it, we, they (80 typed one-word answers, 15 per test) — not linked to a school year yet. Grammar → Conjunctions has no levels at the moment (Level 1 was removed on 23 Oct 2026; results already done stay in History & Analysis and the Parent Report, and their points are kept) | ✅ loaded |
+| Module page → Topics + 📊 Module report (weakest topic first) · Topic page → Levels + 📊 Topic report (weakest level and question type first) · Level page → Assessment · Progress report | ✅ built — fills in as levels are added |
+| Bahasa → 8 modules (Kata nama & kata ganti nama, Kata kerja & adjektif, Kata tugas, Pembentukan kata, Ayat & tatabahasa, Ejaan & Tanda baca, Pemahaman & Kosa kata, Penulisan) | ✅ built — topics and levels to come |
+| More English and Maths topics, and Bahasa topics | ⏳ *coming soon* — same module → topic → level layout |
+| History & Analysis, Parent Report (mastery grid for every module and level) — assessment history can't be cleared | ✅ built |
 | Installable on phones (Add to Home Screen) | ✅ built |
 
 **Mastery status** for each level: *Not started → Needs practice → Developing →
@@ -71,7 +82,7 @@ admin page only.
 
 Each subject's Study Mode has a third choice, **Quest Arena**. Maths has
 **⏱️ Beat the Clock** (times tables, 1 digit × 1 digit — questions come from
-Multiplication Level 1, ×1 to ×9 only, never repeated within a game):
+Operations → Multiplication → Level 1, ×1 to ×9 only, never repeated within a game):
 
 | | Rule | Badge | Points |
 |---|---|---|---|
@@ -232,16 +243,19 @@ or **Install app** (Android) so it opens like a normal app.
 
 ---
 
-## Adding a level (example: Maths → Addition → Level 1)
+## Adding a level (example: Maths → Operations → Addition → Level 1)
 
-Two files, same ids in both.
+Two files, same ids in both: **module → topic → level**.
 
-**1. `js/data.js`** — add the level inside the topic:
+**1. `js/data.js`** — add the level inside the topic (a new topic goes in the
+module's `topics`, a new module in the subject's `modules`):
 
 ```js
-{ id: "addition", label: "Addition", icon: "+", desc: "…", levels: [
-    { id: "level1", label: "Level 1", desc: "Adding 2- and 3-digit numbers", years: [3],
-      catLabels: { ADD2: "2-digit sums", ADD3: "3-digit sums", MISS: "Missing numbers" } }
+{ id: "operations", label: "Operations", icon: "🧮", desc: "…", topics: [
+    { id: "addition", label: "Addition", icon: "➕", desc: "…", levels: [
+        { id: "level1", label: "Level 1", desc: "Adding 2- and 3-digit numbers", years: [3],
+          catLabels: { ADD2: "2-digit sums", ADD3: "3-digit sums", MISS: "Missing numbers" } }
+    ] }
 ] },
 ```
 
@@ -249,16 +263,22 @@ Two files, same ids in both.
 
 ```js
 window.QUESTIONS.maths = {
-  addition: {
-    level1: [
-      { q: "What is 46 + 35?", options: ["81", "71", "711", "82"], answer: 0, cat: "ADD2",
-        explain: "6 + 5 = 11 — write 1, carry 1. 4 + 3 + 1 = 8." },
-      { typed: true, q: "347 + 285 = ___", word: "632", cat: "ADD3" },
-      { typed: true, q: "___ + 25 = 60", word: "35", cat: "MISS" }
-    ]
+  operations: {            // module
+    addition: {            // topic
+      level1: [            // level
+        { q: "What is 46 + 35?", options: ["81", "71", "711", "82"], answer: 0, cat: "ADD2",
+          explain: "6 + 5 = 11 — write 1, carry 1. 4 + 3 + 1 = 8." },
+        { typed: true, q: "347 + 285 = ___", word: "632", cat: "ADD3" },
+        { typed: true, q: "___ + 25 = 60", word: "35", cat: "MISS" }
+      ]
+    }
   }
 };
 ```
+
+Saved results are keyed by `module | topic.level` (e.g. `grammar | conjunctions.level1`).
+Never rename an id that has results saved against it — to move a level, list
+its old → new ids in `MOVED` in `js/data.js` and saved results follow it.
 
 Re-upload the changed files to GitHub — Vercel redeploys automatically.
 
@@ -284,13 +304,13 @@ after a wrong answer).
 
 `years: [3]` puts the level under **Year 3** in Study Mode → By School Year
 (use several, e.g. `years: [3, 4]`, if it fits more than one year; a level
-with no `years` only shows under By Topic).
+with no `years` only shows under By Module).
 
 Optional on a level: `sessionSize: 20` (questions per assessment, default 10),
 `passageMode: true, passageCount: 2`.
 
-English and Bahasa work the same way: add topics to their `topics: [...]` list
-in `js/data.js`, then levels, questions (`js/questions/english.js`,
+English and Bahasa work the same way: add modules to their `modules: [...]` list
+in `js/data.js`, then topics and levels, and the questions (`js/questions/english.js`,
 `js/questions/bahasa.js`).
 
 ---
@@ -304,11 +324,11 @@ The `.claude/launch.json` one folder up starts a small local server on port
 
 | File | What it does |
 |---|---|
-| `js/data.js` | Subjects → topics → levels |
-| `js/questions/*.js` | Assessment questions, per subject → topic → level |
+| `js/data.js` | Subjects → modules → topics → levels, and `MOVED` for levels that changed place |
+| `js/questions/*.js` | Assessment questions, per subject → module → topic → level |
 | `js/store.js` | Players, saved results, points ledger, admin settings, merge logic (device + cloud) |
 | `js/firebase.js` | Email login + cloud sync |
-| `js/report.js` | Mastery, per-level progress reports, Parent Report |
+| `js/report.js` | Mastery, level progress reports, topic reports, module reports, Parent Report |
 | `js/ui.js` (admin section) | PIN-protected admin page: points per 1% for each subject |
 | `js/ui.js` | Every screen |
 | `js/art.js` | Crest, student avatars, owl mascot, subject badges |

@@ -1,6 +1,6 @@
 /* ui.js — every Quest Academy screen:
-     login → players → menu → subject → topic → level
-     level = Assessment · Progress report
+     login → players → menu → subject → module → topic → level
+     level = Assessment · Progress report   (module page = topics + module report)
    plus results, history & analysis and the parent report. */
 (function () {
   "use strict";
@@ -246,10 +246,10 @@
     const levels = DATA.levelCount(s.id);
     let meta;
     if (!s.topics.length) meta = `<span class="soon-pill">Coming soon</span>`;
-    else if (!levels) meta = `<span class="subject-meta">${plural(s.topics.length, "topic")}</span><span class="soon-pill">Levels coming soon</span>`;
+    else if (!levels) meta = `<span class="subject-meta">${plural(s.topics.length, "module")}</span><span class="soon-pill">Topics coming soon</span>`;
     else {
       const mastered = s.topics.reduce((a, t) => a + REPORT.topicSummary(s.id, t.id).mastered, 0);
-      meta = `<span class="subject-meta">${plural(s.topics.length, "topic")} · ${plural(levels, "level")}${mastered ? ` · 🏆 ${mastered} mastered` : ""}${sh.length ? ` · avg ${avgPct(sh)}%` : ""}</span>`;
+      meta = `<span class="subject-meta">${plural(s.topics.length, "module")} · ${plural(DATA.topicCount(s.id), "topic")}${mastered ? ` · 🏆 ${mastered} mastered` : ""}${sh.length ? ` · avg ${avgPct(sh)}%` : ""}</span>`;
     }
     return `<button class="subject-card" data-subject="${esc(s.id)}" type="button">
       <span class="subject-art">${ART.subject(s.id)}</span>
@@ -349,7 +349,8 @@
     show(`
       <div class="topbar"><span class="back" id="bk">← Menu</span><h2>❓ How it works</h2></div>
       <div class="page narrow prose">
-        <p>📚 <b>Pick a subject</b> — English, Bahasa or Maths — then a <b>topic</b> (for example Maths → Fractions), then a <b>level</b>.</p>
+        <p>📚 <b>Pick a subject</b> — English, Bahasa or Maths — then a <b>module</b> (for example English → Grammar), a <b>topic</b> (for example Conjunctions) and a <b>level</b>.</p>
+        <p>📊 Every module has a <b>module report</b> (which topics are weakest) and every topic has a <b>topic report</b> (which levels and question types are weakest).</p>
         <p>Every level has two parts:</p>
         <p>📝 <b>Assessment</b> — a short set of questions picked at random from that level, so it's different every time. Tap an answer, type it, or listen and spell. Wrong answers show the correct one before moving on.</p>
         <p>📊 <b>Progress report</b> — every score, how many attempts, the weak areas, the last practice date and the mastery status.</p>
@@ -358,7 +359,7 @@
         <p>${ART.coin(16)} <b>Points</b> — earned by <b>beating your own best score</b> on a level. Every 1% above your old best earns points (a parent sets how many for each subject). Repeating a level without beating your best earns nothing — so aim higher each time!</p>
         <p>🎮 <b>Quest Arena</b> — games that use what you've learned. In Maths, <b>Beat the Clock</b> gives you 3 lives and 15 times-table questions with 10 seconds each — survive to become a 🥷 <b>Times Table Ninja</b>. Then 15 more with just 5 seconds each to become a 🧙 <b>Multiplication Wizard</b>! Every badge you win lives in the 🏆 <b>Trophy Room</b>. Winning a round also pays points: <b>+50</b> the first time you win Round 1, <b>+60</b> the first time you win Round 2, then <b>+5</b> every time you win a round again.</p>
         <p>🛍️ <b>Shop</b> — spend the points you've earned. <b>Redeem cash</b>: type an amount in MYR and submit; a parent approves it on the admin page. Until then those points are <b>on hold</b> — if it isn't approved, they come back. Tap your points on the menu to see your <b>points history</b>.</p>
-        <p>📊 <b>Parent Report</b> — mastery for every topic and level across all three subjects, the levels that need help, badges, and recent mistakes.</p>
+        <p>📊 <b>Parent Report</b> — mastery for every module, topic and level across all three subjects, the levels that need help, badges, and recent mistakes.</p>
         <p>☁️ <b>Same results everywhere</b> — sign in with the same email on a phone, tablet or computer and you get the same players, scores and reports. Assessments finished offline are kept and uploaded automatically next time the app is online.</p>
         <div class="row" style="margin-top:18px"><button class="btn primary" id="backBtn" type="button">← Back to the menu</button></div>
       </div>`);
@@ -377,7 +378,7 @@
 
   /* ===================== subject → Study Mode ===================== *
      Opening a subject asks how to study:
-       By Topic       → every topic → its levels
+       By Module      → every module → its topics (+ module report) → a topic's levels
        By School Year → Year 1…6 → the levels tagged with that year (data.js `years`)
      `studyCtx` remembers the path so "back" from a level returns to the
      topic page or the year page the child came from. */
@@ -424,8 +425,8 @@
             <button class="study-card" id="byTopic" type="button">
               ${last === "topic" ? `<span class="study-last">Last used</span>` : ""}
               <span class="study-icon">${ICON_BOOK}</span>
-              <span class="study-title">By Topic</span>
-              <span class="study-desc">Choose a specific topic and progress from basic to advanced.</span>
+              <span class="study-title">By Module</span>
+              <span class="study-desc">Choose a module and a topic, then work up through its levels.</span>
               <span class="study-eg">${topicLine}</span>
             </button>
             <button class="study-card" id="byYear" type="button">
@@ -521,8 +522,8 @@
       show(`${top}
         <div class="page narrow">
           ${soonCard("The Quest Arena is being built",
-            `Games and battles for <b>${esc(subj.label)}</b> are on the way — use what you've learned to beat challenges and earn badges. Meanwhile, keep levelling up in <b>By Topic</b>!`)}
-          <div class="row" style="margin-top:18px"><button class="btn primary" id="toTopics" type="button">📚 Go to By Topic</button></div>
+            `Games and battles for <b>${esc(subj.label)}</b> are on the way — use what you've learned to beat challenges and earn badges. Meanwhile, keep levelling up in <b>By Module</b>!`)}
+          <div class="row" style="margin-top:18px"><button class="btn primary" id="toTopics" type="button">📚 Go to By Module</button></div>
         </div>`, subjectId);
       $("#bk").onclick = () => renderStudyMode(subjectId);
       $("#toTopics").onclick = () => { rememberStudy(subjectId, "topic"); renderTopicList(subjectId); };
@@ -845,7 +846,7 @@
     if (rec.r1Ms) stats.push(`Round 1 in <b>${secs(rec.r1Ms)}</b>`);
     if (rec.r2Ms) stats.push(`Round 2 in <b>${secs(rec.r2Ms)}</b>`);
     const tip = won ? "Amazing! Can you beat your fastest time?"
-      : reason === "lives" ? `Practise the tricky ones in <b>By Topic → ${esc(DATA.topicLabel(def.subjectId, def.source.topicId))} → ${esc(DATA.levelLabel(def.subjectId, def.source.topicId, def.source.levelId))}</b>, then come back!`
+      : reason === "lives" ? `Practise the tricky ones in <b>By Module → ${esc(DATA.topicLabel(def.subjectId, def.source.topicId))} → ${esc(DATA.levelLabel(def.subjectId, def.source.topicId, def.source.levelId))}</b>, then come back!`
       : "Come back and try for the next badge!";
     show(`
       <div class="topbar"><span class="back" id="bk">← Quest Arena</span><h2>${def.icon || "🎮"} ${esc(def.label)}</h2></div>
@@ -1148,8 +1149,9 @@
     const cards = subj.topics.map(t => {
       const sum = REPORT.topicSummary(subjectId, t.id);
       let foot;
-      if (!sum.total) foot = `<span class="soon-pill sm">Levels coming soon</span>`;
-      else foot = `<span class="topic-hint">${plural(sum.total, "level")}${sum.mastered ? ` · 🏆 ${sum.mastered}/${sum.total} mastered` : ""}</span>${sum.attempts ? `<span class="topic-best">avg ${sum.avg}%</span>` : ""}`;
+      const nTopics = DATA.moduleTopics(subjectId, t.id).length;
+      if (!nTopics) foot = `<span class="soon-pill sm">Topics coming soon</span>`;
+      else foot = `<span class="topic-hint">${plural(nTopics, "topic")} · ${plural(sum.total, "level")}${sum.mastered ? ` · 🏆 ${sum.mastered}/${sum.total} mastered` : ""}</span>${sum.attempts ? `<span class="topic-best">avg ${sum.avg}%</span>` : ""}`;
       return `<button class="topic-card${sum.total ? "" : " pending"}" data-topic="${esc(t.id)}" type="button">
         <span class="topic-top"><span class="topic-icon">${esc(t.icon || "📘")}</span><span class="topic-name">${esc(t.label)}</span></span>
         ${t.desc ? `<span class="topic-desc">${esc(t.desc)}</span>` : ""}
@@ -1157,11 +1159,11 @@
       </button>`;
     }).join("");
     show(`
-      <div class="topbar"><span class="back" id="bk">← Study mode</span><h2>${esc(subj.label)} · By Topic</h2></div>
+      <div class="topbar"><span class="back" id="bk">← Study mode</span><h2>${esc(subj.label)} · By Module</h2></div>
       <div class="page narrow">
         ${subj.topics.length
-          ? `<h3 class="section-h" style="margin-top:4px">Topics</h3><div class="topic-grid">${cards}</div>`
-          : soonCard("Topics are on the way", `The ${esc(subj.label)} topics will appear here as soon as the worksheets are added. Each topic will have its own levels, and every level gets an <b>Assessment</b> and a <b>Progress report</b>.`)}
+          ? `<h3 class="section-h" style="margin-top:4px">Modules</h3><div class="topic-grid">${cards}</div>`
+          : soonCard("Modules are on the way", `The ${esc(subj.label)} modules will appear here as soon as the worksheets are added. Each module has topics, each topic has levels, and every level gets an <b>Assessment</b> and a <b>Progress report</b>.`)}
       </div>`, subjectId);
     $("#bk").onclick = () => renderStudyMode(subjectId);
     $$(".topic-card").forEach(card => { card.onclick = () => renderTopic(subjectId, card.dataset.topic); });
@@ -1206,7 +1208,7 @@
     const mastered = all.filter(x => x.mastery.id === "mastered").length;
     const sections = groups.map(g => `<section class="year-topic">
         <div class="year-topic-head"><span class="topic-icon">${esc(g.topic.icon || "📘")}</span><span class="topic-name">${esc(g.topic.label)}</span></div>
-        <div class="level-list">${g.levels.map(l => levelCard(subjectId, g.topic.id, l.id)).join("")}</div>
+        <div class="level-list">${g.levels.map(l => levelCard(subjectId, g.topic.id, l.id, true)).join("")}</div>
       </section>`).join("");
     show(`
       <div class="topbar"><span class="back" id="bk">← School years</span><h2>${esc(subj.label)} · Year ${year}</h2></div>
@@ -1215,12 +1217,12 @@
           <div class="topic-hero-icon year-badge">${year}</div>
           <div>
             <div class="subject-hero-name">Year ${year} ${esc(subj.label)}</div>
-            <div class="muted">${groups.length ? plural(groups.length, "topic") + " · " + plural(all.length, "level") : "Levels for this year haven't been added yet."}</div>
+            <div class="muted">${groups.length ? plural(groups.length, "module") + " · " + plural(all.length, "level") : "Levels for this year haven't been added yet."}</div>
             ${all.length ? `<div class="subject-hero-stats">🏆 ${mastered}/${all.length} levels mastered</div>` : ""}
           </div>
         </div>
         ${groups.length ? sections : soonCard("Year " + year + " is on the way",
-            `Levels for Year ${year} ${esc(subj.label)} will appear here once they're added. Meanwhile, try <b>By Topic</b> to see everything that's ready.`)}
+            `Levels for Year ${year} ${esc(subj.label)} will appear here once they're added. Meanwhile, try <b>By Module</b> to see everything that's ready.`)}
       </div>`, subjectId);
     $("#bk").onclick = () => renderYearList(subjectId);
     $$(".level-card").forEach(c => { c.onclick = () => renderLevel(subjectId, c.dataset.topic, c.dataset.level); });
@@ -1234,14 +1236,15 @@
       : ` · <span class="max-chip done">${ART.coin(13)} all points earned</span>`;
   }
 
-  function levelCard(subjectId, topicId, levelId) {
+  function levelCard(subjectId, topicId, levelId, withTopic) {
     const ls = REPORT.levelStats(subjectId, topicId, levelId);
     const l = DATA.level(subjectId, topicId, levelId);
     const bank = DATA.bank(subjectId, topicId, levelId);
     const parts = [];
     parts.push(bank ? "📝 " + plural(sessionSizeFor(l, bank), "question") : "📝 questions coming soon");
+    const name = (withTopic ? l.topicLabel + " · " : "") + l.label + (l.desc ? ": " + l.desc : "");
     return `<button class="level-card" data-topic="${esc(topicId)}" data-level="${esc(levelId)}" type="button">
-        <span class="level-head"><span class="level-name">${esc(l.label)}${l.desc ? `: ${esc(l.desc)}` : ""}</span>${masteryBadge(ls.mastery)}</span>
+        <span class="level-head"><span class="level-name">${esc(name)}</span>${masteryBadge(ls.mastery)}</span>
         <span class="level-foot">
           <span class="muted small">${parts.join(" · ")}${bank ? maxChip(maxPoints(subjectId, topicId, levelId)) : ""}</span>
           ${ls.attempts ? `<span class="topic-best">${ART.stars(starsFor(ls.best), 14)} best ${ls.best}% · ${esc(REPORT.timeAgo(ls.lastTs))}</span>` : ""}
@@ -1249,39 +1252,223 @@
       </button>`;
   }
 
+  /* ===================== module → topics, and the module report =====================
+     (in the code a module is a "topic": topicId = module id — see data.js) */
+  // How a topic is doing overall, from its average score.
+  function topicBand(ts) {
+    if (!ts.attempts) return { txt: "Not started", cls: "tb-none" };
+    if (ts.avg < 70) return { txt: "Needs practice", cls: "tb-weak" };
+    if (ts.avg < 80) return { txt: "Getting there", cls: "tb-mid" };
+    return { txt: "Strong", cls: "tb-strong" };
+  }
+  const weakList = (areas, n) => areas.slice(0, n).map(a => esc(a.label) + " (" + a.pct + "%)").join(", ");
+
+  // A tappable "📊 … report" card on the module and topic pages — the details open on their own page.
+  function reportCard(id, title, text) {
+    return `<div class="section-cards" style="margin-top:18px">
+        <button class="sec-card report-card" id="${id}" type="button">
+          <span class="sec-icon">📊</span>
+          <span class="sec-body"><span class="sec-title">${esc(title)}</span><span class="sec-text">${esc(text)}</span></span>
+          <span class="btn primary">View report →</span>
+        </button>
+      </div>`;
+  }
+
   function renderTopic(subjectId, topicId) {
-    const subj = DATA.subject(subjectId), t = DATA.topic(subjectId, topicId);
-    if (!subj || !t) return renderTopicList(subjectId);
+    const subj = DATA.subject(subjectId), m = DATA.topic(subjectId, topicId);
+    if (!subj || !m) return renderTopicList(subjectId);
     current = () => renderTopic(subjectId, topicId);
     studyCtx = { subjectId, mode: "topic", year: null };
-    const sum = REPORT.topicSummary(subjectId, topicId);
+    const rep = REPORT.moduleReport(subjectId, topicId);
+    const cards = rep.inOrder.map(ts => {
+      const foot = !ts.total ? `<span class="soon-pill sm">Levels coming soon</span>`
+        : `<span class="topic-hint">${plural(ts.total, "level")}${ts.mastered ? ` · 🏆 ${ts.mastered}/${ts.total} mastered` : ""}</span>${ts.attempts ? `<span class="topic-best">avg ${ts.avg}%</span>` : ""}`;
+      return `<button class="topic-card${ts.total ? "" : " pending"}" data-mtopic="${esc(ts.topic.id)}" type="button">
+          <span class="topic-top"><span class="topic-icon">${esc(ts.topic.icon || "📘")}</span><span class="topic-name">${esc(ts.topic.label)}</span></span>
+          ${ts.topic.desc ? `<span class="topic-desc">${esc(ts.topic.desc)}</span>` : ""}
+          <span class="topic-foot">${foot}</span>
+        </button>`;
+    }).join("");
     show(`
-      <div class="topbar"><span class="back" id="bk">← Topics</span><h2>${esc(t.label)}</h2></div>
+      <div class="topbar"><span class="back" id="bk">← Modules</span><h2>${esc(m.label)}</h2></div>
       <div class="page narrow">
         <div class="subject-hero">
-          <div class="topic-hero-icon">${esc(t.icon || "📘")}</div>
+          <div class="topic-hero-icon">${esc(m.icon || "📘")}</div>
           <div>
-            <div class="subject-hero-name">${esc(t.label)}</div>
-            <div class="muted">${esc(t.desc || "")}</div>
-            ${sum.total ? `<div class="subject-hero-stats">🏆 ${sum.mastered}/${sum.total} levels mastered${sum.attempts ? ` · ${plural(sum.attempts, "assessment")} · last practised ${esc(REPORT.timeAgo(sum.lastTs))}` : ""}</div>` : ""}
+            <div class="subject-hero-name">${esc(m.label)}</div>
+            <div class="muted">${esc(m.desc || "")}</div>
+            ${rep.totalLevels ? `<div class="subject-hero-stats">${plural(rep.inOrder.length, "topic")} · 🏆 ${rep.mastered}/${rep.totalLevels} levels mastered${rep.attempts ? ` · ${plural(rep.attempts, "assessment")} · last practised ${esc(REPORT.timeAgo(rep.lastTs))}` : ""}</div>` : ""}
           </div>
         </div>
-        ${sum.total
-          ? `<h3 class="section-h">Levels</h3><div class="level-list">${sum.levels.map(ls => levelCard(subjectId, topicId, ls.levelId)).join("")}</div>`
+        ${rep.inOrder.length
+          ? `<h3 class="section-h">Topics</h3><div class="topic-grid">${cards}</div>
+             ${reportCard("fullRep", "Module report", "Which topics are weakest — each topic's scores, levels mastered and weak areas, plus recent mistakes.")}`
+          : soonCard("Topics are on the way",
+              `The <b>${esc(m.label)}</b> topics will appear here once the worksheets are added. Each topic has levels, and every level will have:` +
+              `<span class="soon-parts"><span>📝 <b>Assessment</b></span><span>📊 <b>Progress report</b></span></span>`)}
+      </div>`, subjectId);
+    $("#bk").onclick = () => renderTopicList(subjectId);
+    $$("[data-mtopic]").forEach(c => { c.onclick = () => renderModuleTopic(subjectId, topicId, c.dataset.mtopic); });
+    if ($("#fullRep")) $("#fullRep").onclick = () => renderModuleReport(subjectId, topicId, () => renderTopic(subjectId, topicId));
+  }
+
+  /* ---------- a topic inside a module → its levels ---------- */
+  function renderModuleTopic(subjectId, moduleId, topicId) {
+    const m = DATA.topic(subjectId, moduleId), t = DATA.moduleTopic(subjectId, moduleId, topicId);
+    if (!m || !t) return renderTopic(subjectId, moduleId);
+    current = () => renderModuleTopic(subjectId, moduleId, topicId);
+    studyCtx = { subjectId, mode: "topic", year: null };
+    const ts = REPORT.topicReport(subjectId, moduleId, topicId);
+    const self = () => renderModuleTopic(subjectId, moduleId, topicId);
+    show(`
+      <div class="topbar"><span class="back" id="bk">← ${esc(m.label)}</span><h2>${esc(t.label)}</h2></div>
+      <div class="page narrow">
+        <div class="subject-hero">
+          <div class="topic-hero-icon">${esc(t.icon || m.icon || "📘")}</div>
+          <div>
+            <div class="subject-hero-name">${esc(t.label)}</div>
+            <div class="muted">${esc(m.label)}${t.desc ? " · " + esc(t.desc) : ""}</div>
+            ${ts.total ? `<div class="subject-hero-stats">🏆 ${ts.mastered}/${ts.total} levels mastered${ts.attempts ? ` · ${plural(ts.attempts, "assessment")} · avg ${ts.avg}% · last practised ${esc(REPORT.timeAgo(ts.lastTs))}` : ""}</div>` : ""}
+          </div>
+        </div>
+        ${ts.total
+          ? `<h3 class="section-h">Levels</h3><div class="level-list">${ts.levels.map(ls => levelCard(subjectId, moduleId, ls.levelId)).join("")}</div>
+             ${reportCard("fullTopicRep", "Topic report", "Which question types and levels are weakest — scores for each level, every weak area and recent mistakes.")}`
           : soonCard("Levels are on the way",
               `The <b>${esc(t.label)}</b> levels will appear here once they're added. Every level will have:` +
               `<span class="soon-parts"><span>📝 <b>Assessment</b></span><span>📊 <b>Progress report</b></span></span>`)}
       </div>`, subjectId);
-    $("#bk").onclick = () => renderTopicList(subjectId);
-    $$(".level-card").forEach(c => { c.onclick = () => renderLevel(subjectId, topicId, c.dataset.level); });
+    $("#bk").onclick = () => renderTopic(subjectId, moduleId);
+    $$(".level-card").forEach(c => { c.onclick = () => renderLevel(subjectId, moduleId, c.dataset.level); });
+    if ($("#fullTopicRep")) $("#fullTopicRep").onclick = () => renderTopicReport(subjectId, moduleId, topicId, self);
   }
 
-  // Where "back" from a level goes: the year page if the child came that way.
+  // Question types as score bars (weak ones flagged).
+  function areaCards(areas, prefix) {
+    return areas.map(a => barCard((a.acc < 0.7 ? "🎯 " : "") + (prefix ? prefix(a) : "") + a.label, a.correct, a.total,
+      `${a.correct} / ${a.total} correct recently`, a.acc < 0.7)).join("");
+  }
+  // One row per level of a topic, weakest first — tap for the level's progress report.
+  function levelReportRows(subjectId, moduleId, rep) {
+    return rep.levelsWeakFirst.map(ls => {
+      const l = DATA.level(subjectId, moduleId, ls.levelId), b = topicBand(ls);
+      return `<button class="mr-row ${b.cls}" data-rlevel="${esc(ls.levelId)}" type="button">
+          <span class="mr-top"><span class="mr-name">${esc(l.label)}${l.desc ? `: ${esc(l.desc)}` : ""}</span><span class="mr-tag">${esc(b.txt)}</span></span>
+          ${ls.attempts
+            ? `<span class="mr-bar"><i style="width:${ls.avg}%"></i></span>
+               <span class="mr-meta">avg <b>${ls.avg}%</b> · best ${ls.best}% · latest ${ls.latest}% · ${plural(ls.attempts, "assessment")} · ${esc(ls.mastery.icon + " " + ls.mastery.label)} · ${esc(REPORT.timeAgo(ls.lastTs))}</span>
+               ${ls.weakAreas.length ? `<span class="mr-weak">🎯 Weak areas: ${weakList(ls.weakAreas, 3)}</span>` : `<span class="mr-ok">✓ No weak areas</span>`}`
+            : `<span class="mr-meta">Not started yet.</span>`}
+        </button>`;
+    }).join("");
+  }
+
+  /* ---------- the full topic report: every level and question type, weakest first ---------- */
+  function renderTopicReport(subjectId, moduleId, topicId, onBack) {
+    const m = DATA.topic(subjectId, moduleId), t = DATA.moduleTopic(subjectId, moduleId, topicId);
+    if (!m || !t) return renderTopic(subjectId, moduleId);
+    onBack = onBack || (() => renderModuleTopic(subjectId, moduleId, topicId));
+    current = () => renderTopicReport(subjectId, moduleId, topicId, onBack);
+    const self = () => renderTopicReport(subjectId, moduleId, topicId, onBack);
+    const rep = REPORT.topicReport(subjectId, moduleId, topicId);
+    const kpis = rep.attempts ? `<div class="kpi-grid">
+        <div class="kpi-box"><div class="kpi-label">Assessments</div><div class="kpi">${rep.attempts}</div></div>
+        <div class="kpi-box"><div class="kpi-label">Average</div><div class="kpi">${rep.avg}%</div></div>
+        <div class="kpi-box"><div class="kpi-label">Best</div><div class="kpi">${rep.best}%</div></div>
+        <div class="kpi-box"><div class="kpi-label">Levels mastered</div><div class="kpi">🏆 ${rep.mastered}/${rep.total}</div></div>
+        <div class="kpi-box wide"><div class="kpi-label">Last practised</div><div class="kpi sm">${esc(REPORT.shortDate(rep.lastTs))}</div><div class="muted small">${esc(REPORT.timeAgo(rep.lastTs))}</div></div>
+      </div>` : "";
+    const mistakeCards = rep.mistakes.map(x => `<div class="rep-card">
+        <div class="sub ink">${esc(x.m.q || "Question")} <span class="muted small">· ${esc(x.levelLabel)} · ${esc(x.when)}</span></div>
+        <div class="sub bad">Answered: <b>${esc(x.m.chosen)}</b></div>
+        <div class="sub good">Correct: <b>${esc(x.m.answer)}</b></div>
+      </div>`).join("");
+    show(`
+      <div class="topbar"><span class="back" id="bk">← Back</span><h2>📊 Topic report</h2></div>
+      <div class="page narrow">
+        <div class="card wide">
+          <div class="hist-head"><div class="hist-name">${esc(t.icon || "")} ${esc(m.label)} · ${esc(t.label)} ${subjectPill(subjectId)}</div></div>
+          <div class="summary-box" style="margin-top:10px">${rep.summary}</div>
+        </div>
+        ${kpis}
+        <h3 class="section-h">Levels — weakest first</h3>
+        <div class="mr-list">${levelReportRows(subjectId, moduleId, rep) || `<div class="muted">Levels coming soon.</div>`}</div>
+        ${rep.areas.length ? `<h3 class="section-h">Weak areas in ${esc(t.label)} <span class="muted small">· every question type, weakest first</span></h3><div class="rep-grid">${areaCards(rep.areas)}</div>` : ""}
+        ${mistakeCards ? `<h3 class="section-h">Recent mistakes</h3><div class="rep-grid">${mistakeCards}</div>` : ""}
+        <div class="row" style="margin-top:22px"><button class="btn primary" id="backBtn" type="button">← Back</button></div>
+      </div>`, subjectId);
+    $("#bk").onclick = onBack;
+    $("#backBtn").onclick = onBack;
+    $$("[data-rlevel]").forEach(c => { c.onclick = () => renderLevelReport(subjectId, moduleId, c.dataset.rlevel, self); });
+  }
+
+  /* ---------- the full module report: every topic, weakest first ---------- */
+  function renderModuleReport(subjectId, moduleId, onBack) {
+    const m = DATA.topic(subjectId, moduleId);
+    if (!m) return renderTopicList(subjectId);
+    onBack = onBack || (() => renderTopic(subjectId, moduleId));
+    current = () => renderModuleReport(subjectId, moduleId, onBack);
+    const self = () => renderModuleReport(subjectId, moduleId, onBack);
+    const rep = REPORT.moduleReport(subjectId, moduleId);
+    const kpis = rep.attempts ? `<div class="kpi-grid">
+        <div class="kpi-box"><div class="kpi-label">Assessments</div><div class="kpi">${rep.attempts}</div></div>
+        <div class="kpi-box"><div class="kpi-label">Average</div><div class="kpi">${rep.avg}%</div></div>
+        <div class="kpi-box"><div class="kpi-label">Levels mastered</div><div class="kpi">🏆 ${rep.mastered}/${rep.totalLevels}</div></div>
+        <div class="kpi-box"><div class="kpi-label">Last practised</div><div class="kpi sm">${esc(REPORT.shortDate(rep.lastTs))}</div><div class="muted small">${esc(REPORT.timeAgo(rep.lastTs))}</div></div>
+      </div>` : "";
+    const topicCards = rep.topics.map(ts => {
+      const b = topicBand(ts);
+      const chips = ts.levels.map(ls => {
+        const l = DATA.level(subjectId, moduleId, ls.levelId);
+        return `<button class="ov-chip ${ls.mastery.cls}" data-rlevel="${esc(ls.levelId)}" title="${esc(l.label + " — " + ls.mastery.label)}" type="button">${esc(l.label.replace(/Level\s*/i, "L"))}${ls.attempts ? " · " + ls.latest + "%" : ""}</button>`;
+      }).join("");
+      return `<div class="mr-row ${b.cls}">
+          <span class="mr-top"><span class="mr-name">${esc(ts.topic.icon || "📘")} ${esc(ts.topic.label)}</span><span class="mr-tag">${esc(b.txt)}</span></span>
+          ${ts.attempts
+            ? `<span class="mr-bar"><i style="width:${ts.avg}%"></i></span>
+               <span class="mr-meta">avg <b>${ts.avg}%</b> · best ${ts.best}% · ${plural(ts.attempts, "assessment")} · last practised ${esc(REPORT.timeAgo(ts.lastTs))}</span>`
+            : `<span class="mr-meta">Not started yet.</span>`}
+          ${chips ? `<span class="ov-levels">${chips}</span>` : `<span class="mr-meta">Levels coming soon.</span>`}
+          ${ts.weakAreas.length ? `<span class="mr-weak">🎯 Weak areas: ${weakList(ts.weakAreas, 4)}</span>` : ""}
+          ${ts.total ? `<button class="link-btn mr-link" data-trep="${esc(ts.topic.id)}" type="button">📊 ${esc(ts.topic.label)} topic report →</button>` : ""}
+        </div>`;
+    }).join("");
+    const areaCards = rep.areas.slice(0, 8).map(a => barCard((a.acc < 0.7 ? "🎯 " : "") + a.topicLabel + ": " + a.label, a.correct, a.total,
+      `${a.correct} / ${a.total} correct recently`, a.acc < 0.7)).join("");
+    const mistakeCards = rep.mistakes.map(x => `<div class="rep-card">
+        <div class="sub ink">${esc(x.m.q || "Question")} <span class="muted small">· ${esc(x.topicLabel)} · ${esc(x.when)}</span></div>
+        <div class="sub bad">Answered: <b>${esc(x.m.chosen)}</b></div>
+        <div class="sub good">Correct: <b>${esc(x.m.answer)}</b></div>
+      </div>`).join("");
+    show(`
+      <div class="topbar"><span class="back" id="bk">← Back</span><h2>📊 Module report</h2></div>
+      <div class="page narrow">
+        <div class="card wide">
+          <div class="hist-head"><div class="hist-name">${esc(m.icon || "")} ${esc(m.label)} ${subjectPill(subjectId)}</div></div>
+          <div class="summary-box" style="margin-top:10px">${rep.summary}</div>
+        </div>
+        ${kpis}
+        <h3 class="section-h">Topics — weakest first</h3>
+        <div class="mr-list">${topicCards || `<div class="muted">Topics coming soon.</div>`}</div>
+        ${areaCards ? `<h3 class="section-h">Weak areas across ${esc(m.label)} <span class="muted small">· weakest first</span></h3><div class="rep-grid">${areaCards}</div>` : ""}
+        ${mistakeCards ? `<h3 class="section-h">Recent mistakes</h3><div class="rep-grid">${mistakeCards}</div>` : ""}
+        <div class="row" style="margin-top:22px"><button class="btn primary" id="backBtn" type="button">← Back</button></div>
+      </div>`, subjectId);
+    $("#bk").onclick = onBack;
+    $("#backBtn").onclick = onBack;
+    $$("[data-rlevel]").forEach(c => { c.onclick = () => renderLevelReport(subjectId, moduleId, c.dataset.rlevel, self); });
+    $$("[data-trep]").forEach(c => { c.onclick = () => renderTopicReport(subjectId, moduleId, c.dataset.trep, self); });
+  }
+
+  // Where "back" from a level goes: the year page if the child came that way,
+  // otherwise the level's topic page.
   function levelBack(subjectId, topicId, levelId) {
+    const l = DATA.level(subjectId, topicId, levelId);
     const viaYear = studyCtx.mode === "year" && studyCtx.subjectId === subjectId &&
-      DATA.levelYears(DATA.level(subjectId, topicId, levelId)).indexOf(studyCtx.year) > -1;
+      DATA.levelYears(l).indexOf(studyCtx.year) > -1;
     return viaYear
       ? { label: "Year " + studyCtx.year, go: () => renderYear(subjectId, studyCtx.year) }
+      : l ? { label: l.topicLabel, go: () => renderModuleTopic(subjectId, topicId, l.topicId) }
       : { label: DATA.topicLabel(subjectId, topicId), go: () => renderTopic(subjectId, topicId) };
   }
 
@@ -1315,13 +1502,13 @@
         </div></div>`;
 
     show(`
-      <div class="topbar"><span class="back" id="bk">← ${esc(back.label)}</span><h2>${esc(l.label)}</h2></div>
+      <div class="topbar"><span class="back" id="bk">← ${esc(back.label)}</span><h2>${esc(l.topicLabel)} · ${esc(l.label)}</h2></div>
       <div class="page narrow">
         <div class="level-hero">
           <div class="level-hero-top">
-            <span class="topic-hero-icon sm">${esc(t.icon || "📘")}</span>
+            <span class="topic-hero-icon sm">${esc(l.topicIcon || t.icon || "📘")}</span>
             <div style="min-width:0">
-              <div class="level-hero-name">${esc(t.label)} · ${esc(l.label)}${l.desc ? `: ${esc(l.desc)}` : ""}</div>
+              <div class="level-hero-name">${esc(t.label)} · ${esc(l.topicLabel)} · ${esc(l.label)}${l.desc ? `: ${esc(l.desc)}` : ""}</div>
             </div>
           </div>
           <div class="level-hero-mastery">${masteryBadge(st.mastery, true)}<span class="muted small">${esc(st.next)}</span></div>
@@ -2053,7 +2240,7 @@
           <div class="bar"><i style="width:${s.pct}%;background:${s.band.color}"></i></div>
         ` : ""}
         <div class="sub" style="margin-top:8px">${ART.coin(13)} <b class="gold">${plural(STORE.points(null, s.subject.id), "point")}</b> · 1% = ${ratePhrase(STORE.rate(s.subject.id))}</div>
-        <div class="sub">${!s.subject.topics.length ? "Topics coming soon." : !s.levelsTotal ? plural(s.subject.topics.length, "topic") + " · levels coming soon." : `🏆 ${s.levelsMastered} / ${plural(s.levelsTotal, "level")} mastered`}</div>
+        <div class="sub">${!s.subject.topics.length ? "Modules coming soon." : !s.levelsTotal ? plural(s.subject.topics.length, "module") + " · topics coming soon." : `🏆 ${s.levelsMastered} / ${plural(s.levelsTotal, "level")} mastered`}</div>
       </div>`).join("");
 
     // Mastery overview — every topic, every level, coloured by mastery.
@@ -2063,8 +2250,8 @@
         ${s.topics.map(t => `<div class="ov-row">
             <span class="ov-topic">${esc(t.topic.icon || "")} ${esc(t.topic.label)}</span>
             <span class="ov-levels">${t.levels.length
-              ? t.levels.map(l => `<button class="ov-chip ${l.mastery.cls}" data-subj="${esc(s.subject.id)}" data-topic="${esc(t.topic.id)}" data-level="${esc(l.levelId)}" title="${esc(l.label + " — " + l.mastery.label)}" type="button">${esc(DATA.levelLabel(s.subject.id, t.topic.id, l.levelId).replace(/^Level\s*/i, "L"))}${l.attempts ? " · " + l.latest + "%" : ""}</button>`).join("")
-              : `<span class="muted small">levels coming soon</span>`}</span>
+              ? t.levels.map(l => `<button class="ov-chip ${l.mastery.cls}" data-subj="${esc(s.subject.id)}" data-topic="${esc(t.topic.id)}" data-level="${esc(l.levelId)}" title="${esc(l.label + " — " + l.mastery.label)}" type="button">${esc(DATA.levelLabel(s.subject.id, t.topic.id, l.levelId).replace(/Level\s*/i, "L"))}${l.attempts ? " · " + l.latest + "%" : ""}</button>`).join("")
+              : `<span class="muted small">topics coming soon</span>`}</span>
           </div>`).join("")}
       </div>`).join("");
     const legend = Object.keys(REPORT.MASTERY).map(k => `<span class="ov-chip ${REPORT.MASTERY[k].cls} legend">${REPORT.MASTERY[k].icon} ${esc(REPORT.MASTERY[k].label)}</span>`).join("");
@@ -2111,7 +2298,7 @@
           </div>` : ""}
         <h3 class="section-h">By subject</h3>
         <div class="rep-grid">${subjectCards}</div>
-        ${overview ? `<h3 class="section-h">Mastery by topic &amp; level</h3>
+        ${overview ? `<h3 class="section-h">Mastery by module &amp; level</h3>
           <div class="ov-legend">${legend}</div>
           <div class="ov-wrap">${overview}</div>
           <div class="muted small" style="margin-top:6px">${esc(REPORT.MASTERY_RULE)} Tap a level for its progress report.</div>` : ""}

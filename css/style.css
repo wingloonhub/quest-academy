@@ -727,3 +727,34 @@ button.points-hero:hover{transform:translateY(-2px);box-shadow:0 14px 34px rgba(
 .req-status{font-size:13px;font-weight:800;color:var(--muted)}
 .past-reqs{margin-top:12px}
 .past-reqs summary{cursor:pointer;color:var(--accent);font-weight:800;font-size:13.5px;padding:6px 0}
+
+/* ---------- Module report: each topic, weakest first ---------- */
+.mr-list{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+.mr-row{display:flex;flex-direction:column;gap:6px;width:100%;text-align:left;font:inherit;color:var(--ink);background:var(--panel-solid);border:1px solid var(--border);border-left:4px solid var(--border);border-radius:12px;padding:12px 14px}
+button.mr-row{cursor:pointer;transition:border-color .15s,transform .15s}
+button.mr-row:hover{border-color:var(--border-strong);transform:translateY(-1px)}
+.mr-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.mr-name{font-weight:800;color:var(--ink-strong);font-size:15.5px}
+.mr-tag{flex-shrink:0;font-size:11px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;border-radius:99px;padding:3px 10px;border:1px solid var(--border);color:var(--muted)}
+.mr-bar{display:block;height:8px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden}
+.mr-bar i{display:block;height:100%;border-radius:99px;background:var(--muted)}
+.mr-meta{display:block;color:var(--muted);font-size:12.5px;line-height:1.5}
+.mr-meta b{color:var(--ink-strong)}
+.mr-weak{display:block;font-size:12.5px;color:#ff9d97;line-height:1.5}
+.mr-ok{display:block;font-size:12.5px;color:#8ff0a9}
+.mr-row .ov-levels{margin-top:2px}
+.tb-weak{border-left-color:var(--bad)}
+.tb-weak .mr-tag{color:#ffd0cc;background:rgba(226,85,77,.18);border-color:var(--bad)}
+.tb-weak .mr-bar i{background:var(--bad)}
+.tb-mid{border-left-color:var(--gold)}
+.tb-mid .mr-tag{color:#ffe8a8;background:rgba(242,193,78,.15);border-color:var(--gold)}
+.tb-mid .mr-bar i{background:var(--gold)}
+.tb-strong{border-left-color:var(--good)}
+.tb-strong .mr-tag{color:#c9f7d4;background:rgba(78,196,106,.15);border-color:var(--good)}
+.tb-strong .mr-bar i{background:var(--good)}
+.tb-none{opacity:.8}
+.mr-link{align-self:flex-start;margin-top:2px;font-size:13px}
+/* Tappable report card on module and topic pages */
+button.report-card{width:100%;text-align:left;font:inherit;color:var(--ink);cursor:pointer;transition:border-color .15s,transform .15s}
+button.report-card:hover{border-color:var(--border-strong);transform:translateY(-1px)}
+.report-card .sec-title,.report-card .sec-text{display:block}

@@ -224,6 +224,16 @@
     return out;
   }
 
+  // Results saved before a topic moved (DATA.MOVED) follow it to its new place.
+  function relocate(list, sk, tk, lk) {
+    const moved = (window.DATA && window.DATA.MOVED) || {};
+    list.forEach(function (e) {
+      const to = isObj(e) && moved[e[sk] + "|" + e[tk] + "|" + e[lk]];
+      if (to) { e[tk] = to[0]; e[lk] = to[1]; }
+    });
+    return list;
+  }
+
   function normaliseProfile(raw, pid) {
     const p = Object.assign({}, isObj(raw) ? raw : {});
     p.id = p.id || pid;
@@ -233,8 +243,8 @@
     p.updatedAt = p.updatedAt || p.createdAt;
     p.lastPlayed = p.lastPlayed || p.updatedAt;
     p.cleared = isObj(p.cleared) ? p.cleared : {};
-    p.history = tidyHistory(Array.isArray(p.history) ? p.history : [], p.cleared);
-    p.bests = tidyBests(Array.isArray(p.bests) ? p.bests : []);
+    p.history = tidyHistory(relocate(Array.isArray(p.history) ? p.history : [], "subjectId", "topicId", "levelId"), p.cleared);
+    p.bests = tidyBests(relocate(Array.isArray(p.bests) ? p.bests : [], "s", "t", "l"));
     p.games = tidyGames(Array.isArray(p.games) ? p.games : []);
     p.badges = isObj(p.badges) ? p.badges : {};
     p.arenaWins = isObj(p.arenaWins) ? p.arenaWins : {};

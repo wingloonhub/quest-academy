@@ -112,6 +112,102 @@
     };
   }
 
+  /* ---------- one topic inside a module (all of its levels) ---------- */
+  function moduleTopicSummary(subjectId, moduleId, topicId) {
+    const levels = DATA.topicLevels(subjectId, moduleId, topicId).map(l => levelStats(subjectId, moduleId, l.id));
+    const sessions = [].concat.apply([], levels.map(l => l.sessions)).sort((a, b) => (b.ts || 0) - (a.ts || 0));
+    const started = levels.filter(l => l.attempts > 0);
+    // Weak areas across the topic's levels (each level's recent assessments).
+    const agg = {};
+    started.forEach(l => (l.areas || []).forEach(a => {
+      const g = agg[a.label] = agg[a.label] || { label: a.label, correct: 0, total: 0 };
+      g.correct += a.correct;
+      g.total += a.total;
+    }));
+    const areas = Object.keys(agg).map(k => {
+      const a = agg[k], acc = a.total ? a.correct / a.total : 0;
+      return Object.assign(a, { acc, pct: Math.round(acc * 100) });
+    }).sort((a, b) => a.acc - b.acc);
+    return {
+      topic: DATA.moduleTopic(subjectId, moduleId, topicId),
+      levels, total: levels.length,
+      mastered: levels.filter(l => l.mastery.id === "mastered").length,
+      started: started.length,
+      sessions, attempts: sessions.length,
+      lastTs: sessions.length ? sessions[0].ts : 0,
+      avg: sessions.length ? Math.round(sessions.reduce((a, s) => a + s.pct, 0) / sessions.length) : null,
+      best: started.length ? Math.max.apply(null, started.map(l => l.best)) : null,
+      areas, weakAreas: areas.filter(a => a.acc < 0.7)
+    };
+  }
+
+  /* ---------- a topic's report: each level weakest first, and the question
+     types (e.g. "unless", "they") the child is weak at across the topic ---------- */
+  function topicReport(subjectId, moduleId, topicId) {
+    const ts = moduleTopicSummary(subjectId, moduleId, topicId);
+    const name = (ts.topic && ts.topic.label) || "this topic";
+    const lvlName = (l) => { const d = DATA.level(subjectId, moduleId, l.levelId); return d ? d.label : "Level"; };
+    const practised = ts.levels.filter(l => l.attempts).sort((a, b) => a.avg - b.avg);
+    const notStarted = ts.levels.filter(l => !l.attempts);
+    const mistakes = [];
+    ts.sessions.slice(0, 3).forEach(s => (s.mistakes || []).forEach(x => {
+      if (mistakes.length >= 8) return;
+      const l = DATA.level(subjectId, moduleId, s.levelId);
+      mistakes.push({ m: x, levelLabel: l ? l.label : "", when: timeAgo(s.ts) });
+    }));
+    let summary;
+    if (!ts.total) summary = "Levels for <b>" + name + "</b> are coming soon.";
+    else if (!ts.attempts) summary = "No assessments in <b>" + name + "</b> yet — start with Level 1.";
+    else {
+      summary = ts.weakAreas.length
+        ? "Weak at: <b class=\"bad\">" + ts.weakAreas.slice(0, 4).map(a => a.label + " (" + a.pct + "%)").join(", ") + "</b>. Practise these first."
+        : "No weak areas in <b>" + name + "</b> — every question type is at 70% or above.";
+      if (practised.length > 1) summary += " Weakest level: <b>" + lvlName(practised[0]) + "</b> (" + practised[0].avg + "% average).";
+      if (notStarted.length) summary += " Not started yet: " + notStarted.map(lvlName).join(", ") + ".";
+    }
+    return Object.assign({}, ts, { name, levelsWeakFirst: practised.concat(notStarted), practised, notStarted, mistakes, summary });
+  }
+
+  /* ---------- a whole module: how each topic is doing, weakest first ---------- */
+  function moduleReport(subjectId, moduleId) {
+    const m = DATA.topic(subjectId, moduleId);
+    const inOrder = DATA.moduleTopics(subjectId, moduleId).map(t => moduleTopicSummary(subjectId, moduleId, t.id));
+    const practised = inOrder.filter(t => t.attempts).sort((a, b) => a.avg - b.avg);
+    const notStarted = inOrder.filter(t => !t.attempts);
+    const sessions = [].concat.apply([], inOrder.map(t => t.sessions)).sort((a, b) => (b.ts || 0) - (a.ts || 0));
+    const weakTopics = practised.filter(t => t.avg < 70);
+    const areas = [].concat.apply([], practised.map(t => t.areas.map(a => Object.assign({ topicLabel: t.topic.label }, a))))
+      .sort((a, b) => a.acc - b.acc);
+    const mistakes = [];
+    sessions.slice(0, 3).forEach(s => (s.mistakes || []).forEach(x => {
+      if (mistakes.length >= 8) return;
+      const l = DATA.level(subjectId, moduleId, s.levelId);
+      mistakes.push({ m: x, topicLabel: l ? l.topicLabel : "", when: timeAgo(s.ts) });
+    }));
+    const name = (m && m.label) || "this module";
+    let summary;
+    if (!inOrder.length) summary = "Topics for <b>" + name + "</b> are coming soon.";
+    else if (!practised.length) summary = "No assessments in <b>" + name + "</b> yet — pick a topic and start with Level 1.";
+    else {
+      const w = practised[0];
+      summary = weakTopics.length
+        ? "Needs the most practice: <b class=\"bad\">" + weakTopics.map(t => t.topic.label + " (" + t.avg + "%)").join(", ") + "</b>."
+        : practised.length > 1
+          ? "Weakest topic so far: <b>" + w.topic.label + "</b> (" + w.avg + "% average). Every topic practised is at 70% or above — great work!"
+          : "<b>" + w.topic.label + "</b> is at " + w.avg + "% on average.";
+      if (notStarted.length) summary += " Not started yet: " + notStarted.map(t => t.topic.label).join(", ") + ".";
+    }
+    return {
+      module: m, inOrder, topics: practised.concat(notStarted), practised, notStarted, weakTopics,
+      attempts: sessions.length,
+      avg: sessions.length ? Math.round(sessions.reduce((a, s) => a + s.pct, 0) / sessions.length) : null,
+      lastTs: sessions.length ? sessions[0].ts : 0,
+      mastered: inOrder.reduce((n, t) => n + t.mastered, 0),
+      totalLevels: inOrder.reduce((n, t) => n + t.total, 0),
+      areas, mistakes, summary
+    };
+  }
+
   /* ---------- the whole Parent Report ---------- */
   function build() {
     const history = STORE.history();
@@ -174,5 +270,5 @@
     };
   }
 
-  window.REPORT = { build, band, timeAgo, shortDate, mastery, nextStep, levelStats, topicSummary, MASTERY, MASTERY_RULE };
+  window.REPORT = { build, band, timeAgo, shortDate, mastery, nextStep, levelStats, topicSummary, moduleTopicSummary, topicReport, moduleReport, MASTERY, MASTERY_RULE };
 })();

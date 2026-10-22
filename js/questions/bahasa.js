@@ -1,15 +1,17 @@
-/* questions/bahasa.js — Bahasa Melayu ASSESSMENT questions, grouped topic → level.
+/* questions/bahasa.js — Bahasa Melayu ASSESSMENT questions, grouped module → topic → level.
 
-   The topic and level ids must match js/data.js (subject "bahasa").
+   The ids must match js/data.js (subject "bahasa").
    Empty for now — add them as the Tahun 4 worksheets come in:
 
    window.QUESTIONS.bahasa = {
-     kata_tanya: {
-       level1: [
-         { q: "___ nama adik kamu?", options: ["Bila", "Apakah", "Siapakah", "Mengapa"], answer: 2, cat: "orang" },
-         { typed: true, q: "Buku itu ___ oleh Ali. (baca)", word: "dibaca", cat: "kata_pasif" },
-         { spelling: true, word: "hadapan", hint: "Lawan bagi 'belakang'", cat: "kata_arah" }
-       ]
+     kata_tugas: {                    ← module
+       kata_tanya: {                  ← topic
+         level1: [                    ← level
+           { q: "___ nama adik kamu?", options: ["Bila", "Apakah", "Siapakah", "Mengapa"], answer: 2, cat: "orang" },
+           { typed: true, q: "Buku itu ___ oleh Ali. (baca)", word: "dibaca", cat: "kata_pasif" },
+           { spelling: true, word: "hadapan", hint: "Lawan bagi 'belakang'", cat: "kata_arah" }
+         ]
+       }
      }
    };
 
