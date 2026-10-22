@@ -135,7 +135,8 @@ unlocks it on every device. On the admin page you can:
 - **approve or reject redemption requests** (the menu's Admin link shows how
   many are waiting), and see past requests,
 - see each player's points — available, on hold, used and earned,
-- delete a player (the only place this can be done),
+- delete a player — the only place this can be done, and it asks for the
+  admin PIN again before deleting (wrong PINs count towards the 60-second lock),
 - change the PIN or lock the page. Leaving the page locks it again.
 
 Forgot the PIN? Tap **Forgot the PIN?** and confirm the account password to

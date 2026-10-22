@@ -2152,6 +2152,24 @@
   }
   function pinFails() { try { return JSON.parse(localStorage.getItem(PIN_FAIL_KEY) || "{}") || {}; } catch (e) { return {}; } }
   function setPinFails(v) { try { localStorage.setItem(PIN_FAIL_KEY, JSON.stringify(v)); } catch (e) { } }
+  function pinLockMsg() {
+    const f = pinFails(), u = f.until && f.until > Date.now() ? f.until : 0;
+    return u ? "Too many wrong tries — wait " + Math.ceil((u - Date.now()) / 1000) + " seconds." : "";
+  }
+  // Checks a PIN against the saved one and counts wrong tries.
+  // Returns "" when it's right, otherwise the message to show.
+  async function checkPin(pin) {
+    const saved = STORE.settings().pin;
+    if (saved && (await hashPin(pin, saved.salt)) === saved.hash) { setPinFails({}); return ""; }
+    const f = pinFails();
+    f.count = (f.count || 0) + 1;
+    if (f.count >= 5) { f.until = Date.now() + 60000; f.count = 0; }
+    setPinFails(f);
+    SOUND.play("wrong");
+    return f.until && f.until > Date.now()
+      ? "Too many wrong tries — wait 60 seconds."
+      : "Wrong PIN — " + plural(5 - f.count, "try", "tries") + " left.";
+  }
   function leaveAdmin() { adminUnlocked = false; renderMenu(); }
 
   function renderAdmin() {
@@ -2166,7 +2184,7 @@
     current = null;
     let pin = "";
     show(`
-      <div class="topbar"><span class="back" id="bk">← Menu</span><h2>🔒 Admin</h2></div>
+      <div class="topbar"><span class="back" id="bk">${esc(opts.backLabel || "← Menu")}</span><h2>🔒 Admin</h2></div>
       <div class="page narrow">
         <div class="card wide center pin-card">
           <div class="big-emoji">${opts.icon || "🔒"}</div>
@@ -2203,40 +2221,47 @@
       if (e.key === "Backspace") { press("back"); return true; }
       if (e.key === "Enter") { press("ok"); return true; }
     };
-    $("#bk").onclick = leaveAdmin;
+    $("#bk").onclick = opts.onBack || leaveAdmin;
     paint();
   }
+  const pinLocked = () => { const m = pinLockMsg(); if (m) $("#pinErr").textContent = m; return !!m; };
 
   function renderPinEntry() {
-    const lockedUntil = () => { const f = pinFails(); return f.until && f.until > Date.now() ? f.until : 0; };
     pinPad({
       title: "Enter the admin PIN",
       sub: "This page is for parents only.",
-      locked: () => {
-        const u = lockedUntil();
-        if (u) $("#pinErr").textContent = "Too many wrong tries — wait " + Math.ceil((u - Date.now()) / 1000) + " seconds.";
-        return !!u;
-      },
+      locked: pinLocked,
       footer: `<button class="link-btn" id="forgotPin" type="button">Forgot the PIN?</button>`,
       onDone: async (pin) => {
-        const saved = STORE.settings().pin;
-        if (saved && (await hashPin(pin, saved.salt)) === saved.hash) {
-          setPinFails({});
-          adminUnlocked = true;
-          renderAdminPage();
-          return;
-        }
-        const f = pinFails();
-        f.count = (f.count || 0) + 1;
-        if (f.count >= 5) { f.until = Date.now() + 60000; f.count = 0; }
-        setPinFails(f);
-        SOUND.play("wrong");
-        $("#pinErr").textContent = f.until && f.until > Date.now()
-          ? "Too many wrong tries — wait 60 seconds."
-          : "Wrong PIN — " + plural(5 - f.count, "try", "tries") + " left.";
+        const err = await checkPin(pin);
+        if (err) { $("#pinErr").textContent = err; return; }
+        adminUnlocked = true;
+        renderAdminPage();
       }
     });
     $("#forgotPin").onclick = () => renderAdminVerify("reset");
+  }
+
+  // Deleting a player asks for the admin PIN again, even with the admin page open.
+  function renderDeletePlayer(pl) {
+    pinPad({
+      icon: "🗑️",
+      title: "Delete " + pl.name + "?",
+      sub: `Type the admin PIN to delete <b>${esc(pl.name)}</b>. All of ${esc(pl.name)}'s assessments, points, badges and reports will be deleted on every device. This can't be undone.`,
+      backLabel: "← Admin",
+      onBack: renderAdminPage,
+      locked: pinLocked,
+      footer: `<button class="btn ghost" id="cancelDel" type="button">Cancel — keep ${esc(pl.name)}</button>`,
+      onDone: async (pin) => {
+        const err = await checkPin(pin);
+        if (err) { $("#pinErr").textContent = err; return; }
+        STORE.deleteProfile(pl.id);
+        if (!STORE.active() && STORE.profilesList().length) STORE.selectProfile(STORE.profilesList()[0].id);
+        toast(pl.name + " was deleted.", "");
+        renderAdminPage();
+      }
+    });
+    $("#cancelDel").onclick = renderAdminPage;
   }
 
   // Before creating or resetting the PIN: confirm the account password.
@@ -2422,12 +2447,8 @@
     });
     $$("[data-delplayer]").forEach(btn => {
       btn.onclick = () => {
-        const pl = STORE.state.profiles[btn.dataset.delplayer]; if (!pl) return;
-        showConfirm("Delete " + pl.name + "?", "All of " + pl.name + "'s assessments, points, badges and reports will be deleted on every device. This can't be undone.", "Delete", () => {
-          STORE.deleteProfile(pl.id);
-          if (!STORE.active() && STORE.profilesList().length) STORE.selectProfile(STORE.profilesList()[0].id);
-          renderAdminPage();
-        });
+        const pl = STORE.state.profiles[btn.dataset.delplayer];
+        if (pl) renderDeletePlayer(pl);
       };
     });
     $("#changePin").onclick = () => renderPinCreate("change");
