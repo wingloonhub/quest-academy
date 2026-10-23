@@ -249,7 +249,7 @@
     else if (!levels) meta = `<span class="subject-meta">${plural(s.topics.length, "module")}</span><span class="soon-pill">Topics coming soon</span>`;
     else {
       const mastered = s.topics.reduce((a, t) => a + REPORT.topicSummary(s.id, t.id).mastered, 0);
-      meta = `<span class="subject-meta">${plural(s.topics.length, "module")} · ${plural(DATA.topicCount(s.id), "topic")}${mastered ? ` · 🏆 ${mastered} mastered` : ""}${sh.length ? ` · avg ${avgPct(sh)}%` : ""}</span>`;
+      meta = `<span class="subject-meta">${plural(s.topics.length, "module")} · ${plural(DATA.topicCount(s.id), "topic")}${mastered ? ` · 🏆 ${mastered} mastered` : ""}${sh.length ? ` · average ${avgPct(sh)}%` : ""}</span>`;
     }
     return `<button class="subject-card" data-subject="${esc(s.id)}" type="button">
       <span class="subject-art">${ART.subject(s.id)}</span>
@@ -397,7 +397,7 @@
         <div>
           <div class="subject-hero-name">${esc(subj.fullLabel || subj.label)}</div>
           <div class="muted">${esc(subj.tagline)}</div>
-          ${hist.length ? `<div class="subject-hero-stats">⭐ ${totalStars(hist)} · ${ART.coin(13)} ${plural(STORE.points(null, subj.id), "point")} · ${plural(hist.length, "assessment")} · avg ${avgPct(hist)}%</div>` : ""}
+          ${hist.length ? `<div class="subject-hero-stats">⭐ ${totalStars(hist)} · ${ART.coin(13)} ${plural(STORE.points(null, subj.id), "point")} · ${plural(hist.length, "assessment")} · average ${avgPct(hist)}%</div>` : ""}
         </div>
       </div>`;
   }
@@ -1256,7 +1256,7 @@
       let foot;
       const nTopics = DATA.moduleTopics(subjectId, t.id).length;
       if (!nTopics) foot = `<span class="soon-pill sm">Topics coming soon</span>`;
-      else foot = `<span class="topic-hint">${plural(nTopics, "topic")} · ${plural(sum.total, "level")}${sum.mastered ? ` · 🏆 ${sum.mastered}/${sum.total} mastered` : ""}</span>${sum.attempts ? `<span class="topic-best">avg ${sum.avg}%</span>` : ""}`;
+      else foot = `<span class="topic-hint">${plural(nTopics, "topic")} · ${plural(sum.total, "level")}${sum.mastered ? ` · 🏆 ${sum.mastered}/${sum.total} mastered` : ""}</span>${sum.attempts ? `<span class="topic-best">average ${sum.avg}%</span>` : ""}`;
       return `<button class="topic-card${sum.total ? "" : " pending"}" data-topic="${esc(t.id)}" type="button">
         <span class="topic-top"><span class="topic-icon">${esc(t.icon || "📘")}</span><span class="topic-name">${esc(t.label)}</span></span>
         ${t.desc ? `<span class="topic-desc">${esc(t.desc)}</span>` : ""}
@@ -1387,7 +1387,7 @@
     const rep = REPORT.moduleReport(subjectId, topicId);
     const cards = rep.inOrder.map(ts => {
       const foot = !ts.total ? `<span class="soon-pill sm">Levels coming soon</span>`
-        : `<span class="topic-hint">${plural(ts.total, "level")}${ts.mastered ? ` · 🏆 ${ts.mastered}/${ts.total} mastered` : ""}</span>${ts.attempts ? `<span class="topic-best">avg ${ts.avg}%</span>` : ""}`;
+        : `<span class="topic-hint">${plural(ts.total, "level")}${ts.mastered ? ` · 🏆 ${ts.mastered}/${ts.total} mastered` : ""}</span>${ts.attempts ? `<span class="topic-best">average ${ts.avg}%</span>` : ""}`;
       return `<button class="topic-card${ts.total ? "" : " pending"}" data-mtopic="${esc(ts.topic.id)}" type="button">
           <span class="topic-top"><span class="topic-icon">${esc(ts.topic.icon || "📘")}</span><span class="topic-name">${esc(ts.topic.label)}</span></span>
           ${ts.topic.desc ? `<span class="topic-desc">${esc(ts.topic.desc)}</span>` : ""}
@@ -1433,7 +1433,7 @@
           <div>
             <div class="subject-hero-name">${esc(t.label)}</div>
             <div class="muted">${esc(m.label)}${t.desc ? " · " + esc(t.desc) : ""}</div>
-            ${ts.total ? `<div class="subject-hero-stats">🏆 ${ts.mastered}/${ts.total} levels mastered${ts.attempts ? ` · ${plural(ts.attempts, "assessment")} · avg ${ts.avg}% · last practised ${esc(REPORT.timeAgo(ts.lastTs))}` : ""}</div>` : ""}
+            ${ts.total ? `<div class="subject-hero-stats">🏆 ${ts.mastered}/${ts.total} levels mastered${ts.attempts ? ` · ${plural(ts.attempts, "assessment")} · average ${ts.avg}% · last practised ${esc(REPORT.timeAgo(ts.lastTs))}` : ""}</div>` : ""}
           </div>
         </div>
         ${ts.total
@@ -1461,7 +1461,7 @@
           <span class="mr-top"><span class="mr-name">${esc(l.label)}${l.desc ? `: ${esc(l.desc)}` : ""}</span><span class="mr-tag">${esc(b.txt)}</span></span>
           ${ls.attempts
             ? `<span class="mr-bar"><i style="width:${ls.avg}%"></i></span>
-               <span class="mr-meta">avg <b>${ls.avg}%</b> · best ${ls.best}% · latest ${ls.latest}% · ${plural(ls.attempts, "assessment")} · ${esc(ls.mastery.icon + " " + ls.mastery.label)} · ${esc(REPORT.timeAgo(ls.lastTs))}</span>
+               <span class="mr-meta">average <b>${ls.avg}%</b> · best ${ls.best}% · latest ${ls.latest}% · ${plural(ls.attempts, "assessment")} · ${esc(ls.mastery.icon + " " + ls.mastery.label)} · ${esc(REPORT.timeAgo(ls.lastTs))}</span>
                ${ls.weakAreas.length ? `<span class="mr-weak">🎯 Weak areas: ${weakList(ls.weakAreas, 3)}</span>` : `<span class="mr-ok">✓ No weak areas</span>`}`
             : `<span class="mr-meta">Not started yet.</span>`}
         </button>`;
@@ -1531,7 +1531,7 @@
           <span class="mr-top"><span class="mr-name">${esc(ts.topic.icon || "📘")} ${esc(ts.topic.label)}</span><span class="mr-tag">${esc(b.txt)}</span></span>
           ${ts.attempts
             ? `<span class="mr-bar"><i style="width:${ts.avg}%"></i></span>
-               <span class="mr-meta">avg <b>${ts.avg}%</b> · best ${ts.best}% · ${plural(ts.attempts, "assessment")} · last practised ${esc(REPORT.timeAgo(ts.lastTs))}</span>`
+               <span class="mr-meta">average <b>${ts.avg}%</b> · best ${ts.best}% · ${plural(ts.attempts, "assessment")} · last practised ${esc(REPORT.timeAgo(ts.lastTs))}</span>`
             : `<span class="mr-meta">Not started yet.</span>`}
           ${chips ? `<span class="ov-levels">${chips}</span>` : `<span class="mr-meta">Levels coming soon.</span>`}
           ${ts.weakAreas.length ? `<span class="mr-weak">🎯 Weak areas: ${weakList(ts.weakAreas, 4)}</span>` : ""}
@@ -2234,7 +2234,7 @@
         </span>
         <span class="hist-stats">
           <span><b>${l.attempts}</b> ${l.attempts === 1 ? "attempt" : "attempts"}</span>
-          <span>Avg <b>${l.avg}%</b></span>
+          <span>Average <b>${l.avg}%</b></span>
           <span>Latest <b>${l.latest}%</b></span>
           <span>Best <b>${l.best}%</b></span>
           <span>Last <b>${esc(REPORT.timeAgo(l.lastTs))}</b></span>
@@ -2364,7 +2364,7 @@
 
     const weakCards = r.weakest.map(l => `<button class="rep-card clickable" data-subj="${esc(l.subjectId)}" data-topic="${esc(l.topicId)}" data-level="${esc(l.levelId)}" type="button">
         <div class="t"><span>${esc(l.label)} ${subjectPill(l.subjectId)}</span>${masteryBadge(l.mastery)}</div>
-        <div class="sub">${plural(l.attempts, "attempt")} · avg ${l.avg}% · latest ${l.latest}% · last ${esc(REPORT.timeAgo(l.lastTs))}</div>
+        <div class="sub">${plural(l.attempts, "attempt")} · average ${l.avg}% · latest ${l.latest}% · last ${esc(REPORT.timeAgo(l.lastTs))}</div>
         ${l.weakAreas[0] ? `<div class="sub">🎯 Weak area: <b class="bad">${esc(l.weakAreas[0].label)}</b> (${l.weakAreas[0].pct}%)</div>` : ""}
       </button>`).join("");
     const myBadges = STORE.badges();
