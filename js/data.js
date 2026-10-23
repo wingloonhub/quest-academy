@@ -46,7 +46,18 @@
       voice: "en-GB",            // voice used by listen-and-spell questions
       modules: [
         { id: "grammar", label: "Grammar", icon: "🔤", desc: "Word classes and how sentences fit together", topics: [
-            { id: "conjunctions", label: "Conjunctions", icon: "🔗", desc: "Joining words — and, but, so, because, if, unless…", levels: [] },
+            { id: "conjunctions", label: "Conjunctions", icon: "🔗", desc: "Joining words — and, but, so, because, if, unless…", levels: [
+                { id: "basics", label: "Level 1", desc: "Basic conjunctions — and, but, or", sessionSize: 15, hideCat: true,
+                  catLabels: { AND: "and (adding)", BUT: "but (contrast)", OR: "or (choice)" } },
+                { id: "reason_result", label: "Level 2", desc: "Reason & result — because, so, since, as", sessionSize: 15, hideCat: true,
+                  catLabels: { BECAUSE: "because (reason)", SINCE: "since (reason)", AS: "as (reason)", SO: "so (result)" } },
+                { id: "time_conditions", label: "Level 3", desc: "Time & conditions — before, after, when, while, until, if, unless", sessionSize: 15, hideCat: true,
+                  catLabels: { BEFORE: "before (comes first)", AFTER: "after (comes later)", WHEN: "when (the moment)", WHILE: "while (at the same time)",
+                               UNTIL: "until (up to a point)", IF: "if (condition)", UNLESS: "unless (if not)" } },
+                { id: "advanced", label: "Level 4", desc: "Advanced & paired — although, yet, either … or, neither … nor, both … and", sessionSize: 15, hideCat: true,
+                  catLabels: { ALTHOUGH: "although (contrast)", THOUGH: "though (contrast)", EVENTHOUGH: "even though (contrast)", YET: "yet (contrast)",
+                               EITHEROR: "either … or (choice)", NEITHERNOR: "neither … nor (not either)", BOTHAND: "both … and (the two together)" } }
+              ] },
             { id: "pronouns", label: "Pronouns", icon: "🙋", desc: "I, you, he, she, it, we, they — words that stand for nouns", levels: [
                 { id: "level1", label: "Level 1", desc: "Write the right pronoun", sessionSize: 15, hideCat: true,
                   catLabels: { I: "I (myself)", YOU: "you (the person I'm talking to)", HE: "he (one boy or man)",
@@ -184,6 +195,12 @@
     "maths|multiplication|multiplying.level3": ["reasoning", "equal_groups.level1"]
   };
 
+  /* Levels that were removed. Results already done stay in History & Analysis
+     and the Parent Report under this name ("subject|module|<topic>.<level>"). */
+  const RETIRED = {
+    "english|grammar|conjunctions.level1": "Conjunctions · Old Level 1 (removed)"
+  };
+
   const byId = (list, id) => (list || []).filter(x => x.id === id)[0] || null;
   function games(subjectId) { return GAMES.filter(g => g.subjectId === subjectId); }
   function game(gameId) { return byId(GAMES, gameId); }
@@ -243,7 +260,7 @@
   function levelLabel(subjectId, moduleId, levelId) {
     const l = level(subjectId, moduleId, levelId);
     if (l) return l.topicLabel + " · " + l.label;
-    return String(levelId || "Level").split(".").map(tidyId).join(" · ");
+    return RETIRED[subjectId + "|" + moduleId + "|" + levelId] || String(levelId || "Level").split(".").map(tidyId).join(" · ");
   }
   // Everything, e.g. "Grammar · Conjunctions · Level 1"
   function fullLabel(subjectId, moduleId, levelId) {

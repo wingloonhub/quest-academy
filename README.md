@@ -41,7 +41,7 @@ There is a progress report at every step, so you can see where he's weak:
 | Maths → 8 modules (Numbers & Place value, Operations, Fractions, Decimals & Percentages, Measurement, Geometry, Statistics & probability, Word problems, Mathematical reasoning) · Operations → 6 topics (Addition, Subtraction, Multiplication, Division, Missing numbers, Mixed operations) | ✅ built |
 | Maths levels ready: Operations → Addition → Level 1: 2- and 3-digit (50 questions, 10 per test) · Operations → Multiplication → Level 1: 1 digit × 1 digit (tables 2–10, 90 questions, 20 per test) · Level 2: 2 digits × 1 digit (80 questions, 15 per test) · Mathematical reasoning → Equal groups → Level 1: identify groups & items in each group (80 word problems with two answer boxes, 15 per test) — not linked to a school year yet | ✅ loaded |
 | English → 7 modules (Grammar, Tenses & verbs, Vocabulary, Spelling, Punctuation & capitalisation, Reading comprehension, Writing) | ✅ built |
-| English levels ready: Grammar → Pronouns → Level 1: write the right pronoun — I, you, he, she, it, we, they (80 typed one-word answers, 15 per test) — not linked to a school year yet. Grammar → Conjunctions has no levels at the moment (Level 1 was removed on 23 Oct 2026; results already done stay in History & Analysis and the Parent Report, and their points are kept) | ✅ loaded |
+| English levels ready: Grammar → Conjunctions → Level 1: basics — and, but, or · Level 2: reason & result — because, so, since, as · Level 3: time & conditions — before, after, when, while, until, if, unless · Level 4: advanced & paired — although, though, even though, yet, either … or, neither … nor, both … and (80 typed questions each, 15 per test; the key’s “also acceptable” answers are accepted; Level 4’s paired questions have two boxes) · Grammar → Pronouns → Level 1: write the right pronoun — I, you, he, she, it, we, they (80 typed one-word answers, 15 per test) — not linked to a school year yet. The first Conjunctions Level 1 (removed 23 Oct 2026) still shows in History & Analysis as “Old Level 1 (removed)”, and its points are kept | ✅ loaded |
 | Module page → Topics + 📊 Module report (weakest topic first) · Topic page → Levels + 📊 Topic report (weakest level and question type first) · Level page → Assessment · Progress report | ✅ built — fills in as levels are added |
 | Bahasa → 8 modules (Kata nama & kata ganti nama, Kata kerja & adjektif, Kata tugas, Pembentukan kata, Ayat & tatabahasa, Ejaan & Tanda baca, Pemahaman & Kosa kata, Penulisan) | ✅ built — topics and levels to come |
 | More English and Maths topics, and Bahasa topics | ⏳ *coming soon* — same module → topic → level layout |
@@ -106,7 +106,9 @@ badges are set up in `js/data.js` (`GAMES`, `BADGES`).
 ### 🛍️ Shop and points history
 
 The Shop is on the main menu. Everything in it is a **request a parent
-approves** — cash is the first item; more will be added.
+approves**. Items: 💵 cash and 🎮 video game console time; more will be added.
+**No item can be asked for without enough points** — Submit stays greyed out,
+and the app refuses the request even if it somehow got through.
 
 **💵 Redeem cash**
 
@@ -121,8 +123,20 @@ approves** — cash is the first item; more will be added.
 4. You **approve** or **reject** it on the admin page. Approve → the points
    are used up (remember to hand over the cash). Reject → the points go back.
 
-**Points available = earned − on hold − used.** If the cash value is 0.00,
-cash redemption is switched off and the Shop says "ask a parent".
+**🎮 Video game console**
+
+1. He types how many hours he wants (whole or half hours, e.g. `1` or `1.5`;
+   quick buttons for ½, 1, 2… hours and "Use all"). The screen shows the points
+   at the points-per-hour you set on the admin page (e.g. 50 per hour → 2 hours
+   = 100 points; half an hour at an odd rate rounds up).
+2. **Submit** stays greyed out unless it's valid — and never if the hours need
+   **more points than he has available**. Tapping it asks him to confirm.
+3. The points go **on hold** 🔒 until you **approve** (points used — let him
+   play) or **reject** (points come back) on the admin page.
+
+**Points available = earned − on hold − used.** If the cash value is 0.00 (or
+the console points per hour is 0), that item is switched off and the Shop says
+"ask a parent".
 
 **📜 Points history** (tap the points panel on the menu, or the button in the
 Shop) lists every change, newest first: points earned on each assessment
@@ -143,6 +157,8 @@ unlocks it on every device. On the admin page you can:
 - set the **💵 cash value of 1 point** in MYR with 2 decimals (e.g. 0.10 →
   1 point = MYR 0.10, so 100 points = MYR 10.00; 0.00 switches cash off).
   Requests already waiting keep the value they were made at,
+- set the **🎮 points per hour** of video game console time (e.g. 50 → 1 hour
+  = 50 points, 2 hours = 100; 0 switches console time off),
 - **approve or reject redemption requests** (the menu's Admin link shows how
   many are waiting), and see past requests,
 - see each player's points — available, on hold, used and earned,

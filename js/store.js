@@ -79,8 +79,19 @@
       updatedAt: 0,                                              // newest saved settings win
       pointsPerPercent: { english: DEFAULT_RATE, bahasa: DEFAULT_RATE, maths: DEFAULT_RATE },
       pin: null,                                                 // { salt, hash } of the admin PIN
-      myrPerPoint: 0                                             // cash value of 1 point (0 = cash redemption off)
+      myrPerPoint: 0,                                            // cash value of 1 point (0 = cash redemption off)
+      consolePointsPerHour: 0                                    // points for 1 hour of video game console time (0 = off)
     };
+  }
+  // Points per hour of console time: a whole number, 0 = off.
+  function cleanPph(v) {
+    const n = Number(v);
+    return isFinite(n) && n > 0 ? Math.min(10000, Math.round(n)) : 0;
+  }
+  // Console time is asked for in whole or half hours, up to 24 at a time.
+  function cleanHours(v) {
+    const n = Number(v);
+    return isFinite(n) && n > 0 ? Math.min(24, Math.round(n * 2) / 2) : 0;
   }
   // Money: MYR with 2 decimals, never negative.
   function cleanMyr(v) {
@@ -100,6 +111,7 @@
     }
     out.pin = isObj(raw.pin) && raw.pin.hash && raw.pin.salt ? { salt: String(raw.pin.salt), hash: String(raw.pin.hash) } : null;
     out.myrPerPoint = cleanMyr(raw.myrPerPoint);
+    out.consolePointsPerHour = cleanPph(raw.consolePointsPerHour);
     return out;
   }
 
@@ -536,6 +548,14 @@
       st.updatedAt = Date.now();
       STORE.save({ immediate: true });
     },
+    // Points for 1 hour of video game console time. 0 switches it off.
+    consolePointsPerHour() { return cleanPph(STORE.settings().consolePointsPerHour); },
+    setConsolePointsPerHour(v) {
+      const st = STORE.state.settings = normaliseSettings(STORE.state.settings);
+      st.consolePointsPerHour = cleanPph(v);
+      st.updatedAt = Date.now();
+      STORE.save({ immediate: true });
+    },
 
     /* ---------------- Shop: balance + redemption requests ---------------- */
     // earned (assessments + Quest Arena) − on hold (pending) − used (approved) = available
@@ -554,7 +574,10 @@
       return (p && p.redemptions) || [];
     },
     // Put points on hold for a shop item. Returns the request, or null if the
-    // player doesn't have enough available points.
+    // player doesn't have enough available points — EVERY shop item goes
+    // through here, so none can be asked for without enough points.
+    //   cash:    { item: "cash", myr, rate (MYR per point), points }
+    //   console: { item: "console", hours, pph (points per hour), points }
     requestRedemption(req) {
       const p = STORE.active(); if (!p || !req) return null;
       const points = Math.round(Number(req.points) || 0);
@@ -562,9 +585,10 @@
       const r = {
         id: "r_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
         ts: Date.now(), item: req.item || "cash", label: req.label || "",
-        myr: cleanMyr(req.myr), points: points, rate: cleanMyr(req.rate),
-        status: "pending", decidedTs: null
+        points: points, status: "pending", decidedTs: null
       };
+      if (r.item === "console") { r.hours = cleanHours(req.hours); r.pph = cleanPph(req.pph); if (!r.hours) return null; }
+      else { r.myr = cleanMyr(req.myr); r.rate = cleanMyr(req.rate); if (!r.myr) return null; }
       p.redemptions = tidyRedemptions([r].concat(p.redemptions || []));
       STORE.save({ immediate: true });
       return r;

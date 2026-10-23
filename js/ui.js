@@ -309,7 +309,7 @@
           <button class="trophy-card shop-card" id="shopBtn" type="button">
             <span class="trophy-card-icon">🛍️</span>
             <span class="trophy-card-text"><b>Shop</b><small>Spend your ${sum.available.toLocaleString("en-GB")} points${sum.onHold ? " · 🔒 " + sum.onHold.toLocaleString("en-GB") + " on hold" : ""}</small></span>
-            <span class="shop-tag">💵 Cash &amp; more</span>
+            <span class="shop-tag">💵 Cash · 🎮 Games</span>
           </button>
         </div>
         <div class="menu-actions">
@@ -358,7 +358,7 @@
         <p>⭐ <b>Stars</b> — 50% = 1 star, 70% = 2 stars, 90% = 3 stars. Your best score on each level counts.</p>
         <p>${ART.coin(16)} <b>Points</b> — earned by <b>beating your own best score</b> on a level. Every 1% above your old best earns points (a parent sets how many for each subject). Repeating a level without beating your best earns nothing — so aim higher each time!</p>
         <p>🎮 <b>Quest Arena</b> — games that use what you've learned. In Maths, <b>Beat the Clock</b> gives you 3 lives and 15 times-table questions with 10 seconds each — survive to become a 🥷 <b>Times Table Ninja</b>. Then 15 more with just 5 seconds each to become a 🧙 <b>Multiplication Wizard</b>! Every badge you win lives in the 🏆 <b>Trophy Room</b>. Winning a round also pays points: <b>+50</b> the first time you win Round 1, <b>+60</b> the first time you win Round 2, then <b>+5</b> every time you win a round again.</p>
-        <p>🛍️ <b>Shop</b> — spend the points you've earned. <b>Redeem cash</b>: type an amount in MYR and submit; a parent approves it on the admin page. Until then those points are <b>on hold</b> — if it isn't approved, they come back. Tap your points on the menu to see your <b>points history</b>.</p>
+        <p>🛍️ <b>Shop</b> — spend the points you've earned. <b>Redeem cash</b>: type an amount in MYR and submit; a parent approves it on the admin page. Until then those points are <b>on hold</b> — if it isn't approved, they come back. <b>Video game console</b>: type how many hours you'd like — each hour costs the points a parent sets — and a parent approves it the same way. You can only ask for what your points cover. Tap your points on the menu to see your <b>points history</b>.</p>
         <p>📊 <b>Parent Report</b> — mastery for every module, topic and level across all three subjects, the levels that need help, badges, and recent mistakes.</p>
         <p>☁️ <b>Same results everywhere</b> — sign in with the same email on a phone, tablet or computer and you get the same players, scores and reports. Assessments finished offline are kept and uploaded automatically next time the app is online.</p>
         <div class="row" style="margin-top:18px"><button class="btn primary" id="backBtn" type="button">← Back to the menu</button></div>
@@ -878,9 +878,29 @@
   /* ===================== Shop =====================
      Players spend points here. Every purchase is a request a parent approves
      or rejects on the admin page; until then its points are ON HOLD.
-     Cash redemption is the first item — more items will be added. */
+     Items: 💵 cash (admin sets MYR per point) and 🎮 video game console time
+     (admin sets points per hour). EVERY item must refuse a request that needs
+     more points than are available — the form keeps Submit greyed out, and
+     STORE.requestRedemption refuses it too. */
   const MYR = (n) => "MYR " + (Math.round((Number(n) || 0) * 100) / 100).toFixed(2);
   const fmtPts = (n) => (Number(n) || 0).toLocaleString("en-GB");
+  const SHOP_ICONS = { cash: "💵", console: "🎮" };
+  // 0.5 → "½ hour", 1 → "1 hour", 1.5 → "1½ hours"
+  function hoursText(h) {
+    const whole = Math.floor(h), half = h - whole >= 0.5;
+    return ((whole ? String(whole) : "") + (half ? "½" : "") || "0") + (h === 1 || h === 0.5 ? " hour" : " hours");
+  }
+  // Points for some console time (half an hour at an odd rate rounds up).
+  const consolePoints = (hours, pph) => Math.ceil(hours * pph - 1e-9);
+  // Most console time the points cover, in half hours.
+  const consoleMaxHours = (available, pph) => (pph ? Math.min(24, Math.floor(available * 2 / pph) / 2) : 0);
+  // "Cash MYR 5.00" / "2 hours of video game console time"
+  function redemptionText(r) {
+    return r.item === "console" ? hoursText(r.hours || 0) + " of video game console time" : (r.label || "Cash") + " " + MYR(r.myr);
+  }
+  function redemptionRate(r) {
+    return r.item === "console" ? plural(r.pph || 0, "point") + " per hour" : "1 point = " + MYR(r.rate);
+  }
 
   function balanceHero(sum, label) {
     return `<div class="points-hero">
@@ -895,7 +915,7 @@
   function holdBox(sum) {
     const pending = STORE.redemptions().filter(r => r.status === "pending");
     if (!pending.length) return "";
-    return `<div class="hold-box">🔒 <b>${plural(sum.onHold, "point")} on hold</b> — ${pending.map(r => esc((r.label || "Cash") + " " + MYR(r.myr))).join(", ")} waiting for a parent to approve. These points can't be used until then; if a request isn't approved, its points come back.</div>`;
+    return `<div class="hold-box">🔒 <b>${plural(sum.onHold, "point")} on hold</b> — ${pending.map(r => esc(redemptionText(r))).join(", ")} waiting for a parent to approve. These points can't be used until then; if a request isn't approved, its points come back.</div>`;
   }
 
   function renderShop() {
@@ -904,6 +924,11 @@
     const rate = STORE.myrPerPoint();
     const cashText = !rate ? "Not switched on yet — ask a parent."
       : `Swap points for real money. <b>1 point = ${MYR(rate)}</b>. Your ${fmtPts(sum.available)} points are worth <b>${MYR(sum.available * rate)}</b>.`;
+    const pph = STORE.consolePointsPerHour();
+    const maxHours = consoleMaxHours(sum.available, pph);
+    const consoleText = !pph ? "Not switched on yet — ask a parent."
+      : `Swap points for game time. <b>1 hour = ${plural(pph, "point")}</b>. ` +
+        (maxHours >= 0.5 ? `Your points cover up to <b>${hoursText(maxHours)}</b>.` : `You need ${plural(consolePoints(0.5, pph), "point")} for ½ hour.`);
     show(`
       <div class="topbar"><span class="back" id="bk">← Menu</span><h2>🛍️ Shop</h2></div>
       <div class="page narrow">
@@ -916,6 +941,12 @@
             <div class="shop-name">Redeem cash</div>
             <div class="shop-desc">${cashText}</div>
             <button class="btn primary" id="cashBtn" type="button"${rate && sum.available > 0 ? "" : " disabled"}>${!rate ? "Coming soon" : sum.available > 0 ? "Redeem cash →" : "Earn points first"}</button>
+          </div>
+          <div class="shop-item">
+            <div class="shop-icon">🎮</div>
+            <div class="shop-name">Video game console</div>
+            <div class="shop-desc">${consoleText}</div>
+            <button class="btn primary" id="consoleBtn" type="button"${pph && maxHours >= 0.5 ? "" : " disabled"}>${!pph ? "Coming soon" : maxHours >= 0.5 ? "Get console time →" : "Not enough points yet"}</button>
           </div>
           <div class="shop-item soon">
             <div class="shop-icon">🎁</div>
@@ -932,6 +963,7 @@
     $("#backBtn").onclick = renderMenu;
     $("#histBtn").onclick = () => renderPointsHistory(renderShop);
     $("#cashBtn").onclick = renderRedeemCash;
+    $("#consoleBtn").onclick = renderRedeemConsole;
   }
 
   function renderRedeemCash() {
@@ -1003,15 +1035,88 @@
     setTimeout(() => { try { input.focus(); } catch (e) { } }, 50);
   }
 
+  // 🎮 Console time: type the hours; points = hours × the parent's points per hour.
+  function renderRedeemConsole() {
+    const pph = STORE.consolePointsPerHour();
+    const sum = STORE.pointsSummary();
+    const maxHours = consoleMaxHours(sum.available, pph);
+    if (!pph || maxHours < 0.5) return renderShop();
+    current = null;                              // keep what's being typed
+    const quick = [0.5, 1, 2, 3].filter(h => h < maxHours);
+    show(`
+      <div class="topbar"><span class="back" id="bk">← Shop</span><h2>🎮 Video game console</h2></div>
+      <div class="page narrow">
+        <div class="card wide redeem-card">
+          <div class="redeem-rate">1 hour = <b>${plural(pph, "point")}</b></div>
+          <div class="muted">You have <b>${plural(sum.available, "point")}</b> available — enough for up to <b>${hoursText(maxHours)}</b>.</div>
+          <div class="field" style="margin-top:16px">
+            <label for="hoursIn">How many hours would you like?</label>
+            <div class="myr-wrap"><input id="hoursIn" type="number" inputmode="decimal" min="0.5" step="0.5" placeholder="0" autocomplete="off"/><span class="myr-suffix">hours</span></div>
+          </div>
+          <div class="row" style="justify-content:flex-start;gap:8px">
+            ${quick.map(h => `<button class="btn ghost sm" data-h="${h}" type="button">${hoursText(h)}</button>`).join("")}
+            <button class="btn ghost sm" id="maxBtn" type="button">Use all (${hoursText(maxHours)})</button>
+          </div>
+          <div class="redeem-preview" id="preview">Type the hours to see how many points they use.</div>
+          <div class="err" id="redeemErr"></div>
+          <div class="row" style="margin-top:6px">
+            <button class="btn ghost" id="cancelBtn" type="button">Cancel</button>
+            <button class="btn primary" id="submitBtn" type="button" disabled>Submit request</button>
+          </div>
+          <p class="muted small" style="margin-top:12px;line-height:1.6">A parent has to approve it. Until then the points are <b>on hold</b> and can't be used. If it isn't approved, the points come back.</p>
+        </div>
+      </div>`);
+    const input = $("#hoursIn"), submit = $("#submitBtn");
+    let want = null;                              // { hours, points } when valid
+    const evaluate = () => {
+      want = null;
+      const raw = input.value.trim();
+      const h = Number(raw);
+      let msg = "", preview = "Type the hours to see how many points they use.";
+      if (raw) {
+        if (!isFinite(h) || h <= 0) msg = "Type a number of hours bigger than 0.";
+        else if (Math.abs(h * 2 - Math.round(h * 2)) > 1e-9) msg = "Use whole or half hours, e.g. 1 or 1.5.";
+        else if (h > 24) msg = "You can ask for up to 24 hours at a time.";
+        else {
+          const points = consolePoints(h, pph);
+          preview = `<b>${hoursText(h)}</b> = ${ART.coin(16)} <b>${plural(points, "point")}</b>`;
+          if (points > sum.available) msg = `That needs ${plural(points, "point")} — you only have ${fmtPts(sum.available)} available (up to ${hoursText(maxHours)}).`;
+          else want = { hours: h, points: points };
+        }
+      }
+      $("#preview").innerHTML = preview;
+      $("#redeemErr").textContent = msg;
+      submit.disabled = !want;
+    };
+    input.oninput = evaluate;
+    $$("[data-h]").forEach(b => { b.onclick = () => { input.value = b.dataset.h; evaluate(); }; });
+    $("#maxBtn").onclick = () => { input.value = String(maxHours); evaluate(); };
+    $("#bk").onclick = renderShop;
+    $("#cancelBtn").onclick = renderShop;
+    submit.onclick = () => {
+      if (!want) return;
+      const w = want;
+      showConfirm(`Ask for ${hoursText(w.hours)} of console time?`,
+        `This uses ${plural(w.points, "point")}. They'll be on hold until a parent approves. If the parent says no, the points come back to you.`,
+        "Yes, submit", () => {
+          const r = STORE.requestRedemption({ item: "console", label: "Video game console", hours: w.hours, pph: pph, points: w.points });
+          if (!r) { toast("Not enough points available for that.", "bad"); renderRedeemConsole(); return; }
+          SOUND.play("coin");
+          renderRedeemDone(r);
+        });
+    };
+    setTimeout(() => { try { input.focus(); } catch (e) { } }, 50);
+  }
+
   function renderRedeemDone(r) {
     current = null;
     const sum = STORE.pointsSummary();
     show(`
-      <div class="topbar"><span class="back" id="bk">← Shop</span><h2>💵 Request sent</h2></div>
+      <div class="topbar"><span class="back" id="bk">← Shop</span><h2>${SHOP_ICONS[r.item] || "🛍️"} Request sent</h2></div>
       <div class="page narrow">
         <div class="card wide center">
           <div class="big-emoji">🔒</div>
-          <h2 class="card-h">${MYR(r.myr)} is on hold</h2>
+          <h2 class="card-h">${esc(redemptionText(r))} — on hold</h2>
           <p class="muted" style="line-height:1.7">${plural(r.points, "point")} are on hold until a parent approves your request.<br/>If it isn't approved, the points come back to you.</p>
           <div class="kpi-grid three" style="margin-top:14px">
             <div class="kpi-box"><div class="kpi-label">On hold</div><div class="kpi">🔒 ${fmtPts(sum.onHold)}</div></div>
@@ -1046,8 +1151,8 @@
     const arena = STORE.arenaPoints(p);
     if (arena > listed) out.push({ ts: 0, kind: "earn", amount: arena - listed, icon: "🎮", title: "Earlier Quest Arena wins", sub: "Round bonuses from before this list started" });
     STORE.redemptions(p).forEach(r => out.push({
-      ts: r.ts, kind: r.status, amount: r.points, icon: "💵",
-      title: (r.label || "Cash") + " " + MYR(r.myr),
+      ts: r.ts, kind: r.status, amount: r.points, icon: SHOP_ICONS[r.item] || "🛍️",
+      title: redemptionText(r),
       sub: r.status === "pending" ? "🔒 On hold — waiting for a parent to approve"
         : r.status === "approved" ? "✓ Redeemed" + (r.decidedTs ? " on " + REPORT.shortDate(r.decidedTs) : "")
         : "↩ Not approved — points returned" + (r.decidedTs ? " on " + REPORT.shortDate(r.decidedTs) : "")
@@ -1798,8 +1903,9 @@
           ${actions}
         </div>`;
     } else if (kind === "multi") {
+      let blankNo = 0;    // blanks in the sentence are numbered to match the boxes (Blank 1, Blank 2)
       body = `${passage}${visual}
-        <div class="qtext">${fmt(qText)}</div>
+        <div class="qtext">${fmt(qText).replace(/_{3,}/g, () => `<span class="blank">${++blankNo}</span>`)}</div>
         <div class="mf-row">${q.fields.map((f, i) => `<button class="mf-box${i === 0 ? " active" : ""}" data-f="${i}" type="button"><span class="mf-label">${esc(f.label)}</span><span class="mf-val" id="mfVal${i}"></span></button>`).join("")}</div>
         <p class="spell-instr">${esc(q.instr || "Tap a box, then type the number.")}</p>
         <div class="keyboard${multiNumeric ? " numeric" : ""}" id="kb">${keyboardHtml([].concat.apply([], fieldAcc), multiNumeric)}</div>
@@ -2543,13 +2649,14 @@
       </div>`;
     }).join("");
     const myrRate = STORE.myrPerPoint();
+    const pphRate = STORE.consolePointsPerHour();
     const reqs = [];
     profiles.forEach(p => STORE.redemptions(p).forEach(r => reqs.push({ p, r })));
     const pending = reqs.filter(x => x.r.status === "pending").sort((x, y) => x.r.ts - y.r.ts);
     const decided = reqs.filter(x => x.r.status !== "pending").sort((x, y) => (y.r.decidedTs || 0) - (x.r.decidedTs || 0));
     const reqCard = (x, actions) => `<div class="req-card${x.r.status !== "pending" ? " " + x.r.status : ""}">
-        <div class="req-main"><span><b>${esc(x.p.name)}</b> — ${esc(x.r.label || "Cash")} <b>${MYR(x.r.myr)}</b></span>
-          <small>${plural(x.r.points, "point")} · 1 point = ${MYR(x.r.rate)} · asked ${esc(REPORT.shortDate(x.r.ts))} (${esc(REPORT.timeAgo(x.r.ts))})${x.r.decidedTs ? " · " + (x.r.status === "approved" ? "approved" : "rejected") + " " + esc(REPORT.shortDate(x.r.decidedTs)) : ""}</small></div>
+        <div class="req-main"><span><b>${esc(x.p.name)}</b> — ${SHOP_ICONS[x.r.item] || "🛍️"} <b>${esc(redemptionText(x.r))}</b></span>
+          <small>${plural(x.r.points, "point")} · ${esc(redemptionRate(x.r))} · asked ${esc(REPORT.shortDate(x.r.ts))} (${esc(REPORT.timeAgo(x.r.ts))})${x.r.decidedTs ? " · " + (x.r.status === "approved" ? "approved" : "rejected") + " " + esc(REPORT.shortDate(x.r.decidedTs)) : ""}</small></div>
         ${actions ? `<div class="req-actions">
             <button class="btn ghost sm" data-reject="${esc(x.p.id)}|${esc(x.r.id)}" type="button">✕ Reject</button>
             <button class="btn primary sm" data-approve="${esc(x.p.id)}|${esc(x.r.id)}" type="button">✓ Approve</button>
@@ -2572,6 +2679,13 @@
           <div class="myr-wrap admin-myr"><span class="myr-prefix">MYR</span><input id="myrRate" type="number" inputmode="decimal" min="0" step="0.01" value="${myrRate.toFixed(2)}" aria-label="MYR per point"/><span class="myr-suffix">per point</span></div>
           <div class="muted small" id="myrEx" style="margin-top:8px"></div>
           <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn primary" id="saveMyr" type="button">💾 Save cash value</button></div>
+        </div>
+        <h3 class="section-h">🎮 Video game console — points per hour</h3>
+        <div class="card wide admin-card">
+          <p class="muted small" style="line-height:1.6;margin-bottom:12px">How many points one hour of video game console time costs in the Shop. Players ask for whole or half hours, and you approve each request below. Set it to 0 to switch console time off. Requests already waiting keep the value they were made at.</p>
+          <div class="myr-wrap admin-myr"><input id="pphRate" type="number" inputmode="numeric" min="0" step="1" value="${pphRate}" aria-label="Points per hour"/><span class="myr-suffix">points per hour</span></div>
+          <div class="muted small" id="pphEx" style="margin-top:8px"></div>
+          <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn primary" id="savePph" type="button">💾 Save console points</button></div>
         </div>
         <h3 class="section-h">Redemption requests ${pending.length ? `<span class="hold-count">${pending.length} waiting</span>` : ""}</h3>
         <div class="req-list">${pending.length ? pending.map(x => reqCard(x, true)).join("") : `<div class="muted">No requests waiting.</div>`}</div>
@@ -2611,13 +2725,27 @@
       toast(readMyr() ? "Saved — 1 point = " + MYR(readMyr()) + "." : "Saved — cash redemption is off.", "good");
       renderAdminPage();
     };
+    const pphIn = $("#pphRate");
+    const readPph = () => { const v = Number(pphIn.value); return isFinite(v) && v > 0 ? Math.min(10000, Math.round(v)) : 0; };
+    const pphEx = () => {
+      const v = readPph();
+      $("#pphEx").innerHTML = v ? `So <b>1 hour = ${plural(v, "point")}</b>, ½ hour = ${plural(consolePoints(0.5, v), "point")} and 2 hours = ${plural(2 * v, "point")}.` : "Console time is <b>off</b>.";
+    };
+    pphIn.oninput = pphEx;
+    pphEx();
+    $("#savePph").onclick = () => {
+      STORE.setConsolePointsPerHour(readPph());
+      toast(readPph() ? "Saved — 1 hour of console time = " + plural(readPph(), "point") + "." : "Saved — console time is off.", "good");
+      renderAdminPage();
+    };
     const findReq = (key) => { const [pid, rid] = key.split("|"); const pl = STORE.state.profiles[pid]; return { pl, r: pl && STORE.redemptions(pl).filter(r => r.id === rid)[0], pid, rid }; };
     $$("[data-approve]").forEach(btn => {
       btn.onclick = () => {
         const x = findReq(btn.dataset.approve); if (!x.r) return;
-        showConfirm(`Approve ${MYR(x.r.myr)} for ${x.pl.name}?`, `${plural(x.r.points, "point")} will be used up. Remember to give ${x.pl.name} the cash.`, "Approve", () => {
+        const remind = x.r.item === "console" ? `Remember to let ${x.pl.name} play for ${hoursText(x.r.hours || 0)}.` : `Remember to give ${x.pl.name} the cash.`;
+        showConfirm(`Approve ${redemptionText(x.r)} for ${x.pl.name}?`, `${plural(x.r.points, "point")} will be used up. ${remind}`, "Approve", () => {
           STORE.decideRedemption(x.pid, x.rid, "approved");
-          toast("Approved — " + MYR(x.r.myr) + " for " + x.pl.name + ".", "good");
+          toast("Approved — " + redemptionText(x.r) + " for " + x.pl.name + ".", "good");
           renderAdminPage();
         });
       };
@@ -2625,7 +2753,7 @@
     $$("[data-reject]").forEach(btn => {
       btn.onclick = () => {
         const x = findReq(btn.dataset.reject); if (!x.r) return;
-        showConfirm(`Reject ${MYR(x.r.myr)} for ${x.pl.name}?`, `The ${plural(x.r.points, "point")} go back to ${x.pl.name}'s balance.`, "Reject", () => {
+        showConfirm(`Reject ${redemptionText(x.r)} for ${x.pl.name}?`, `The ${plural(x.r.points, "point")} go back to ${x.pl.name}'s balance.`, "Reject", () => {
           STORE.decideRedemption(x.pid, x.rid, "rejected");
           toast("Rejected — the points went back to " + x.pl.name + ".", "");
           renderAdminPage();
