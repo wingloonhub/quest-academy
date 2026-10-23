@@ -185,7 +185,7 @@
         <div class="title">Quest<br/>Academy<small>ENGLISH · BAHASA · MATHS</small></div>
         <div class="subtitle">${up ? "Create your academy account" : "Sign in — your progress follows you to every phone and computer"}</div>
         <form id="authForm" autocomplete="on">
-          ${up ? `<div class="field"><label for="dn">Student name</label><input id="dn" type="text" placeholder="e.g. Preston" maxlength="24" autocomplete="nickname" required/></div>` : ""}
+          ${up ? `<div class="field"><label for="dn">Student name</label><input id="dn" type="text" placeholder="Type a name" maxlength="24" autocomplete="nickname" required/></div>` : ""}
           <div class="field"><label for="em">Email</label><input id="em" type="email" placeholder="name@example.com" autocomplete="email" required/></div>
           <div class="field"><label for="pw">Password</label>
             <div class="pw-wrap"><input id="pw" type="password" placeholder="At least 6 characters" minlength="6" autocomplete="${up ? "new-password" : "current-password"}" required/><button type="button" class="pw-eye" id="pwEye" aria-label="Show password">👁</button></div>
@@ -1150,6 +1150,10 @@
     });
     const arena = STORE.arenaPoints(p);
     if (arena > listed) out.push({ ts: 0, kind: "earn", amount: arena - listed, icon: "🎮", title: "Earlier Quest Arena wins", sub: "Round bonuses from before this list started" });
+    STORE.bonuses(p).forEach(b => out.push({
+      ts: b.ts, kind: "earn", amount: b.points, icon: "⭐",
+      title: "Bonus points from a parent", sub: "For: " + b.reason
+    }));
     STORE.redemptions(p).forEach(r => out.push({
       ts: r.ts, kind: r.status, amount: r.points, icon: SHOP_ICONS[r.item] || "🛍️",
       title: redemptionText(r),
@@ -2643,13 +2647,16 @@
       return `<div class="rep-card">
         <div class="t"><span>${esc(p.name)}</span>${ptsChip(sum.available, 17)}</div>
         <div class="sub">Available <b>${sum.available}</b> · on hold <b>${sum.onHold}</b> · used <b>${sum.used}</b> · earned <b>${sum.earned}</b></div>
-        <div class="sub">${DATA.SUBJECTS.map(s => esc(s.label) + " " + STORE.points(p, s.id)).join(" · ")}</div>
+        <div class="sub">${DATA.SUBJECTS.map(s => esc(s.label) + " " + STORE.points(p, s.id)).join(" · ")}${STORE.bonusPoints(p) ? " · ⭐ Bonus " + STORE.bonusPoints(p) : ""}</div>
         <div class="sub">${last ? "Last earned: +" + last.pts + " on " + esc(DATA.fullLabel(last.s, last.t, last.l)) + ", " + esc(REPORT.timeAgo(last.ts)) : "No assessment points yet."}</div>
         <div class="row" style="justify-content:flex-start;margin-top:8px"><button class="btn ghost sm" data-delplayer="${esc(p.id)}" type="button">🗑️ Delete player</button></div>
       </div>`;
     }).join("");
     const myrRate = STORE.myrPerPoint();
     const pphRate = STORE.consolePointsPerHour();
+    const bonusList = [];
+    profiles.forEach(p => STORE.bonuses(p).forEach(b => bonusList.push({ p, b })));
+    bonusList.sort((x, y) => y.b.ts - x.b.ts);
     const reqs = [];
     profiles.forEach(p => STORE.redemptions(p).forEach(r => reqs.push({ p, r })));
     const pending = reqs.filter(x => x.r.status === "pending").sort((x, y) => x.r.ts - y.r.ts);
@@ -2690,6 +2697,26 @@
         <h3 class="section-h">Redemption requests ${pending.length ? `<span class="hold-count">${pending.length} waiting</span>` : ""}</h3>
         <div class="req-list">${pending.length ? pending.map(x => reqCard(x, true)).join("") : `<div class="muted">No requests waiting.</div>`}</div>
         ${decided.length ? `<details class="past-reqs"><summary>Past requests (${decided.length})</summary><div class="req-list">${decided.slice(0, 30).map(x => reqCard(x, false)).join("")}</div></details>` : ""}
+        <h3 class="section-h">⭐ Give bonus points</h3>
+        <div class="card wide admin-card">
+          ${profiles.length ? `
+          <p class="muted small" style="line-height:1.6;margin-bottom:12px">Reward something done outside the app — like reading a book. The points go straight to the player's balance. A reason is required, and the player sees it in their points history.</p>
+          <div class="field"><label for="bonusWho">Player</label>
+            <select id="bonusWho">${profiles.map(p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join("")}</select></div>
+          <div class="field"><label for="bonusPts">Points</label>
+            <input id="bonusPts" type="number" inputmode="numeric" min="1" max="10000" step="1" placeholder="e.g. 20" autocomplete="off"/></div>
+          <div class="field"><label for="bonusWhy">Reason (required)</label>
+            <input id="bonusWhy" type="text" maxlength="120" placeholder="e.g. Read a book" autocomplete="off"/></div>
+          <div class="chips">${["Read a book", "Helped at home", "Finished homework", "Good behaviour"].map(r => `<button class="chip" data-why="${esc(r)}" type="button">${esc(r)}</button>`).join("")}</div>
+          <div class="err" id="bonusErr"></div>
+          <div class="row" style="justify-content:flex-end;margin-top:8px"><button class="btn primary" id="giveBonus" type="button" disabled>⭐ Give points</button></div>
+          ${bonusList.length ? `<details class="past-reqs"${bonusList.length ? " open" : ""}><summary>Bonus points given (${bonusList.length})</summary><div class="req-list">${bonusList.slice(0, 30).map(x => `<div class="req-card approved">
+              <div class="req-main"><span><b>${esc(x.p.name)}</b> — ⭐ <b>+${plural(x.b.points, "point")}</b></span>
+                <small>For: ${esc(x.b.reason)} · ${esc(REPORT.shortDate(x.b.ts))} (${esc(REPORT.timeAgo(x.b.ts))})</small></div>
+              <button class="btn ghost sm" data-unbonus="${esc(x.p.id)}|${esc(x.b.id)}" type="button">Remove</button>
+            </div>`).join("")}</div></details>` : ""}`
+          : `<div class="muted">Add a player first.</div>`}
+        </div>
         <h3 class="section-h">Players &amp; points</h3>
         <div class="rep-grid">${players || `<div class="muted">No players yet.</div>`}</div>
         <h3 class="section-h">Admin PIN</h3>
@@ -2738,6 +2765,45 @@
       toast(readPph() ? "Saved — 1 hour of console time = " + plural(readPph(), "point") + "." : "Saved — console time is off.", "good");
       renderAdminPage();
     };
+    // ⭐ Bonus points: whole number + a reason, then confirm.
+    if ($("#giveBonus")) {
+      const ptsIn = $("#bonusPts"), whyIn = $("#bonusWhy"), give = $("#giveBonus");
+      const readBonus = () => {
+        const raw = ptsIn.value.trim(), n = Number(raw), why = whyIn.value.replace(/\s+/g, " ").trim();
+        let msg = "";
+        if (raw && (!isFinite(n) || n < 1 || Math.round(n) !== n)) msg = "Points must be a whole number, 1 or more.";
+        else if (n > 10000) msg = "That's a lot — up to 10,000 points at a time.";
+        else if (raw && !why) msg = "Type a reason, e.g. “Read a book”.";
+        $("#bonusErr").textContent = msg;
+        const ok = !msg && raw && why;
+        give.disabled = !ok;
+        return ok ? { n: n, why: why } : null;
+      };
+      ptsIn.oninput = readBonus;
+      whyIn.oninput = readBonus;
+      $$("[data-why]").forEach(c => { c.onclick = () => { whyIn.value = c.dataset.why; readBonus(); }; });
+      give.onclick = () => {
+        const w = readBonus(); if (!w) return;
+        const pl = STORE.state.profiles[$("#bonusWho").value]; if (!pl) return;
+        showConfirm(`Give ${plural(w.n, "point")} to ${pl.name}?`, `Reason: “${w.why}”. The points go straight to ${pl.name}'s balance.`, "Give points", () => {
+          if (!STORE.addBonus(pl.id, w.n, w.why)) { toast("Couldn't add those points — check the number and the reason.", "bad"); return; }
+          toast(`+${plural(w.n, "point")} for ${pl.name} — ${w.why}`, "good");
+          renderAdminPage();
+        });
+      };
+    }
+    $$("[data-unbonus]").forEach(btn => {
+      btn.onclick = () => {
+        const [pid, bid] = btn.dataset.unbonus.split("|");
+        const pl = STORE.state.profiles[pid], b = pl && STORE.bonuses(pl).filter(x => x.id === bid)[0];
+        if (!b) return;
+        showConfirm(`Remove ${plural(b.points, "point")} from ${pl.name}?`, `“${b.reason}”, given ${REPORT.shortDate(b.ts)}. The points come off ${pl.name}'s balance.`, "Remove", () => {
+          STORE.removeBonus(pid, bid);
+          toast("Removed — " + plural(b.points, "point") + " taken back from " + pl.name + ".", "");
+          renderAdminPage();
+        });
+      };
+    });
     const findReq = (key) => { const [pid, rid] = key.split("|"); const pl = STORE.state.profiles[pid]; return { pl, r: pl && STORE.redemptions(pl).filter(r => r.id === rid)[0], pid, rid }; };
     $$("[data-approve]").forEach(btn => {
       btn.onclick = () => {
@@ -2851,7 +2917,7 @@
         <h2>${esc(title)}</h2>
         <div class="field" style="margin-top:14px;text-align:left">
           <label for="pmInput">Player name</label>
-          <input id="pmInput" type="text" value="${esc(initialName || "")}" maxlength="24" placeholder="e.g. Preston"/>
+          <input id="pmInput" type="text" value="${esc(initialName || "")}" maxlength="24" placeholder="Type a name"/>
         </div>
         <div class="muted small" style="text-align:left;margin:6px 2px 8px">Choose a character:</div>
         <div class="char-picker">

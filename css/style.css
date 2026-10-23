@@ -109,6 +109,9 @@ button:focus-visible,.profile-card:focus-visible{outline:2px solid var(--gold);o
   background:rgba(0,0,0,.32);border:1px solid var(--border);color:var(--ink);outline:none;
 }
 .field input:focus,.modal input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(242,193,78,.18)}
+.field select{width:100%;padding:13px 14px;border-radius:11px;font-size:16px;font-family:inherit;background:rgba(0,0,0,.32);border:1px solid var(--border);color:var(--ink);outline:none}
+.field select:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(242,193,78,.18)}
+.field select option{background:#151a33;color:var(--ink)}
 .pw-wrap{position:relative}
 .pw-wrap input{padding-right:48px}
 .pw-eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:18px;padding:6px 8px;border-radius:8px;opacity:.8}

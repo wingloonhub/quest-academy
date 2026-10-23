@@ -140,7 +140,8 @@ the console points per hour is 0), that item is switched off and the Shop says
 
 **📜 Points history** (tap the points panel on the menu, or the button in the
 Shop) lists every change, newest first: points earned on each assessment
-(old best → new best), Quest Arena wins, and each redemption — on hold,
+(old best → new best), Quest Arena wins, ⭐ bonus points from a parent (with
+the reason), and each redemption — on hold,
 redeemed (−points) or not approved (returned).
 
 Requests sync like everything else: if a request is approved on one device
@@ -157,6 +158,11 @@ unlocks it on every device. On the admin page you can:
 - set the **💵 cash value of 1 point** in MYR with 2 decimals (e.g. 0.10 →
   1 point = MYR 0.10, so 100 points = MYR 10.00; 0.00 switches cash off).
   Requests already waiting keep the value they were made at,
+- **⭐ give bonus points** for things done outside the app — pick the player,
+  type the points and a **reason** (required, e.g. "Read a book"; quick
+  buttons for common ones), then confirm. The points go straight to his
+  balance and show in his points history with the reason. Given one by
+  mistake? Tap **Remove** on it in the list,
 - set the **🎮 points per hour** of video game console time (e.g. 50 → 1 hour
   = 50 points, 2 hours = 100; 0 switches console time off),
 - **approve or reject redemption requests** (the menu's Admin link shows how

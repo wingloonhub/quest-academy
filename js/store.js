@@ -22,7 +22,11 @@
    - SHOP: spending points is a request ("redemptions") that a parent approves
      or rejects on the admin page. While pending, its points are ON HOLD
      (can't be used). Approved → the points are used up; rejected → they go
-     back. Available = earned − on hold − used. */
+     back. Available = earned − on hold − used.
+   - BONUS POINTS: a parent can give points on the admin page for something
+     done outside the app (e.g. "Read a book"). Each one needs a reason and
+     lives in "bonuses"; removing one marks it removed (so the removal syncs
+     too). Bonus points count towards the total, not towards a subject. */
 (function () {
   "use strict";
   const LS_PREFIX = "qa_save_";
@@ -70,7 +74,8 @@
       games: [],               // Quest Arena runs, newest first
       badges: {},              // { badgeId: ts first earned }
       arenaWins: {},           // { "gameId#round": { deviceId: wins } } — Quest Arena points
-      redemptions: []          // shop requests { id, ts, item, myr, points, rate, status, decidedTs }
+      redemptions: [],         // shop requests { id, ts, item, myr, points, rate, status, decidedTs }
+      bonuses: []              // points a parent gave { id, ts, points, reason, removedTs }
     };
   }
 
@@ -246,6 +251,21 @@
     return list;
   }
 
+  // Bonus points: one per id; once removed on any device it stays removed.
+  function cleanReason(v) { return String(v == null ? "" : v).replace(/\s+/g, " ").trim().slice(0, 120); }
+  function tidyBonuses(list) {
+    const byId = {};
+    (list || []).forEach(function (b) {
+      if (!isObj(b) || !b.id || !(b.points > 0) || !cleanReason(b.reason)) return;
+      const old = byId[b.id];
+      const c = Object.assign({}, old || b);
+      c.removedTs = Math.max((old && old.removedTs) || 0, b.removedTs || 0) || null;
+      byId[b.id] = c;
+    });
+    return Object.keys(byId).map(function (k) { return byId[k]; })
+      .sort(function (a, b) { return (b.ts || 0) - (a.ts || 0); });
+  }
+
   function normaliseProfile(raw, pid) {
     const p = Object.assign({}, isObj(raw) ? raw : {});
     p.id = p.id || pid;
@@ -261,6 +281,7 @@
     p.badges = isObj(p.badges) ? p.badges : {};
     p.arenaWins = isObj(p.arenaWins) ? p.arenaWins : {};
     p.redemptions = tidyRedemptions(Array.isArray(p.redemptions) ? p.redemptions : []);
+    p.bonuses = tidyBonuses(Array.isArray(p.bonuses) ? p.bonuses : []);
     return p;
   }
 
@@ -304,6 +325,7 @@
       p.badges = minMap(pa.badges, pb.badges);
       p.arenaWins = mergeCounters(pa.arenaWins, pb.arenaWins);
       p.redemptions = tidyRedemptions(pb.redemptions.concat(pa.redemptions));
+      p.bonuses = tidyBonuses(pb.bonuses.concat(pa.bonuses));
       out.profiles[id] = p;
     });
 
@@ -446,10 +468,42 @@
       const p = profile || STORE.active();
       return scoreBests((p && p.bests) || []).filter(function (e) { return !subjectId || e.s === subjectId; });
     },
-    // All points: assessment points + Quest Arena points.
+    // All points: assessment points + Quest Arena points (+ a parent's bonus
+    // points, which belong to no subject, when asking for the overall total).
     points(profile, subjectId) {
       return STORE.pointsLog(profile, subjectId).reduce(function (a, e) { return a + e.pts; }, 0) +
-             STORE.arenaPoints(profile, subjectId);
+             STORE.arenaPoints(profile, subjectId) +
+             (subjectId ? 0 : STORE.bonusPoints(profile));
+    },
+
+    /* ---------------- bonus points from a parent (admin page) ---------------- */
+    // Newest first; removed ones are left out unless asked for.
+    bonuses(profile, includeRemoved) {
+      const p = profile || STORE.active();
+      return ((p && p.bonuses) || []).filter(function (b) { return includeRemoved || !b.removedTs; });
+    },
+    bonusPoints(profile) {
+      return STORE.bonuses(profile).reduce(function (a, b) { return a + b.points; }, 0);
+    },
+    // Give a player points with a reason. Returns the entry, or null if the
+    // points (a whole number 1–10,000) or the reason is missing.
+    addBonus(profileId, points, reason) {
+      const p = STORE.state.profiles[profileId];
+      const n = Number(points), why = cleanReason(reason);
+      if (!p || !isFinite(n) || n < 1 || n > 10000 || Math.round(n) !== n || !why) return null;
+      const b = { id: "b_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), ts: Date.now(), points: n, reason: why, removedTs: null };
+      p.bonuses = tidyBonuses([b].concat(p.bonuses || []));
+      STORE.save({ immediate: true });
+      return b;
+    },
+    // Take back a bonus given by mistake.
+    removeBonus(profileId, id) {
+      const p = STORE.state.profiles[profileId];
+      const b = p && (p.bonuses || []).filter(function (x) { return x.id === id; })[0];
+      if (!b || b.removedTs) return false;
+      b.removedTs = Date.now();
+      STORE.save({ immediate: true });
+      return true;
     },
 
     /* ---------------- Quest Arena points ---------------- */
