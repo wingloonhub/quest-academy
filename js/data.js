@@ -74,10 +74,20 @@
                   catLabels: { START: "First word of a sentence", NAME: "People's names & the word I", PLACE: "Places & landmarks",
                                TIME: "Days & months", SPECIAL: "Languages & festivals" } }
               ] },
-            { id: "punctuation_marks", label: "Punctuation", icon: "❓", desc: "Full stops, question marks and exclamation marks", levels: [
-                { id: "level1", label: "Level 1", desc: "Mixed full stops, questions & exclamation marks", sessionSize: 15, hideCat: true,
+            { id: "punctuation_marks", label: "Punctuation", icon: "❓", desc: "Full stops, commas, apostrophes, speech marks and more", levels: [
+                { id: "mixed_single", label: "Level 1", desc: "Mixed full stops, questions & exclamation marks", sessionSize: 15, hideCat: true,
                   catLabels: { STATEMENT: "Full stops (statements)", QUESTION: "Question marks", EXCLAIM: "Exclamation marks",
-                               SPEECH: "Marks inside speech", PAIR: "Two sentences" } }
+                               SPEECH: "Marks inside speech" } },
+                { id: "commas", label: "Level 2", desc: "Commas — lists, opening words and clauses", sessionSize: 15, hideCat: true,
+                  catLabels: { LISTS: "Commas in lists", INTRO_WORDS: "Commas after opening words", INTRO_CLAUSES: "Commas after opening clauses", MIXED: "Mixed comma use" } },
+                { id: "apostrophes", label: "Level 3", desc: "Apostrophes — contractions and belonging", sessionSize: 15, hideCat: true,
+                  catLabels: { CONTRACTIONS: "Contractions", SINGULAR: "Belonging — one owner", PLURAL: "Belonging — more than one owner", MIXED: "Mixed apostrophe use" } },
+                { id: "quotation_marks", label: "Level 4", desc: "Quotation marks — direct speech and dialogue", sessionSize: 15, hideCat: true,
+                  catLabels: { DIRECT: "Spotting direct speech", BASIC: "Basic quotation marks", DIALOGUE: "Dialogue punctuation", MIXED: "Mixed dialogue" } },
+                { id: "colons_semicolons", label: "Level 5", desc: "Colons & semicolons", sessionSize: 15, hideCat: true,
+                  catLabels: { COLON_LISTS: "Colons before lists", COLON_EXPLAIN: "Colons before explanations", SEMICOLONS: "Semicolons joining sentences", MIXED: "Colons or semicolons" } },
+                { id: "hyphens_dashes", label: "Level 6", desc: "Hyphens, dashes & parentheses", sessionSize: 15, hideCat: true,
+                  catLabels: { HYPHENS: "Hyphens joining describing words", BRACKETS: "Brackets for extra information", DASHES: "Dashes for interruptions", MIXED: "Hyphens, dashes & brackets" } }
               ] }
           ] },
         { id: "reading",      label: "Reading comprehension",        icon: "📖", desc: "Read a passage, then answer questions about it",        topics: [] },
@@ -217,7 +227,8 @@
   /* Levels that were removed. Results already done stay in History & Analysis
      and the Parent Report under this name ("subject|module|<topic>.<level>"). */
   const RETIRED = {
-    "english|grammar|conjunctions.level1": "Conjunctions · Old Level 1 (removed)"
+    "english|grammar|conjunctions.level1": "Conjunctions · Old Level 1 (removed)",
+    "english|punctuation|punctuation_marks.level1": "Punctuation · Old Level 1 (removed)"
   };
 
   const byId = (list, id) => (list || []).filter(x => x.id === id)[0] || null;
