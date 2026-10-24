@@ -269,6 +269,7 @@
     const hist = STORE.history();
     const stars = totalStars(hist);
     const sum = STORE.pointsSummary();
+    const myrRate = STORE.myrPerPoint();      // cash value of 1 point (0 = cash off → no "Worth" line)
     const badgeCount = Object.keys(STORE.badges()).length;
     const pendingAll = STORE.profilesList().reduce((n, pl) => n + STORE.redemptions(pl).filter(r => r.status === "pending").length, 0);
     const email = (STORE.state.account || {}).email || "";
@@ -291,6 +292,7 @@
           <span class="ph-main">
             <span class="ph-label">My points</span>
             <span class="ph-num">${sum.available.toLocaleString("en-GB")}</span>
+            ${myrRate ? `<span class="ph-value">💵 Worth <b>${MYR(sum.available * myrRate)}</b></span>` : ""}
             <span class="ph-sub">${sum.onHold ? `<span class="ph-hold">🔒 ${sum.onHold.toLocaleString("en-GB")} on hold</span> · ` : ""}${sum.used ? sum.used.toLocaleString("en-GB") + " used · " : ""}${sum.earned.toLocaleString("en-GB")} earned · <u>see history</u></span>
           </span>
           <span class="ph-extra">

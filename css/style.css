@@ -676,7 +676,9 @@ button:focus-visible,.profile-card:focus-visible{outline:2px solid var(--gold);o
 /* ---------- Shop, redemptions, points history ---------- */
 button.points-hero{width:100%;text-align:left;color:var(--ink);font:inherit;cursor:pointer;transition:transform .15s,box-shadow .2s}
 button.points-hero:hover{transform:translateY(-2px);box-shadow:0 14px 34px rgba(0,0,0,.5),0 0 30px rgba(242,193,78,.28)}
-.points-hero span.ph-main,.points-hero span.ph-label,.points-hero span.ph-num,.points-hero span.ph-sub{display:block}
+.points-hero span.ph-main,.points-hero span.ph-label,.points-hero span.ph-num,.points-hero span.ph-sub,.points-hero span.ph-value{display:block}
+.ph-value{font-size:15.5px;font-weight:800;color:#8ff0a9;margin:2px 0 1px}
+.ph-value b{color:#c9f7d4}
 .points-hero span.ph-extra{display:flex}
 .ph-hold{display:inline;color:#ffd27a;font-weight:800}
 .ph-sub u{text-decoration-color:var(--gold);color:var(--gold-bright)}

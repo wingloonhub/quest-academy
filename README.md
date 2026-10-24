@@ -34,7 +34,7 @@ There is a progress report at every step, so you can see where he's weak:
 | Cloud database — same results on every device, works offline and catches up | ✅ built |
 | Players (several kids under one account) | ✅ built |
 | Main menu → English · Bahasa · Maths | ✅ built |
-| Dashboard: big **My points** panel (points available, on hold and used — tap it for the points history), Trophy Room and 🛍️ Shop cards | ✅ built |
+| Dashboard: big **My points** panel (points available, what they’re worth in MYR at the admin’s cash value, on hold and used — tap it for the points history), Trophy Room and 🛍️ Shop cards | ✅ built |
 | 🛍️ Shop → **Redeem cash** (parent approves on the admin page) · 📜 Points history | ✅ built — more shop items to come |
 | Study Mode inside each subject: **By Module**, **By School Year** (Year 1–6) or **Quest Arena** (games) | ✅ built |
 | Quest Arena → Maths → Beat the Clock, with 2 badges · 🏆 Trophy Room | ✅ built |
