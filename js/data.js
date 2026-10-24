@@ -102,7 +102,10 @@
                 { id: "level1", label: "Level 1", desc: "2- and 3-digit addition",
                   catLabels: { ADD2: "2-digit addition", ADD3: "3-digit addition" } }
               ] },
-            { id: "subtraction", label: "Subtraction", icon: "−", desc: "Taking away and finding the difference", levels: [] },
+            { id: "subtraction", label: "Subtraction", icon: "−", desc: "Taking away and finding the difference", levels: [
+                { id: "level1", label: "Level 1", desc: "2- and 3-digit subtraction", sessionSize: 15,
+                  catLabels: { SUB2: "2-digit, no borrowing", SUB2B: "2-digit, with borrowing", SUB3: "3-digit, no borrowing", SUB3B: "3-digit, with borrowing" } }
+              ] },
             { id: "multiplication", label: "Multiplication", icon: "×", desc: "Times tables and multiplying bigger numbers", levels: [
                 { id: "level1", label: "Level 1", desc: "1 digit × 1 digit", sessionSize: 20,
                   catLabels: { T2: "2 times table", T3: "3 times table", T4: "4 times table", T5: "5 times table",

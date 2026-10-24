@@ -1375,12 +1375,15 @@
   const weakList = (areas, n) => areas.slice(0, n).map(a => esc(a.label) + " (" + a.pct + "%)").join(", ");
 
   // A tappable "📊 … report" card on the module and topic pages — the details open on their own page.
+  // Kept apart from the topics/levels (own section, dashed outline, plain button)
+  // so it's clear it's a report, not another assessment.
   function reportCard(id, title, text) {
-    return `<div class="section-cards" style="margin-top:18px">
+    return `<div class="report-zone">
+        <h3 class="section-h">📊 ${esc(title)}</h3>
         <button class="sec-card report-card" id="${id}" type="button">
           <span class="sec-icon">📊</span>
-          <span class="sec-body"><span class="sec-title">${esc(title)}</span><span class="sec-text">${esc(text)}</span></span>
-          <span class="btn primary">View report →</span>
+          <span class="sec-body"><span class="sec-text">${esc(text)}</span></span>
+          <span class="btn ghost">View report →</span>
         </button>
       </div>`;
   }
@@ -1413,7 +1416,7 @@
         </div>
         ${rep.inOrder.length
           ? `<h3 class="section-h">Topics</h3><div class="topic-grid">${cards}</div>
-             ${reportCard("fullRep", "Module report", "Which topics are weakest — each topic's scores, levels mastered and weak areas, plus recent mistakes.")}`
+             ${reportCard("fullRep", "Module report", "Not a test — a report showing which topics are weakest, each topic's scores and weak areas, and recent mistakes.")}`
           : soonCard("Topics are on the way",
               `The <b>${esc(m.label)}</b> topics will appear here once the worksheets are added. Each topic has levels, and every level will have:` +
               `<span class="soon-parts"><span>📝 <b>Assessment</b></span><span>📊 <b>Progress report</b></span></span>`)}
@@ -1444,7 +1447,7 @@
         </div>
         ${ts.total
           ? `<h3 class="section-h">Levels</h3><div class="level-list">${ts.levels.map(ls => levelCard(subjectId, moduleId, ls.levelId)).join("")}</div>
-             ${reportCard("fullTopicRep", "Topic report", "Which question types and levels are weakest — scores for each level, every weak area and recent mistakes.")}`
+             ${reportCard("fullTopicRep", "Topic report", "Not a test — a report showing which question types and levels are weakest, scores for each level and recent mistakes.")}`
           : soonCard("Levels are on the way",
               `The <b>${esc(t.label)}</b> levels will appear here once they're added. Every level will have:` +
               `<span class="soon-parts"><span>📝 <b>Assessment</b></span><span>📊 <b>Progress report</b></span></span>`)}
@@ -2127,14 +2130,23 @@
     const nStars = starsFor(pct);
     const newBest = !!(saved && saved.newBest && saved.prevBest > 0);
     const earned = (saved && saved.points) || 0;
+    const myrRate = STORE.myrPerPoint();
+    const balance = STORE.pointsSummary().available;
+    // Why these points (or none) — shown under the Score / Points earned boxes.
     let pointsBox;
     if (earned > 0) {
-      pointsBox = `<div class="points-won">${ART.coin(30)}<div><b>+${plural(earned, "point")}!</b><span>${saved.prevBest ? "New best: " + pct + "% (was " + saved.prevBest + "%)" : "Your first score on this level"}</span></div></div>`;
+      pointsBox = `<div class="points-why">${saved.prevBest ? `New best: ${pct}% (was ${saved.prevBest}%) — every 1% above your old best earns points.` : "Your first score on this level — every 1% earns points."}
+        You now have <b>${ART.coin(14)} ${plural(balance, "point")}</b>.</div>`;
     } else if (saved && saved.newBest) {
       pointsBox = `<div class="points-none">New best! Points are switched off for ${esc(DATA.subject(st.subjectId).label)} right now.</div>`;
     } else {
-      pointsBox = `<div class="points-none">${ART.coin(18)} No new points this time — your best is still <b>${saved ? saved.prevBest : 0}%</b>. Beat it to earn more!</div>`;
+      pointsBox = `<div class="points-none">No new points this time — your best is still <b>${saved ? saved.prevBest : 0}%</b>. Beat it to earn more!</div>`;
     }
+    const pointsTile = `<div class="rs-box rs-points${earned ? "" : " zero"}">
+        <div class="rs-label">Points earned</div>
+        <div class="rs-num">${ART.coin(34)}<span>${earned ? "+" + earned.toLocaleString("en-GB") : "0"}</span></div>
+        <div class="rs-sub">${earned ? (myrRate ? "💵 worth " + MYR(earned * myrRate) : plural(earned, "point")) : "no new points"}</div>
+      </div>`;
     const nextMp = maxPoints(st.subjectId, st.topicId, st.levelId);
     pointsBox += nextMp.rate <= 0 ? ""
       : nextMp.max > 0 ? `<div class="max-next">Next try: up to <b>${ART.coin(14)} ${nextMp.max} points</b> — beat ${nextMp.best}% to earn them.</div>`
@@ -2171,9 +2183,16 @@
         <div class="card wide center results-card">
           <div class="results-owl">${ART.owl()}</div>
           <h2 class="card-h">${head}</h2>
-          <div class="score">${pct}%</div>
+          <div class="result-stats">
+            <div class="rs-box">
+              <div class="rs-label">Score</div>
+              <div class="score">${pct}%</div>
+              <div class="rs-sub">${correct} / ${total} correct</div>
+            </div>
+            ${pointsTile}
+          </div>
           <div class="results-stars">${ART.stars(nStars, 34)}</div>
-          <div class="muted" style="font-weight:700">${correct} / ${total} correct${newBest ? ` · <span class="new-best">🎉 New best!</span>` : ""}</div>
+          ${newBest ? `<div class="new-best" style="font-weight:800">🎉 New best!</div>` : ""}
           <div style="margin-top:10px">${masteryBadge(after.mastery, true)}${masteryUp && !justMastered ? ` <span class="new-best small">▲ moved up!</span>` : ""}</div>
           ${pointsBox}
           <div class="summary-box" style="margin-top:14px;text-align:left">${advice}</div>
