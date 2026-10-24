@@ -122,7 +122,10 @@
   function maxPoints(subjectId, topicId, levelId) {
     const best = STORE.bestScore(subjectId, topicId, levelId);
     const rate = STORE.rate(subjectId);
-    return { best: best, rate: rate, max: Math.round((100 - best) * rate), full: Math.round(100 * rate) };
+    // Once the best is 100%, a replay at 90%+ still pays a fixed bonus (DATA.REPLAY_BONUS).
+    const rb = DATA.REPLAY_BONUS;
+    return { best: best, rate: rate, max: Math.round((100 - best) * rate), full: Math.round(100 * rate),
+             replay: best >= 100 && rate > 0 ? rb.points : 0, replayMin: rb.minPct };
   }
 
   function sessionSizeFor(level, bank) {
@@ -358,7 +361,7 @@
         <p>📊 <b>Progress report</b> — every score, how many attempts, the weak areas, the last practice date and the mastery status.</p>
         <p>🏆 <b>Mastery</b> — ${esc(REPORT.MASTERY_RULE)} Along the way a level shows <i>Needs practice</i>, <i>Developing</i> or <i>Almost mastered</i>.</p>
         <p>⭐ <b>Stars</b> — 50% = 1 star, 70% = 2 stars, 90% = 3 stars. Your best score on each level counts.</p>
-        <p>${ART.coin(16)} <b>Points</b> — earned by <b>beating your own best score</b> on a level. Every 1% above your old best earns points (a parent sets how many for each subject). Repeating a level without beating your best earns nothing — so aim higher each time!</p>
+        <p>${ART.coin(16)} <b>Points</b> — earned by <b>beating your own best score</b> on a level. Every 1% above your old best earns points (a parent sets how many for each subject). Repeating a level without beating your best earns nothing — so aim higher each time! Once you've scored <b>100%</b> on a level, every replay that scores <b>90% or more</b> earns a <b>+5 replay bonus</b>.</p>
         <p>🎮 <b>Quest Arena</b> — games that use what you've learned. In Maths, <b>Beat the Clock</b> gives you 3 lives and 15 times-table questions with 10 seconds each — survive to become a 🥷 <b>Times Table Ninja</b>. Then 15 more with just 5 seconds each to become a 🧙 <b>Multiplication Wizard</b>! Every badge you win lives in the 🏆 <b>Trophy Room</b>. Winning a round also pays points: <b>+50</b> the first time you win Round 1, <b>+60</b> the first time you win Round 2, then <b>+5</b> every time you win a round again.</p>
         <p>🛍️ <b>Shop</b> — spend the points you've earned. <b>Redeem cash</b>: type an amount in MYR and submit; a parent approves it on the admin page. Until then those points are <b>on hold</b> — if it isn't approved, they come back. <b>Video game console</b>: type how many hours you'd like — each hour costs the points a parent sets — and a parent approves it the same way. You can only ask for what your points cover. Tap your points on the menu to see your <b>points history</b>.</p>
         <p>📊 <b>Parent Report</b> — mastery for every module, topic and level across all three subjects, the levels that need help, badges, and recent mistakes.</p>
@@ -1152,6 +1155,10 @@
     });
     const arena = STORE.arenaPoints(p);
     if (arena > listed) out.push({ ts: 0, kind: "earn", amount: arena - listed, icon: "🎮", title: "Earlier Quest Arena wins", sub: "Round bonuses from before this list started" });
+    STORE.replayLog(p).filter(e => e.pts > 0).forEach(e => out.push({
+      ts: e.ts, kind: "earn", amount: e.pts, icon: "🔁", subj: e.s,
+      title: DATA.fullLabel(e.s, e.t, e.l), sub: "Replay bonus — scored " + e.pct + "% (best already 100%)"
+    }));
     STORE.bonuses(p).forEach(b => out.push({
       ts: b.ts, kind: "earn", amount: b.points, icon: "⭐",
       title: "Bonus points from a parent", sub: "For: " + b.reason
@@ -1344,6 +1351,7 @@
     if (mp.rate <= 0) return "";
     return mp.max > 0
       ? ` · <span class="max-chip">${ART.coin(13)} up to <b>${mp.max}</b> points</span>`
+      : mp.replay ? ` · <span class="max-chip">${ART.coin(13)} replay: <b>+${mp.replay}</b> for ${mp.replayMin}%+</span>`
       : ` · <span class="max-chip done">${ART.coin(13)} all points earned</span>`;
   }
 
@@ -1607,7 +1615,7 @@
     const mp = maxPoints(subjectId, topicId, levelId);
     const pointsLine = !bank ? ""
       : mp.rate <= 0 ? `<div class="max-box off">${ART.coin(24)}<div><div class="max-num">No points right now</div><div class="max-sub">Points are switched off for ${esc(DATA.subject(subjectId).label)} at the moment.</div></div></div>`
-      : mp.max <= 0 ? `<div class="max-box done">${ART.coin(24)}<div><div class="max-num">All ${mp.full} points earned!</div><div class="max-sub">Your best is 100% — you can still practise to stay sharp.</div></div></div>`
+      : mp.max <= 0 ? `<div class="max-box done">${ART.coin(24)}<div><div class="max-num">All ${mp.full} points earned!</div><div class="max-sub">Your best is 100%. Every replay that scores ${mp.replayMin}% or more still earns <b>+${mp.replay} points</b>.</div></div></div>`
       : `<div class="max-box">${ART.coin(28)}<div>
           <div class="max-num">Max points: <b>${mp.max}</b></div>
           <div class="max-sub">${mp.best > 0
@@ -1841,7 +1849,19 @@
   function isNumericAnswers(list) {
     return list.length > 0 && list.every(a => /\d/.test(a) && /^[\d.,\/\s-]+$/.test(a.trim()));
   }
-  function keyboardHtml(accepts, numeric) {
+  // Punctuation options: "!" → big ! + "exclamation mark"; "x / y" → "① x … ② y …" (two sentences).
+  const MARK_NAMES = { ".": "full stop", "?": "question mark", "!": "exclamation mark", ",": "comma" };
+  function markHtml(o) {
+    const parts = String(o).split(" / ");
+    return parts.map((m, i) => `<span class="mark-opt">${parts.length > 1 ? "①②"[i] + " " : ""}<b class="opt-mark">${esc(m)}</b><small>${esc(MARK_NAMES[m] || "")}</small></span>`).join("");
+  }
+  function markWords(o) {
+    const parts = String(o).split(" / ");
+    return parts.map((m, i) => (parts.length > 1 ? "①②"[i] + " " : "") + m + " " + (MARK_NAMES[m] || "")).join("  ");
+  }
+
+  // shift: add a ⇧ key (questions where the capital letter itself is being tested)
+  function keyboardHtml(accepts, numeric, shift) {
     const has = (ch) => accepts.some(a => a.indexOf(ch) > -1);
     const key = (k, label, cls) => `<button type="button" class="kb-key${cls ? " " + cls : ""}" data-key="${esc(k)}">${label || esc(k)}</button>`;
     const back = key("back", "⌫", "kb-back");
@@ -1850,7 +1870,7 @@
       return ["123", "456", "789"].map(r => `<div class="kb-row">${r.split("").map(c => key(c)).join("")}</div>`).join("")
         + `<div class="kb-row">${extras}${key("0")}${back}</div>`;
     }
-    const rows = LETTER_ROWS.map((row, i) => `<div class="kb-row">${row.split("").map(c => key(c)).join("")}${i === 2 ? back : ""}</div>`);
+    const rows = LETTER_ROWS.map((row, i) => `<div class="kb-row">${i === 2 && shift ? key("shift", "⇧", "kb-shift") : ""}${row.split("").map(c => key(c)).join("")}${i === 2 ? back : ""}</div>`);
     const extras = [];
     if (has("'") || has("’")) extras.push(key("'", "'"));
     if (has("-")) extras.push(key("-", "-"));
@@ -1926,18 +1946,22 @@
           ? `<div class="qtext">${fmt(parts[0])}<span class="typed-blank" id="ansBox"></span>${fmt(parts.slice(1).join("___"))}</div>`
           : `<div class="qtext">${fmt(qText)}</div><div class="answer-box" id="ansBox"></div>`}
         <p class="spell-instr">${esc(q.instr || (numeric ? "Type your answer with the number pad." : inlineBlank ? "Type the missing word." : "Type your answer."))}</p>
-        <div class="keyboard${numeric ? " numeric" : ""}" id="kb">${keyboardHtml(accepts, numeric)}</div>
+        <div class="keyboard${numeric ? " numeric" : ""}" id="kb">${keyboardHtml(accepts, numeric, !!q.caseSensitive)}</div>
         ${actions}`;
     } else {
+      // q.marks: punctuation questions — an empty blank (a "?" would look like an answer)
+      // and each option shown as a big mark with its name.
+      const blankHtml = q.marks ? '<span class="blank mark-blank"></span>' : '<span class="blank">?</span>';
       body = `${passage}${visual}
-        <div class="qtext">${fmt(qText).replace(/___/g, '<span class="blank">?</span>')}</div>
-        <div class="opts">${q.options.map((o, i) => `<button class="opt" data-i="${i}" type="button"><span class="letter">${"ABCDEF"[i] || i + 1}</span><span class="opt-text">${esc(o)}</span></button>`).join("")}</div>`;
+        <div class="qtext">${fmt(qText).replace(/___/g, blankHtml)}</div>
+        <div class="opts">${q.options.map((o, i) => `<button class="opt" data-i="${i}" type="button"><span class="letter">${"ABCDEF"[i] || i + 1}</span><span class="opt-text">${q.marks ? markHtml(o) : esc(o)}</span></button>`).join("")}</div>`;
     }
 
     show(`
       <div class="topbar"><span class="back" id="bk">✕ Quit</span><h2>📝 ${esc(DATA.fullLabel(st.subjectId, st.topicId, st.levelId))}</h2></div>
       <div class="qwrap">
-        <div class="progress-label"><span>Question ${num} of ${total}</span><span>${st.maxPts && st.maxPts.rate > 0 && st.maxPts.max > 0 ? `<span class="max-chip">${ART.coin(13)} up to <b>${st.maxPts.max}</b> pts</span> · ` : ""}✓ ${correctSoFar} correct</span></div>
+        <div class="progress-label"><span>Question ${num} of ${total}</span><span>${st.maxPts && st.maxPts.rate > 0 && st.maxPts.max > 0 ? `<span class="max-chip">${ART.coin(13)} up to <b>${st.maxPts.max}</b> pts</span> · `
+          : st.maxPts && st.maxPts.replay ? `<span class="max-chip">${ART.coin(13)} replay: <b>+${st.maxPts.replay}</b> at ${st.maxPts.replayMin}%+</span> · ` : ""}✓ ${correctSoFar} correct</span></div>
         <div class="progress"><i style="width:${Math.round((st.idx / total) * 100)}%"></i></div>
         ${tag ? `<div class="qtag">${esc(tag)}</div>` : ""}
         ${body}
@@ -1992,7 +2016,9 @@
           const good = screen().querySelector('.opt[data-i="' + q.answer + '"]');
           if (good) good.classList.add("opt-ok");
         }
-        finish(ok, q.options[i], q.options[q.answer], `❌ The correct answer is <b>${esc(q.options[q.answer])}</b>`);
+        const right = q.options[q.answer];
+        finish(ok, q.marks ? markWords(q.options[i]) : q.options[i], q.marks ? markWords(right) : right,
+          `❌ The correct answer is ${q.marks ? markHtml(right) : `<b>${esc(right)}</b>`}`);
       };
       $$(".opt").forEach(b => { b.onclick = () => choose(parseInt(b.dataset.i, 10)); });
       keyHandler = (e) => {
@@ -2062,10 +2088,15 @@
     const maxLen = Math.max(12, Math.max.apply(null, accepts.map(a => a.length)) + 6);
     const before = inlineBlank ? qText.split("___")[0].trim() : "";
     const capFirst = inlineBlank && (!before || /[.!?:"“]$/.test(before));   // the blank starts a sentence
-    let typed = "";
+    // caseSensitive questions test the capital letter itself: there's a ⇧ key,
+    // nothing is capitalised for him, and the answer must match exactly.
+    const exactCase = kind === "typed" && !!q.caseSensitive;
+    let typed = "", shiftOn = false;
     function paint() {
       let shown = typed;
-      if (kind === "typed" && (capFirst || typed === "i")) shown = typed.charAt(0).toUpperCase() + typed.slice(1);
+      if (kind === "typed" && !exactCase && (capFirst || typed === "i")) shown = typed.charAt(0).toUpperCase() + typed.slice(1);
+      const sk = kb.querySelector('[data-key="shift"]');
+      if (sk) sk.classList.toggle("on", shiftOn);
       box.innerHTML = shown ? esc(shown) : `<span class="placeholder">${kind === "spell" ? "Tap letters…" : "?"}</span>`;
       box.classList.toggle("empty", !typed);
       clearBtn.disabled = busy || !typed;
@@ -2073,13 +2104,15 @@
     }
     function press(k) {
       if (busy) return;
-      if (k === "back") typed = typed.slice(0, -1);
-      else if (typed.length < maxLen) typed += k;
+      if (k === "shift") shiftOn = !shiftOn;
+      else if (k === "back") typed = typed.slice(0, -1);
+      else if (typed.length < maxLen) { typed += shiftOn ? k.toUpperCase() : k; shiftOn = false; }
       paint();
     }
+    const tidy = (s) => String(s).replace(/[’‘`]/g, "'").replace(/\s+/g, " ").trim();
     function submit() {
       if (busy || !typed.trim()) return;
-      const ok = sameAnswer(typed, accepts, numeric);
+      const ok = exactCase ? accepts.some(a => tidy(a) === tidy(typed)) : sameAnswer(typed, accepts, numeric);
       kb.querySelectorAll(".kb-key").forEach(b => { b.disabled = true; });
       clearBtn.disabled = true; submitBtn.disabled = true;
       box.classList.add(ok ? "ok" : "bad");
@@ -2087,6 +2120,7 @@
       let corr;
       if (kind === "spell") corr = `❌ The correct spelling is <b>${esc(right)}</b>`;
       else if (inlineBlank) corr = `❌ The correct answer is <b>${esc(right)}</b><div class="fixed">✔ ${fmt(qText).replace("___", () => "<u>" + esc(right) + "</u>")}</div>`;
+      else if (exactCase && sameAnswer(typed, accepts, false)) corr = `❌ Right word — but it needs a capital letter: <b>${esc(right)}</b>`;
       else corr = `❌ The correct answer is <b>${esc(right)}</b>`;
       finish(ok, typed.trim(), right, corr);
     }
@@ -2097,8 +2131,9 @@
       if (busy) return;
       if (e.key === "Enter") { submit(); return true; }
       if (e.key === "Backspace") { press("back"); return true; }
-      const k = String(e.key || "").length === 1 ? e.key.toLowerCase().replace("’", "'") : "";
-      if (k && (numeric ? /[0-9.\/-]/.test(k) : /[a-z' -]/.test(k))) { press(k); return true; }
+      const raw = String(e.key || "").length === 1 ? e.key.replace("’", "'") : "";
+      const k = exactCase ? raw : raw.toLowerCase();     // keep the capital the child typed
+      if (k && (numeric ? /[0-9.\/-]/.test(k) : /[a-zA-Z' -]/.test(k))) { press(k); return true; }
     };
     paint();
 
@@ -2133,8 +2168,15 @@
     const myrRate = STORE.myrPerPoint();
     const balance = STORE.pointsSummary().available;
     // Why these points (or none) — shown under the Score / Points earned boxes.
+    const replayBonus = (saved && saved.replayBonus) || 0;
+    const rb = DATA.REPLAY_BONUS;
     let pointsBox;
-    if (earned > 0) {
+    if (replayBonus > 0) {
+      pointsBox = `<div class="points-why">🔁 Replay bonus! You'd already scored 100% here, and every replay at ${rb.minPct}% or more earns +${rb.points} points.
+        You now have <b>${ART.coin(14)} ${plural(balance, "point")}</b>.</div>`;
+    } else if (saved && saved.prevBest >= 100 && saved.rate > 0) {
+      pointsBox = `<div class="points-none">No points this time — your best here is already 100%. Score <b>${rb.minPct}% or more</b> on a replay to earn <b>+${rb.points} points</b>.</div>`;
+    } else if (earned > 0) {
       pointsBox = `<div class="points-why">${saved.prevBest ? `New best: ${pct}% (was ${saved.prevBest}%) — every 1% above your old best earns points.` : "Your first score on this level — every 1% earns points."}
         You now have <b>${ART.coin(14)} ${plural(balance, "point")}</b>.</div>`;
     } else if (saved && saved.newBest) {
@@ -2145,12 +2187,12 @@
     const pointsTile = `<div class="rs-box rs-points${earned ? "" : " zero"}">
         <div class="rs-label">Points earned</div>
         <div class="rs-num">${ART.coin(34)}<span>${earned ? "+" + earned.toLocaleString("en-GB") : "0"}</span></div>
-        <div class="rs-sub">${earned ? (myrRate ? "💵 worth " + MYR(earned * myrRate) : plural(earned, "point")) : "no new points"}</div>
+        <div class="rs-sub">${earned ? (replayBonus ? "🔁 replay bonus" + (myrRate ? " · 💵 " + MYR(earned * myrRate) : "") : myrRate ? "💵 worth " + MYR(earned * myrRate) : plural(earned, "point")) : "no new points"}</div>
       </div>`;
     const nextMp = maxPoints(st.subjectId, st.topicId, st.levelId);
     pointsBox += nextMp.rate <= 0 ? ""
       : nextMp.max > 0 ? `<div class="max-next">Next try: up to <b>${ART.coin(14)} ${nextMp.max} points</b> — beat ${nextMp.best}% to earn them.</div>`
-      : `<div class="max-next">🎉 You've earned all ${nextMp.full} points on this level!</div>`;
+      : `<div class="max-next">🎉 You've earned all ${nextMp.full} points on this level — every replay at ${nextMp.replayMin}% or more earns <b>${ART.coin(14)} +${nextMp.replay} points</b>!</div>`;
     const justMastered = after.mastery.id === "mastered" && before.mastery.id !== "mastered";
     const masteryUp = after.mastery.rank > before.mastery.rank && before.attempts > 0;
     SOUND.play(pct >= 80 ? "win" : "finish");

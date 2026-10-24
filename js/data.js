@@ -68,7 +68,18 @@
         { id: "tenses_verbs", label: "Tenses & verbs",               icon: "⏳", desc: "Past, present and future — using verbs correctly",      topics: [] },
         { id: "vocabulary",   label: "Vocabulary",                   icon: "📚", desc: "Word meanings, synonyms and antonyms",                  topics: [] },
         { id: "spelling",     label: "Spelling",                     icon: "🐝", desc: "Spelling rules and tricky words",                       topics: [] },
-        { id: "punctuation",  label: "Punctuation & capitalisation", icon: "❗", desc: "Full stops, commas, question marks and capital letters", topics: [] },
+        { id: "punctuation",  label: "Punctuation & capitalisation", icon: "❗", desc: "Full stops, commas, question marks and capital letters", topics: [
+            { id: "capital_letters", label: "Capital letters", icon: "🔠", desc: "Which words need a capital letter — and why", levels: [
+                { id: "level1", label: "Level 1", desc: "Find the word that needs a capital", sessionSize: 10, hideCat: true,
+                  catLabels: { START: "First word of a sentence", NAME: "People's names & the word I", PLACE: "Places & landmarks",
+                               TIME: "Days & months", SPECIAL: "Languages & festivals" } }
+              ] },
+            { id: "punctuation_marks", label: "Punctuation", icon: "❓", desc: "Full stops, question marks and exclamation marks", levels: [
+                { id: "level1", label: "Level 1", desc: "Mixed full stops, questions & exclamation marks", sessionSize: 15, hideCat: true,
+                  catLabels: { STATEMENT: "Full stops (statements)", QUESTION: "Question marks", EXCLAIM: "Exclamation marks",
+                               SPEECH: "Marks inside speech", PAIR: "Two sentences" } }
+              ] }
+          ] },
         { id: "reading",      label: "Reading comprehension",        icon: "📖", desc: "Read a passage, then answer questions about it",        topics: [] },
         { id: "writing",      label: "Writing",                      icon: "✍️", desc: "Sentences, paragraphs and short pieces of writing",     topics: [] }
       ]
@@ -198,6 +209,11 @@
     "maths|multiplication|multiplying.level3": ["reasoning", "equal_groups.level1"]
   };
 
+  /* Replay bonus — for EVERY level, now and in future: once a player's best on a
+     level is 100%, each replay scoring minPct or more earns `points` (fixed, not
+     multiplied by the subject's points per 1%; none while the subject's points are off). */
+  const REPLAY_BONUS = { minPct: 90, points: 5 };
+
   /* Levels that were removed. Results already done stay in History & Analysis
      and the Parent Report under this name ("subject|module|<topic>.<level>"). */
   const RETIRED = {
@@ -278,7 +294,7 @@
   }
 
   window.DATA = {
-    DEFAULT_SESSION_SIZE, SCHOOL_YEARS, SUBJECTS, GAMES, BADGES, MOVED, games, game,
+    DEFAULT_SESSION_SIZE, SCHOOL_YEARS, SUBJECTS, GAMES, BADGES, MOVED, REPLAY_BONUS, games, game,
     subject, topic, level, moduleTopics, moduleTopic, topicLevels, bank, levelCount, topicCount,
     levelYears, yearTopics, topicLabel, levelLabel, fullLabel, catLabel
   };

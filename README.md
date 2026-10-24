@@ -41,7 +41,7 @@ There is a progress report at every step, so you can see where he's weak:
 | Maths → 8 modules (Numbers & Place value, Operations, Fractions, Decimals & Percentages, Measurement, Geometry, Statistics & probability, Word problems, Mathematical reasoning) · Operations → 6 topics (Addition, Subtraction, Multiplication, Division, Missing numbers, Mixed operations) | ✅ built |
 | Maths levels ready: Operations → Addition → Level 1: 2- and 3-digit (50 questions, 10 per test) · Operations → Subtraction → Level 1: 2- and 3-digit, with and without borrowing (80 questions, 15 per test) · Operations → Multiplication → Level 1: 1 digit × 1 digit (tables 2–10, 90 questions, 20 per test) · Level 2: 2 digits × 1 digit (80 questions, 15 per test) · Mathematical reasoning → Equal groups → Level 1: identify groups & items in each group (80 word problems with two answer boxes, 15 per test) — not linked to a school year yet | ✅ loaded |
 | English → 7 modules (Grammar, Tenses & verbs, Vocabulary, Spelling, Punctuation & capitalisation, Reading comprehension, Writing) | ✅ built |
-| English levels ready: Grammar → Conjunctions → Level 1: basics — and, but, or · Level 2: reason & result — because, so, since, as · Level 3: time & conditions — before, after, when, while, until, if, unless · Level 4: advanced & paired — although, though, even though, yet, either … or, neither … nor, both … and (80 typed questions each, 15 per test; the key’s “also acceptable” answers are accepted; Level 4’s paired questions have two boxes) · Grammar → Pronouns → Level 1: write the right pronoun — I, you, he, she, it, we, they (80 typed one-word answers, 15 per test) — not linked to a school year yet. The first Conjunctions Level 1 (removed 23 Oct 2026) still shows in History & Analysis as “Old Level 1 (removed)”, and its points are kept | ✅ loaded |
+| English levels ready: Grammar → Conjunctions → Level 1: basics — and, but, or · Level 2: reason & result — because, so, since, as · Level 3: time & conditions — before, after, when, while, until, if, unless · Level 4: advanced & paired — although, though, even though, yet, either … or, neither … nor, both … and (80 typed questions each, 15 per test; the key’s “also acceptable” answers are accepted; Level 4’s paired questions have two boxes) · Grammar → Pronouns → Level 1: write the right pronoun — I, you, he, she, it, we, they (80 typed one-word answers, 15 per test) · Punctuation & capitalisation → Punctuation → Level 1: mixed full stops, questions & exclamation marks (80 multiple-choice questions, 15 per test — ending marks, marks inside speech, and two-sentence pairs; the marks are shown big with their names) · Punctuation & capitalisation → Capital letters → Level 1: find the ONE word that needs a capital and type it correctly (80 sentences, 10 per test; the capital itself is checked — the keyboard gets a ⇧ key) — not linked to a school year yet. The first Conjunctions Level 1 (removed 23 Oct 2026) still shows in History & Analysis as “Old Level 1 (removed)”, and its points are kept | ✅ loaded |
 | Module page → Topics + 📊 Module report (weakest topic first) · Topic page → Levels + 📊 Topic report (weakest level and question type first) · Level page → Assessment · Progress report | ✅ built — fills in as levels are added |
 | Bahasa → 8 modules (Kata nama & kata ganti nama, Kata kerja & adjektif, Kata tugas, Pembentukan kata, Ayat & tatabahasa, Ejaan & Tanda baca, Pemahaman & Kosa kata, Penulisan) | ✅ built — topics and levels to come |
 | More English and Maths topics, and Bahasa topics | ⏳ *coming soon* — same module → topic → level layout |
@@ -66,7 +66,12 @@ Points are earned only by **beating your own best score on a level**:
 | Fourth try | 90% | 0 — same as the best |
 
 So repeating a level can never farm points, and one level pays at most
-100 × the value.
+100 × the value — **until he's scored 100%**: after that, every replay that
+scores **90% or more** earns a **+5 replay bonus** (a fixed 5, whatever the
+points per 1%; none while the subject's points are switched off). This applies
+to every level, now and in future (`REPLAY_BONUS` in `js/data.js`). The level
+card, level page, question counter and results all say "replay: +5 for 90%+",
+and each bonus shows in the points history as 🔁 Replay bonus.
 
 **Max points are always shown** — on each level card ("up to 20 points"), in a
 *Max points* box on the level page, next to the question counter during the

@@ -306,6 +306,10 @@ button:focus-visible,.profile-card:focus-visible{outline:2px solid var(--gold);o
 .q-visual svg{max-width:100%;height:auto;max-height:240px}
 .qtext{font-size:21px;font-weight:700;line-height:1.55;margin-bottom:16px;color:var(--ink-strong)}
 .qtext .blank{display:inline-block;min-width:56px;border-bottom:3px solid var(--accent);text-align:center;color:var(--accent);margin:0 4px}
+.qtext .mark-blank{min-width:40px;height:1.1em;vertical-align:baseline;background:rgba(155,140,255,.12);border-radius:6px 6px 0 0}
+.mark-opt{display:inline-flex;align-items:baseline;gap:6px;margin-right:16px}
+.opt-mark{font-family:var(--display);font-size:30px;line-height:.9;color:var(--ink-strong);min-width:14px;text-align:center}
+.mark-opt small{font-size:13px;font-weight:700;color:var(--muted)}
 .opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 @media(max-width:560px){.opts{grid-template-columns:1fr}}
 .opt{
@@ -353,6 +357,8 @@ button:focus-visible,.profile-card:focus-visible{outline:2px solid var(--gold);o
 .kb-key:disabled{opacity:.35;cursor:default}
 .kb-back{flex:1.5;background:linear-gradient(180deg,#4a2a3a,#2a1420);border-color:rgba(226,85,77,.5)}
 .kb-space{flex:4;font-size:14px;letter-spacing:1px}
+.kb-shift{flex:1.5;font-size:22px}
+.kb-shift.on{background:linear-gradient(180deg,var(--gold-bright),var(--gold));color:#231704;border-color:var(--gold)}
 .kb-actions{display:flex;gap:10px;justify-content:space-between;align-items:center;margin-top:10px}
 .kb-actions .btn.primary{flex:1;max-width:260px;margin-left:auto}
 

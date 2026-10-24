@@ -26,7 +26,10 @@
    - BONUS POINTS: a parent can give points on the admin page for something
      done outside the app (e.g. "Read a book"). Each one needs a reason and
      lives in "bonuses"; removing one marks it removed (so the removal syncs
-     too). Bonus points count towards the total, not towards a subject. */
+     too). Bonus points count towards the total, not towards a subject.
+   - REPLAY BONUS: once a level's best is 100%, every replay scoring 90%+
+     earns +5 (DATA.REPLAY_BONUS). Kept in a small ledger ("replays"), one
+     entry per session, so it syncs and can never be paid twice. */
 (function () {
   "use strict";
   const LS_PREFIX = "qa_save_";
@@ -75,7 +78,8 @@
       badges: {},              // { badgeId: ts first earned }
       arenaWins: {},           // { "gameId#round": { deviceId: wins } } — Quest Arena points
       redemptions: [],         // shop requests { id, ts, item, myr, points, rate, status, decidedTs }
-      bonuses: []              // points a parent gave { id, ts, points, reason, removedTs }
+      bonuses: [],             // points a parent gave { id, ts, points, reason, removedTs }
+      replays: []              // replay bonus ledger { s, t, l, ts, pct, pts } (90%+ after a 100% best)
     };
   }
 
@@ -153,6 +157,19 @@
   // Points for every ledger entry, worked out in time order: only the part
   // above the best so far counts. Re-run after every merge, so two devices
   // that both beat the same old score offline can't pay out twice.
+  // Replay bonuses: one per session (s|t|l|ts), oldest first.
+  function tidyReplays(list) {
+    const seen = {};
+    return (list || []).filter(function (e) {
+      if (!isObj(e) || e.ts == null || !e.s || !e.t || !e.l || !(e.pts >= 0)) return false;
+      const k = bestKey(e) + "|" + e.ts;
+      if (seen[k]) return false;
+      seen[k] = true;
+      return true;
+    }).sort(function (a, b) { return (a.ts || 0) - (b.ts || 0); });
+  }
+  const replayRule = () => (window.DATA && window.DATA.REPLAY_BONUS) || { minPct: 90, points: 5 };
+
   function scoreBests(list) {
     const best = {};
     return tidyBests(list).map(function (e) {
@@ -277,6 +294,7 @@
     p.cleared = isObj(p.cleared) ? p.cleared : {};
     p.history = tidyHistory(relocate(Array.isArray(p.history) ? p.history : [], "subjectId", "topicId", "levelId"), p.cleared);
     p.bests = tidyBests(relocate(Array.isArray(p.bests) ? p.bests : [], "s", "t", "l"));
+    p.replays = tidyReplays(relocate(Array.isArray(p.replays) ? p.replays : [], "s", "t", "l"));
     p.games = tidyGames(Array.isArray(p.games) ? p.games : []);
     p.badges = isObj(p.badges) ? p.badges : {};
     p.arenaWins = isObj(p.arenaWins) ? p.arenaWins : {};
@@ -321,6 +339,7 @@
       p.cleared = maxMap(pa.cleared, pb.cleared);
       p.history = tidyHistory(pb.history.concat(pa.history), p.cleared);
       p.bests = tidyBests(pb.bests.concat(pa.bests));
+      p.replays = tidyReplays(pb.replays.concat(pa.replays));
       p.games = tidyGames(pb.games.concat(pa.games));
       p.badges = minMap(pa.badges, pb.badges);
       p.arenaWins = mergeCounters(pa.arenaWins, pb.arenaWins);
@@ -447,12 +466,20 @@
         p.bests = tidyBests(p.bests);
         points = Math.round((clean.pct - prevBest) * rate);
       }
+      // Replay bonus: the level was already at 100% and this replay scored 90%+.
+      const rule = replayRule();
+      let replayBonus = 0;
+      if (prevBest >= 100 && clean.pct >= rule.minPct) {
+        replayBonus = rate > 0 ? rule.points : 0;
+        p.replays = tidyReplays((p.replays || []).concat([{ s: clean.subjectId, t: clean.topicId, l: clean.levelId, ts: clean.ts, pct: clean.pct, pts: replayBonus }]));
+      }
+      points += replayBonus;
       clean.points = points;
       p.history.unshift(clean);
       p.history = tidyHistory(p.history, p.cleared);
       p.lastPlayed = Date.now();
       STORE.save({ immediate: true });           // a finished session must never be lost
-      return Object.assign({}, clean, { prevBest: prevBest, newBest: clean.pct > prevBest, rate: rate });
+      return Object.assign({}, clean, { prevBest: prevBest, newBest: clean.pct > prevBest, rate: rate, replayBonus: replayBonus });
     },
 
     /* ---------------- points ---------------- */
@@ -473,7 +500,16 @@
     points(profile, subjectId) {
       return STORE.pointsLog(profile, subjectId).reduce(function (a, e) { return a + e.pts; }, 0) +
              STORE.arenaPoints(profile, subjectId) +
+             STORE.replayPoints(profile, subjectId) +
              (subjectId ? 0 : STORE.bonusPoints(profile));
+    },
+    // Replay bonuses (oldest first), optionally for one subject.
+    replayLog(profile, subjectId) {
+      const p = profile || STORE.active();
+      return ((p && p.replays) || []).filter(function (e) { return !subjectId || e.s === subjectId; });
+    },
+    replayPoints(profile, subjectId) {
+      return STORE.replayLog(profile, subjectId).reduce(function (a, e) { return a + (e.pts || 0); }, 0);
     },
 
     /* ---------------- bonus points from a parent (admin page) ---------------- */
