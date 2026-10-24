@@ -8,7 +8,7 @@
   /* ---------- mastery ----------
      Based on the most recent assessments of one level (newest first). */
   const AREA_WINDOW = 5;   // weak areas look at the last 5 assessments
-  const MASTERY_RULE = "Mastered = the last 3 assessments in a row all scored 80% or more.";
+  const MASTERY_RULE = "Mastered = a 100% score, or the last 3 assessments in a row all at 80% or more.";
   const MASTERY = {
     none:       { id: "none",       label: "Not started",     icon: "⚪", cls: "m-none",       rank: 0 },
     learning:   { id: "learning",   label: "Needs practice",  icon: "🌱", cls: "m-learning",   rank: 1 },
@@ -20,6 +20,7 @@
     if (!sessions || !sessions.length) return MASTERY.none;
     const last3 = sessions.slice(0, 3);
     const avg3 = last3.reduce((a, s) => a + (s.pct || 0), 0) / last3.length;
+    if (sessions[0].pct >= 100) return MASTERY.mastered;                       // a perfect score
     if (last3.length === 3 && last3.every(s => s.pct >= 80)) return MASTERY.mastered;
     if (avg3 >= 80 && sessions[0].pct >= 80) return MASTERY.secure;
     if (avg3 >= 60) return MASTERY.developing;
@@ -33,7 +34,7 @@
     let streak = 0;
     for (const s of sessions) { if (s.pct >= 80) streak++; else break; }
     const need = 3 - streak;
-    return "Score 80% or more " + (need === 1 ? "1 more time" : need + " times in a row") + " to master this level.";
+    return "Score 100%, or 80% or more " + (need === 1 ? "1 more time" : need + " times in a row") + ", to master this level.";
   }
 
   function band(acc, attempts) {

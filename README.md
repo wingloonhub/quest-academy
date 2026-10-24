@@ -49,8 +49,9 @@ There is a progress report at every step, so you can see where he's weak:
 | Installable on phones (Add to Home Screen) | ✅ built |
 
 **Mastery status** for each level: *Not started → Needs practice → Developing →
-Almost mastered → Mastered*. A level is **Mastered** when the last 3
-assessments in a row all score 80% or more.
+Almost mastered → Mastered*. A level is **Mastered** when he scores **100%**,
+or when the last 3 assessments in a row all score 80% or more. If a later
+score drops, the status is worked out again from his latest results.
 
 ### Points
 
