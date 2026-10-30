@@ -118,7 +118,14 @@
       voice: "en-GB",
       modules: [
         { id: "number_place_value", label: "Numbers & Place value", icon: "🔢", desc: "Reading, writing, ordering and rounding numbers", topics: [
-            { id: "comparing_ordering", label: "Comparing & Ordering Numbers", icon: "⚖️", desc: "Bigger, smaller and putting numbers in order", levels: [] },
+            { id: "comparing_ordering", label: "Comparing & Ordering Numbers", icon: "⚖️", desc: "Bigger, smaller and putting numbers in order", levels: [
+                { id: "level1", label: "Level 1", desc: "Ascending & descending order — 2-, 3- and 4-digit numbers", sessionSize: 15,
+                  catLabels: { ASC2: "2-digit numbers · ascending", DESC2: "2-digit numbers · descending",
+                               ASC3: "3-digit numbers · ascending", DESC3: "3-digit numbers · descending",
+                               ASC4: "4-digit numbers · ascending", DESC4: "4-digit numbers · descending" } },
+                { id: "level2", label: "Level 2", desc: "Greater than, less than or equal to (>, <, =)", sessionSize: 15,
+                  catLabels: { CMP2: "Comparing 2-digit numbers", CMP3: "Comparing 3-digit numbers", CMP4: "Comparing 4-digit numbers" } }
+              ] },
             { id: "odd_even", label: "Odd & Even Numbers", icon: "🧦", desc: "Spotting, counting and using odd and even numbers", levels: [
                 { id: "level1", label: "Level 1", desc: "Identify, count, patterns & reasoning", sessionSize: 15,
                   catLabels: { IDENTIFY: "Is it odd or even?", COUNT: "Counting odd & even numbers",
@@ -142,7 +149,11 @@
                 { id: "level2", label: "Level 2", desc: "2 digits × 1 digit", sessionSize: 15,
                   catLabels: { NOCARRY: "Without carrying", CARRY: "With carrying" } }
               ] },
-            { id: "division", label: "Division", icon: "÷", desc: "Sharing, grouping and remainders", levels: [] },
+            { id: "division", label: "Division", icon: "÷", desc: "Sharing, grouping and remainders", levels: [
+                { id: "level1", label: "Level 1", desc: "Dividing by 2 to 9 (no remainders)", sessionSize: 15,
+                  catLabels: { D2: "Dividing by 2", D3: "Dividing by 3", D4: "Dividing by 4", D5: "Dividing by 5",
+                               D6: "Dividing by 6", D7: "Dividing by 7", D8: "Dividing by 8", D9: "Dividing by 9" } }
+              ] },
             { id: "missing_numbers", label: "Missing numbers", icon: "❓", desc: "Find the number that makes the sum right", levels: [] },
             { id: "mixed_operations", label: "Mixed operations", icon: "🔀", desc: "Choosing and combining +, −, × and ÷", levels: [] }
           ] },

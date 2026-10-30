@@ -577,6 +577,24 @@ button:focus-visible,.profile-card:focus-visible{outline:2px solid var(--gold);o
 .mf-box.bad{border-color:var(--bad);background:rgba(226,85,77,.16)}
 .mf-box.bad .mf-val{color:#ffc8c4}
 
+/* ---------- Put in order: tap the number tiles into the answer row ---------- */
+.ord-slots{display:grid;grid-template-columns:repeat(var(--n,5),1fr);gap:8px;margin-top:10px}
+@media (max-width:480px){.ord-slots{grid-template-columns:repeat(3,1fr)}}   /* phones: rows of 3, read left to right */
+.ord-slot{min-width:0;min-height:54px;padding:8px 4px;border-radius:12px;font-size:21px;font-weight:800;color:var(--ink-strong);
+  background:rgba(0,0,0,.3);border:2px dashed var(--border);cursor:pointer;transition:border-color .15s,background .15s,box-shadow .15s}
+.ord-slot .placeholder{font-size:15px;color:var(--muted)}
+.ord-slot.next{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+.ord-slot.filled{border-style:solid;border-color:var(--accent);background:rgba(0,0,0,.42)}
+.ord-slot.ok{border-style:solid;border-color:var(--good);background:rgba(78,196,106,.16);color:#b2f3c3}
+.ord-slot.bad{border-style:solid;border-color:var(--bad);background:rgba(226,85,77,.16);color:#ffc8c4}
+.ord-slot:disabled{cursor:default}
+.ord-tray{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:16px 0 4px;padding:12px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid var(--border)}
+.ord-chip{min-width:70px;padding:12px 14px;border-radius:12px;font-size:22px;font-weight:800;color:#231704;cursor:pointer;touch-action:manipulation;
+  background:linear-gradient(180deg,var(--gold-bright),var(--gold-deep));border:1px solid #ffe7a6;box-shadow:0 3px 0 rgba(0,0,0,.35);transition:transform .08s,opacity .15s}
+.ord-chip:active{transform:translateY(2px)}
+.ord-chip.used{opacity:.18;box-shadow:none}
+.ord-chip:disabled{cursor:default}
+
 /* ---------- Quest Arena ---------- */
 .game-list{display:flex;flex-direction:column;gap:14px}
 .game-card{display:flex;flex-direction:column;gap:10px;background:var(--panel-solid);border:1px solid var(--border);border-top:3px solid var(--accent);border-radius:16px;padding:16px}

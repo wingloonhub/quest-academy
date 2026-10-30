@@ -109,7 +109,7 @@
   function sameKey(q) {
     if (q.same) return "k:" + q.same;
     const ans = (Array.isArray(q.fields) ? q.fields.map(f => f.word).join("|")
-      : (q.spelling || q.typed) ? String(q.word)
+      : (q.spelling || q.typed || q.order) ? String(q.word)
       : Array.isArray(q.options) ? String(q.options[q.answer]) : "").toLowerCase();
     const nums = (String(q.q || "").match(/\d+/g) || []).map(Number).sort((a, b) => a - b);
     if (nums.length >= 2) return "n:" + nums.join(",") + "=" + ans;
@@ -1935,7 +1935,9 @@
     return list.length > 0 && list.every(a => /\d/.test(a) && /^[\d.,\/\s-]+$/.test(a.trim()));
   }
   // Punctuation options: "!" → big ! + "exclamation mark"; "x / y" → "① x … ② y …" (two sentences).
-  const MARK_NAMES = { ".": "full stop", "?": "question mark", "!": "exclamation mark", ",": "comma" };
+  // Comparison signs work the same way: ">" → big > + "greater than".
+  const MARK_NAMES = { ".": "full stop", "?": "question mark", "!": "exclamation mark", ",": "comma",
+                       ">": "greater than", "<": "less than", "=": "equal to" };
   function markHtml(o) {
     const parts = String(o).split(" / ");
     return parts.map((m, i) => `<span class="mark-opt">${parts.length > 1 ? "①②"[i] + " " : ""}<b class="opt-mark">${esc(m)}</b><small>${esc(MARK_NAMES[m] || "")}</small></span>`).join("");
@@ -1988,8 +1990,8 @@
     const subj = DATA.subject(st.subjectId);
     const total = st.questions.length, num = st.idx + 1;
     const correctSoFar = st.answers.filter(a => a.correct).length;
-    const kind = q.spelling ? "spell" : Array.isArray(q.fields) ? "multi" : q.typed ? "typed" : "mcq";
-    const accepts = kind === "mcq" || kind === "multi" ? [] : acceptedAnswers(q);
+    const kind = q.spelling ? "spell" : Array.isArray(q.fields) ? "multi" : q.order ? "order" : q.typed ? "typed" : "mcq";
+    const accepts = kind === "mcq" || kind === "multi" || kind === "order" ? [] : acceptedAnswers(q);
     const numeric = kind === "typed" && isNumericAnswers(accepts);
     const lvlDef = DATA.level(st.subjectId, st.topicId, st.levelId) || {};
     // hideCat: don't show the question-type tag during the test (it would give the answer away)
@@ -2023,6 +2025,15 @@
         <div class="mf-row">${q.fields.map((f, i) => `<button class="mf-box${i === 0 ? " active" : ""}" data-f="${i}" type="button"><span class="mf-label">${esc(f.label)}</span><span class="mf-val" id="mfVal${i}"></span></button>`).join("")}</div>
         <p class="spell-instr">${esc(q.instr || "Tap a box, then type the number.")}</p>
         <div class="keyboard${multiNumeric ? " numeric" : ""}" id="kb">${keyboardHtml([].concat.apply([], fieldAcc), multiNumeric)}</div>
+        ${actions}`;
+    } else if (kind === "order") {
+      // Put numbers in order: tap the tiles into the answer row. No "smallest / largest"
+      // hint — knowing what ascending and descending mean is part of the question.
+      body = `${passage}${visual}
+        <div class="qtext">Put these numbers in <b>${q.order === "desc" ? "descending" : "ascending"} order</b>.</div>
+        <div class="ord-slots" style="--n:${q.items.length}">${q.items.map((_, i) => `<button class="ord-slot" data-s="${i}" type="button" id="ordSlot${i}"></button>`).join("")}</div>
+        <div class="ord-tray">${q.items.map((v, i) => `<button class="ord-chip" data-c="${i}" type="button">${esc(v)}</button>`).join("")}</div>
+        <p class="spell-instr">${esc(q.instr || "Tap the numbers in order. Tap one in the row to send it back.")}</p>
         ${actions}`;
     } else if (kind === "typed") {
       const parts = qText.split("___");
@@ -2163,6 +2174,49 @@
         if (e.key === "Backspace") { press("back"); return true; }
         const k = String(e.key || "").length === 1 ? e.key.toLowerCase() : "";
         if (k && (multiNumeric ? /[0-9.\/-]/.test(k) : /[a-z' -]/.test(k))) { press(k); return true; }
+      };
+      paint();
+      return;
+    }
+
+    // Put in order: each tap fills the next place in the row; tapping a placed number sends it back.
+    if (kind === "order") {
+      const asc = q.order !== "desc";
+      const val = (s) => Number(String(s).replace(/,/g, ""));
+      const right = q.items.slice().sort((a, b) => asc ? val(a) - val(b) : val(b) - val(a));
+      const sign = asc ? " < " : " > ";
+      const slots = $$(".ord-slot"), chips = $$(".ord-chip"), clearBtn = $("#clearBtn"), submitBtn = $("#submitBtn");
+      let placed = [];                          // tile numbers, in the order tapped
+      const paint = () => {
+        slots.forEach((s, i) => {
+          const c = placed[i];
+          s.innerHTML = c == null ? `<span class="placeholder">${i + 1}</span>` : esc(q.items[c]);
+          s.classList.toggle("filled", c != null);
+          s.classList.toggle("next", !busy && i === placed.length);
+        });
+        chips.forEach((b, i) => { const used = placed.indexOf(i) > -1; b.classList.toggle("used", used); b.disabled = busy || used; });
+        clearBtn.disabled = busy || !placed.length;
+        submitBtn.disabled = busy || placed.length < q.items.length;
+      };
+      const take = (i) => { if (busy || placed.indexOf(i) > -1 || placed.length >= q.items.length) return; placed.push(i); paint(); };
+      const giveBack = (s) => { if (busy || placed[s] == null) return; placed.splice(s, 1); paint(); };
+      const submit = () => {
+        if (busy || placed.length < q.items.length) return;
+        const got = placed.map(i => q.items[i]);
+        const okEach = got.map((v, i) => val(v) === val(right[i]));
+        slots.forEach((s, i) => { s.disabled = true; s.classList.remove("next"); s.classList.add(okEach[i] ? "ok" : "bad"); });
+        chips.forEach(b => { b.disabled = true; });
+        clearBtn.disabled = true; submitBtn.disabled = true;
+        finish(okEach.every(Boolean), got.join(sign), right.join(sign), `❌ The correct order is <b>${right.map(esc).join(sign)}</b>`);
+      };
+      chips.forEach(b => { b.onclick = () => take(parseInt(b.dataset.c, 10)); });
+      slots.forEach(s => { s.onclick = () => giveBack(parseInt(s.dataset.s, 10)); });
+      clearBtn.onclick = () => { if (!busy) { placed = []; paint(); } };
+      submitBtn.onclick = submit;
+      keyHandler = (e) => {
+        if (busy) return;
+        if (e.key === "Enter") { submit(); return true; }
+        if (e.key === "Backspace") { giveBack(placed.length - 1); return true; }
       };
       paint();
       return;
