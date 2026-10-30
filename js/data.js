@@ -117,7 +117,14 @@
       tagline: "Numbers, measures & problem solving",
       voice: "en-GB",
       modules: [
-        { id: "number_place_value", label: "Numbers & Place value", icon: "🔢", desc: "Reading, writing, ordering and rounding numbers", topics: [] },
+        { id: "number_place_value", label: "Numbers & Place value", icon: "🔢", desc: "Reading, writing, ordering and rounding numbers", topics: [
+            { id: "comparing_ordering", label: "Comparing & Ordering Numbers", icon: "⚖️", desc: "Bigger, smaller and putting numbers in order", levels: [] },
+            { id: "odd_even", label: "Odd & Even Numbers", icon: "🧦", desc: "Spotting, counting and using odd and even numbers", levels: [
+                { id: "level1", label: "Level 1", desc: "Identify, count, patterns & reasoning", sessionSize: 15,
+                  catLabels: { IDENTIFY: "Is it odd or even?", COUNT: "Counting odd & even numbers",
+                               PATTERN: "Odd & even number patterns", REASON: "Odd & even reasoning" } }
+              ] }
+          ] },
         { id: "operations", label: "Operations", icon: "🧮", desc: "Adding, subtracting, multiplying and dividing", topics: [
             { id: "addition", label: "Addition", icon: "+", desc: "Adding numbers, with and without carrying", levels: [
                 { id: "level1", label: "Level 1", desc: "2- and 3-digit addition",
@@ -173,9 +180,13 @@
     });
   });
 
-  /* Quest Arena games. A game takes its questions from a level's bank.
-     rounds[].perQuestion → seconds allowed for EACH question (running out
-                            of time costs a life, like a wrong answer);
+  /* Quest Arena games. A game takes its questions from a level's bank —
+     or, with kind: "odd_even", makes up fresh numbers every game.
+     kind: "odd_even"     → numbers fall from the sky; tap Odd or Even before each one lands;
+     roundName            → what the game calls a round on screen ("Level"; default "Round");
+     rounds[].perQuestion → seconds allowed for EACH question — for "odd_even", the
+                            seconds a number takes to fall (running out of time costs
+                            a life, like a wrong answer);
      rounds[].badge       → the badge for clearing that round (see BADGES);
      rounds[].points      → { first: bonus for the FIRST win of the round,
                               repeat: points for every win after that }. */
@@ -192,13 +203,36 @@
         { questions: 15, perQuestion: 10, badge: "times_table_ninja",     points: { first: 50, repeat: 5 } },
         { questions: 15, perQuestion: 5,  badge: "multiplication_wizard", points: { first: 60, repeat: 5 } }
       ]
+    },
+    {
+      id: "meteor_mayhem",
+      subjectId: "maths",
+      kind: "odd_even",
+      label: "Meteor Mayhem",
+      desc: "Odd or even? · falling numbers with 1 to 4 digits",
+      icon: "☄️",
+      roundName: "Level",
+      winText: "You stopped every meteor!",
+      source: { topicId: "number_place_value", levelId: "odd_even.level1" },   // where to practise if the lives run out
+      lives: 3,                                                                 // for the whole game
+      rounds: [
+        { questions: 15, perQuestion: 10, badge: "comet_catcher",   points: { first: 50, repeat: 5 } },
+        { questions: 15, perQuestion: 5,  badge: "rocket_ranger",   points: { first: 50, repeat: 5 } },
+        { questions: 15, perQuestion: 3,  badge: "galaxy_guardian", points: { first: 50, repeat: 5 } }
+      ]
     }
   ];
   const BADGES = {
     times_table_ninja:     { label: "Times Table Ninja",     tier: "silver", icon: "ninja",
                              desc: "Survived Round 1 of Beat the Clock — 15 times-table questions, 10 seconds each, with only 3 lives! 🥷" },
     multiplication_wizard: { label: "Multiplication Wizard", tier: "gold",   icon: "wizard",
-                             desc: "Beat Round 2 of Beat the Clock — 15 more times-table questions with just 5 seconds each! 🧙" }
+                             desc: "Beat Round 2 of Beat the Clock — 15 more times-table questions with just 5 seconds each! 🧙" },
+    comet_catcher:         { label: "Comet Catcher",         tier: "bronze", icon: "comet",
+                             desc: "Cleared Level 1 of Meteor Mayhem — sorted 15 falling numbers into odd and even before they landed! ☄️" },
+    rocket_ranger:         { label: "Rocket Ranger",         tier: "silver", icon: "rocket",
+                             desc: "Cleared Level 2 of Meteor Mayhem — 15 more numbers, falling in just 5 seconds each! 🚀" },
+    galaxy_guardian:       { label: "Galaxy Guardian",       tier: "gold",   icon: "planet",
+                             desc: "Cleared Level 3 of Meteor Mayhem — 15 numbers crashing down in only 3 seconds each! 🪐" }
   };
 
   /* Levels that have moved. Results saved before a move still use the old

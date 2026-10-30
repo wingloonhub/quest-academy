@@ -37,9 +37,9 @@ There is a progress report at every step, so you can see where he's weak:
 | Dashboard: big **My points** panel (points available, what they’re worth in MYR at the admin’s cash value, on hold and used — tap it for the points history), Trophy Room and 🛍️ Shop cards | ✅ built |
 | 🛍️ Shop → **Redeem cash** (parent approves on the admin page) · 📜 Points history | ✅ built — more shop items to come |
 | Study Mode inside each subject: **By Module**, **By School Year** (Year 1–6) or **Quest Arena** (games) | ✅ built |
-| Quest Arena → Maths → Beat the Clock, with 2 badges · 🏆 Trophy Room | ✅ built |
-| Maths → 8 modules (Numbers & Place value, Operations, Fractions, Decimals & Percentages, Measurement, Geometry, Statistics & probability, Word problems, Mathematical reasoning) · Operations → 6 topics (Addition, Subtraction, Multiplication, Division, Missing numbers, Mixed operations) | ✅ built |
-| Maths levels ready: Operations → Addition → Level 1: 2- and 3-digit (50 questions, 10 per test) · Operations → Subtraction → Level 1: 2- and 3-digit, with and without borrowing (80 questions, 15 per test) · Operations → Multiplication → Level 1: 1 digit × 1 digit (tables 2–10, 90 questions, 20 per test) · Level 2: 2 digits × 1 digit (80 questions, 15 per test) · Mathematical reasoning → Equal groups → Level 1: identify groups & items in each group (80 word problems with two answer boxes, 15 per test) — not linked to a school year yet | ✅ loaded |
+| Quest Arena → Maths → Beat the Clock (2 badges) · Meteor Mayhem — odd or even (3 badges) · 🏆 Trophy Room | ✅ built |
+| Maths → 8 modules (Numbers & Place value, Operations, Fractions, Decimals & Percentages, Measurement, Geometry, Statistics & probability, Word problems, Mathematical reasoning) · Numbers & Place value → 2 topics (Comparing & Ordering Numbers, Odd & Even Numbers) · Operations → 6 topics (Addition, Subtraction, Multiplication, Division, Missing numbers, Mixed operations) | ✅ built |
+| Maths levels ready: Numbers & Place value → Odd & Even Numbers → Level 1: identify (Odd / Even multiple choice), count, patterns & reasoning (80 questions, 15 per test) · Operations → Addition → Level 1: 2- and 3-digit (50 questions, 10 per test) · Operations → Subtraction → Level 1: 2- and 3-digit, with and without borrowing (80 questions, 15 per test) · Operations → Multiplication → Level 1: 1 digit × 1 digit (tables 2–10, 90 questions, 20 per test) · Level 2: 2 digits × 1 digit (80 questions, 15 per test) · Mathematical reasoning → Equal groups → Level 1: identify groups & items in each group (80 word problems with two answer boxes, 15 per test) — not linked to a school year yet | ✅ loaded |
 | English → 7 modules (Grammar, Tenses & verbs, Vocabulary, Spelling, Punctuation & capitalisation, Reading comprehension, Writing) | ✅ built |
 | English levels ready: Grammar → Conjunctions → Level 1: basics — and, but, or · Level 2: reason & result — because, so, since, as · Level 3: time & conditions — before, after, when, while, until, if, unless · Level 4: advanced & paired — although, though, even though, yet, either … or, neither … nor, both … and (80 typed questions each, 15 per test; the key’s “also acceptable” answers are accepted; Level 4’s paired questions have two boxes) · Grammar → Pronouns → Level 1: write the right pronoun — I, you, he, she, it, we, they (80 typed one-word answers, 15 per test) · Punctuation & capitalisation → Punctuation → Level 1: mixed full stops, questions & exclamation marks (80 multiple-choice questions, one sentence each, 15 per test — ending marks and marks inside speech; the marks are shown big with their names. Replaced the two-sentence version on 24 Oct 2026; any results from that one show as “Old Level 1 (removed)”) · Punctuation → Levels 2–6 (100 multiple-choice questions each, 15 per test, mixing the worksheet’s 4 themes): Level 2 Commas · Level 3 Apostrophes · Level 4 Quotation marks · Level 5 Colons & semicolons · Level 6 Hyphens, dashes & parentheses · Punctuation & capitalisation → Capital letters → Level 1: find the ONE word that needs a capital and type it correctly (80 sentences, 10 per test; the capital itself is checked — the keyboard gets a ⇧ key) — not linked to a school year yet. The first Conjunctions Level 1 (removed 23 Oct 2026) still shows in History & Analysis as “Old Level 1 (removed)”, and its points are kept | ✅ loaded |
 | Module page → Topics + 📊 Module report (weakest topic first) · Topic page → Levels + 📊 Topic report (weakest level and question type first) · Level page → Assessment · Progress report | ✅ built — fills in as levels are added |
@@ -95,6 +95,19 @@ Operations → Multiplication → Level 1, ×1 to ×9 only, never repeated withi
 | Lives | ❤️❤️❤️ for the whole game; a wrong answer — or running out of time — costs one (the right answer flashes up) | | |
 | Round 1 | 15 questions, **10 seconds for each one** | 🥷 **Times Table Ninja** (silver) | **+50** the first win, then +5 per win |
 | Round 2 | 15 more questions, **only 5 seconds for each one** | 🧙 **Multiplication Wizard** (gold) | **+60** the first win, then +5 per win |
+
+**☄️ Meteor Mayhem** (odd or even): numbers with 1 to 4 digits fall from the sky and he
+taps **Odd** or **Even** before each one lands (keyboard: O / E or ← / →). The numbers are
+made up fresh every game — never repeated within a game, never more than 3 odd or 3 even
+in a row. A missed number explains itself ("4738 is even — it ends in 8"). If the lives
+run out it points him to Numbers & Place value → Odd & Even Numbers → Level 1.
+
+| | Rule | Badge | Points |
+|---|---|---|---|
+| Lives | ❤️❤️❤️ for the whole game; a wrong tap — or letting a number land — costs one | | |
+| Level 1 | 15 numbers, each **takes 10 seconds to fall** | ☄️ **Comet Catcher** (bronze) | **+50** the first win, then +5 per win |
+| Level 2 | 15 more, **5 seconds to fall** | 🚀 **Rocket Ranger** (silver) | **+50** the first win, then +5 per win |
+| Level 3 | 15 more, **only 3 seconds to fall** | 🪐 **Galaxy Guardian** (gold) | **+50** the first win, then +5 per win |
 
 The game page shows the points each round will pay before he starts ("Points
 you can win"), and the points won appear between rounds and on the results

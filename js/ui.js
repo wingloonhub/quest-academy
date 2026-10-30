@@ -362,7 +362,7 @@
         <p>🏆 <b>Mastery</b> — ${esc(REPORT.MASTERY_RULE)} Along the way a level shows <i>Needs practice</i>, <i>Developing</i> or <i>Almost mastered</i>.</p>
         <p>⭐ <b>Stars</b> — 50% = 1 star, 70% = 2 stars, 90% = 3 stars. Your best score on each level counts.</p>
         <p>${ART.coin(16)} <b>Points</b> — earned by <b>beating your own best score</b> on a level. Every 1% above your old best earns points (a parent sets how many for each subject). Repeating a level without beating your best earns nothing — so aim higher each time! Once you've scored <b>100%</b> on a level, every replay that scores <b>90% or more</b> earns a <b>+5 replay bonus</b>.</p>
-        <p>🎮 <b>Quest Arena</b> — games that use what you've learned. In Maths, <b>Beat the Clock</b> gives you 3 lives and 15 times-table questions with 10 seconds each — survive to become a 🥷 <b>Times Table Ninja</b>. Then 15 more with just 5 seconds each to become a 🧙 <b>Multiplication Wizard</b>! Every badge you win lives in the 🏆 <b>Trophy Room</b>. Winning a round also pays points: <b>+50</b> the first time you win Round 1, <b>+60</b> the first time you win Round 2, then <b>+5</b> every time you win a round again.</p>
+        <p>🎮 <b>Quest Arena</b> — games that use what you've learned. In Maths, <b>Beat the Clock</b> gives you 3 lives and 15 times-table questions with 10 seconds each — survive to become a 🥷 <b>Times Table Ninja</b>. Then 15 more with just 5 seconds each to become a 🧙 <b>Multiplication Wizard</b>! Every badge you win lives in the 🏆 <b>Trophy Room</b>. Winning a round also pays points: <b>+50</b> the first time you win Round 1, <b>+60</b> the first time you win Round 2, then <b>+5</b> every time you win a round again. In <b>Meteor Mayhem</b>, numbers fall from the sky — tap <b>Odd</b> or <b>Even</b> before each one lands! Level 1 numbers take 10 seconds to fall, Level 2 take 5 and Level 3 just 3, for the ☄️ <b>Comet Catcher</b>, 🚀 <b>Rocket Ranger</b> and 🪐 <b>Galaxy Guardian</b> badges. Each level pays <b>+50</b> the first time you clear it, then <b>+5</b> every time after.</p>
         <p>🛍️ <b>Shop</b> — spend the points you've earned. <b>Redeem cash</b>: type an amount in MYR and submit; a parent approves it on the admin page. Until then those points are <b>on hold</b> — if it isn't approved, they come back. <b>Video game console</b>: type how many hours you'd like — each hour costs the points a parent sets — and a parent approves it the same way. You can only ask for what your points cover. Tap your points on the menu to see your <b>points history</b>.</p>
         <p>📊 <b>Parent Report</b> — mastery for every module, topic and level across all three subjects, the levels that need help, badges, and recent mistakes.</p>
         <p>☁️ <b>Same results everywhere</b> — sign in with the same email on a phone, tablet or computer and you get the same players, scores and reports. Assessments finished offline are kept and uploaded automatically next time the app is online.</p>
@@ -468,13 +468,40 @@
      A subject's arena lists its games (DATA.games). Beat the Clock: every
      question has its own countdown (rounds[].perQuestion seconds). A wrong
      answer — or running out of time — costs one of the lives, which last the
-     whole game. Clearing a round earns its badge. */
+     whole game. Clearing a round earns its badge.
+     Games with kind "odd_even" (Meteor Mayhem) use the same lives, rounds,
+     points and badges, but each number falls from the sky over perQuestion
+     seconds and the player taps Odd or Even before it lands. */
   let game = null;          // the run in progress
   let gameTimer = null;
   function stopGameTimer() { if (gameTimer) { clearInterval(gameTimer); gameTimer = null; } }
   const mmss = (ms) => { const sec = Math.max(0, Math.floor(ms / 1000)); return Math.floor(sec / 60) + ":" + String(sec % 60).padStart(2, "0"); };
   // Answering time, e.g. "42.3s" (or "1:05" past a minute).
   const secs = (ms) => (ms < 60000 ? (Math.max(0, ms) / 1000).toFixed(1) + "s" : mmss(ms));
+  const isOddEven = (def) => !!def && def.kind === "odd_even";
+  // What the game calls a round on screen: "Round" (Beat the Clock) or "Level" (Meteor Mayhem).
+  const roundWord = (def) => (def && def.roundName) || "Round";
+
+  // Meteor Mayhem: n different numbers with 1 to 4 digits (each length picked
+  // equally often; 1-digit ones run out sooner, as there are only 9), never
+  // more than 3 odd or 3 even in a row.
+  function oddEvenNumbers(n) {
+    const ranges = [[1, 9], [10, 99], [100, 999], [1000, 9999]];
+    const used = new Set(), out = [];
+    while (out.length < n) {
+      const r = ranges[Math.floor(Math.random() * ranges.length)];
+      const v = r[0] + Math.floor(Math.random() * (r[1] - r[0] + 1));
+      const answer = v % 2 ? "Odd" : "Even";
+      if (used.has(v) || (out.length >= 3 && out.slice(-3).every(q => q.answer === answer))) continue;
+      used.add(v);
+      out.push({ text: String(v), answer: answer });
+    }
+    return out;
+  }
+  // "4738 is even — it ends in 8." (shown when a number is missed)
+  function oddEvenWhy(q) {
+    return `${esc(q.text)} is <b>${q.answer.toLowerCase()}</b> — it ends in ${esc(q.text.slice(-1))}.`;
+  }
 
   function badgeChip(badgeId, earnedTs, isNew) {
     const b = DATA.BADGES[badgeId] || { label: badgeId };
@@ -490,10 +517,9 @@
       const t = log.filter(e => e.cleared >= round && e["r" + round + "Ms"]).map(e => e["r" + round + "Ms"]);
       return t.length ? Math.min.apply(null, t) : null;
     };
-    const f1 = fastest(1), f2 = fastest(2);
-    if (f1 != null) parts.push("fastest Round 1: " + secs(f1));
-    if (f2 != null) parts.push("fastest Round 2: " + secs(f2));
-    if (f1 == null && f2 == null) parts.push("best: " + Math.max.apply(null, log.map(e => e.correct || 0)) + " correct");
+    const best = def.rounds.map((r, i) => fastest(i + 1));
+    best.forEach((t, i) => { if (t != null) parts.push("fastest " + roundWord(def) + " " + (i + 1) + ": " + secs(t)); });
+    if (best.every(t => t == null)) parts.push("best: " + Math.max.apply(null, log.map(e => e.correct || 0)) + " correct");
     return parts.join(" · ");
   }
 
@@ -539,7 +565,7 @@
         <div class="game-head"><span class="game-icon">${def.icon || "🎮"}</span>
           <div><div class="game-title">${esc(def.label)}</div><div class="muted small">${esc(def.desc)}</div></div></div>
         <div class="game-badges">${def.rounds.filter(r => r.badge).map(r => badgeChip(r.badge, earned[r.badge])).join("")}</div>
-        <div class="pts-line small">${ART.coin(15)} Win points: ${def.rounds.map((r, i) => `Round ${i + 1} <b>+${STORE.arenaNextPoints(def.id, i)}</b>`).join(" · ")}${STORE.arenaPoints(null, null, def.id) ? ` · earned so far <b>${STORE.arenaPoints(null, null, def.id)}</b>` : ""}</div>
+        <div class="pts-line small">${ART.coin(15)} Win points: ${def.rounds.map((r, i) => `${roundWord(def)} ${i + 1} <b>+${STORE.arenaNextPoints(def.id, i)}</b>`).join(" · ")}${STORE.arenaPoints(null, null, def.id) ? ` · earned so far <b>${STORE.arenaPoints(null, null, def.id)}</b>` : ""}</div>
         <div class="muted small">${esc(gameBest(def, STORE.gameLog(def.id)))}</div>
         <button class="btn primary" data-game="${esc(def.id)}" type="button">Play →</button>
       </div>`).join("");
@@ -554,9 +580,11 @@
     $$("[data-game]").forEach(b => { b.onclick = () => renderGameIntro(subjectId, b.dataset.game); });
   }
 
-  function roundRule(r, i) {
+  function roundRule(def, r, i) {
     const b = r.badge && DATA.BADGES[r.badge];
-    return `<b>Round ${i + 1}:</b> ${r.questions} ${i ? "more " : ""}questions — ${i ? "only " : ""}<b>${r.perQuestion} seconds</b> for each one${i ? "!" : "."}${b ? ` Make it through to win the <b>${esc(b.label)}</b> badge.` : ""}`;
+    const win = b ? ` Make it through to win the <b>${esc(b.label)}</b> badge.` : "";
+    if (isOddEven(def)) return `<b>${roundWord(def)} ${i + 1}:</b> ${r.questions} ${i ? "more " : ""}numbers — each one takes ${i ? "only " : ""}<b>${r.perQuestion} seconds</b> to fall${i ? "!" : "."}${win}`;
+    return `<b>${roundWord(def)} ${i + 1}:</b> ${r.questions} ${i ? "more " : ""}questions — ${i ? "only " : ""}<b>${r.perQuestion} seconds</b> for each one${i ? "!" : "."}${win}`;
   }
 
   // "Points you can win" box — shown before the game starts.
@@ -568,7 +596,7 @@
       const b = r.badge && DATA.BADGES[r.badge];
       total += next;
       return `<div class="pp-row">
-          <span class="pp-name">Round ${i + 1}${b ? ` · ${esc(b.label)}` : ""}</span>
+          <span class="pp-name">${roundWord(def)} ${i + 1}${b ? ` · ${esc(b.label)}` : ""}</span>
           <span class="pp-pts">${ART.coin(18)} +${next}</span>
           <span class="pp-note">${claimed
             ? `first-win bonus (+${(r.points || {}).first || 0}) already claimed — +${(r.points || {}).repeat || 0} for every win now`
@@ -578,7 +606,7 @@
     return `<div class="points-plan">
         <div class="pp-title">${ART.coin(20)} Points you can win</div>
         ${rows}
-        <div class="pp-total">Win every round this time: <b>+${total} points</b></div>
+        <div class="pp-total">Win every ${roundWord(def).toLowerCase()} this time: <b>+${total} points</b></div>
       </div>`;
   }
 
@@ -595,9 +623,11 @@
           <h2 class="card-h">${esc(def.label)}</h2>
           <div class="muted">${esc(def.desc)}</div>
           <ul class="game-rules">
-            <li><b>${"❤️".repeat(def.lives)} ${def.lives} lives</b> for the whole game — a wrong answer, or running out of time, costs one.</li>
-            ${def.rounds.map((r, i) => `<li>${roundRule(r, i)}</li>`).join("")}
-            <li>Type the answer on the number pad and tap <b>✓</b> (or press Enter).</li>
+            <li><b>${"❤️".repeat(def.lives)} ${def.lives} lives</b> for the whole game — a wrong answer, or ${isOddEven(def) ? "letting a number land" : "running out of time"}, costs one.</li>
+            ${def.rounds.map((r, i) => `<li>${roundRule(def, r, i)}</li>`).join("")}
+            <li>${isOddEven(def)
+              ? "Tap <b>Odd</b> or <b>Even</b> before the number hits the ground (on a keyboard: <b>O</b> / <b>E</b>, or <b>←</b> / <b>→</b>)."
+              : "Type the answer on the number pad and tap <b>✓</b> (or press Enter)."}</li>
           </ul>
           ${pointsPlan(def)}
           <div class="game-badges center-row">${def.rounds.filter(r => r.badge).map(r => badgeChip(r.badge, earned[r.badge])).join("")}</div>
@@ -615,12 +645,17 @@
 
   function startGame(subjectId, gameId) {
     const def = DATA.game(gameId);
-    const pool = def ? gamePool(def) : [];
-    if (!pool.length) { toast("This game's questions aren't ready yet.", "bad"); return; }
+    if (!def) return;
     const need = def.rounds.reduce((n, r) => n + r.questions, 0);
-    let facts = shuffle(pool);
-    while (facts.length < need) facts = facts.concat(shuffle(pool));   // only if a game needs more facts than exist
-    const qs = facts.slice(0, need).map(ways => ways[Math.floor(Math.random() * ways.length)]);
+    let qs;
+    if (isOddEven(def)) qs = oddEvenNumbers(need);
+    else {
+      const pool = gamePool(def);
+      if (!pool.length) { toast("This game's questions aren't ready yet.", "bad"); return; }
+      let facts = shuffle(pool);
+      while (facts.length < need) facts = facts.concat(shuffle(pool));   // only if a game needs more facts than exist
+      qs = facts.slice(0, need).map(ways => ways[Math.floor(Math.random() * ways.length)]);
+    }
     game = {
       def, subjectId, qs: qs, qi: 0, round: 0, inRound: 0,
       lives: def.lives, correct: 0, answered: 0, tooSlow: 0, cleared: 0,
@@ -634,24 +669,35 @@
     const g = game;
     if (!g) return;
     const r = g.def.rounds[g.round];
+    const fall = isOddEven(g.def);
     current = null;
-    show(`
-      <div class="topbar"><span class="back" id="bk">✕ Quit</span><h2>${g.def.icon || "🎮"} ${esc(g.def.label)}</h2></div>
-      <div class="qwrap bc-wrap">
-        <div class="bc-hud">
-          <span class="bc-lives" id="bcLives"></span>
-          <span class="bc-round">Round ${g.round + 1} · <b id="bcNum">1</b>/${r.questions}</span>
-          <span class="bc-clock" id="bcClock">${r.perQuestion}s</span>
-        </div>
-        <div class="progress"><i id="bcProg" style="width:0%"></i></div>
-        <div class="bc-q" id="bcQ"></div>
+    // Meteor Mayhem: the number falls down the sky (#bcQ); Beat the Clock: a question and the number pad.
+    const play = fall
+      ? `<div class="oe-sky" id="oeSky"><div class="oe-num" id="bcQ"></div><div class="oe-ground"></div></div>
+        <div class="bc-timebar"><i id="bcTime"></i></div>
+        <div class="bc-flash" id="bcFlash"></div>
+        <div class="oe-btns">
+          <button type="button" class="oe-btn odd" data-pick="Odd">Odd</button>
+          <button type="button" class="oe-btn even" data-pick="Even">Even</button>
+        </div>`
+      : `<div class="bc-q" id="bcQ"></div>
         <div class="bc-timebar"><i id="bcTime"></i></div>
         <div class="bc-ans" id="bcAns"></div>
         <div class="bc-flash" id="bcFlash"></div>
         <div class="keyboard numeric bc-pad">
           ${["123", "456", "789"].map(row => `<div class="kb-row">${row.split("").map(c => `<button type="button" class="kb-key" data-key="${c}">${c}</button>`).join("")}</div>`).join("")}
           <div class="kb-row"><button type="button" class="kb-key kb-back" data-key="back" aria-label="Delete">⌫</button><button type="button" class="kb-key" data-key="0">0</button><button type="button" class="kb-key kb-ok" data-key="ok" aria-label="Check">✓</button></div>
+        </div>`;
+    show(`
+      <div class="topbar"><span class="back" id="bk">✕ Quit</span><h2>${g.def.icon || "🎮"} ${esc(g.def.label)}</h2></div>
+      <div class="qwrap bc-wrap${fall ? " oe-wrap" : ""}">
+        <div class="bc-hud">
+          <span class="bc-lives" id="bcLives"></span>
+          <span class="bc-round">${roundWord(g.def)} ${g.round + 1} · <b id="bcNum">1</b>/${r.questions}</span>
+          <span class="bc-clock" id="bcClock">${r.perQuestion}s</span>
         </div>
+        <div class="progress"><i id="bcProg" style="width:0%"></i></div>
+        ${play}
       </div>`, g.subjectId);
     g.inRound = 0; g.typed = ""; g.busy = false; g.roundMs = 0;
     $("#bk").onclick = () => {
@@ -662,11 +708,17 @@
       });
     };
     $$(".bc-pad .kb-key").forEach(b => { b.onclick = () => gamePress(b.dataset.key); });
-    keyHandler = (e) => {
-      if (/^[0-9]$/.test(e.key)) { gamePress(e.key); return true; }
-      if (e.key === "Backspace") { gamePress("back"); return true; }
-      if (e.key === "Enter") { gamePress("ok"); return true; }
-    };
+    $$(".oe-btn").forEach(b => { b.onclick = () => gamePick(b.dataset.pick); });
+    keyHandler = fall
+      ? (e) => {
+          if (e.key === "o" || e.key === "O" || e.key === "ArrowLeft") { gamePick("Odd"); return true; }
+          if (e.key === "e" || e.key === "E" || e.key === "ArrowRight") { gamePick("Even"); return true; }
+        }
+      : (e) => {
+          if (/^[0-9]$/.test(e.key)) { gamePress(e.key); return true; }
+          if (e.key === "Backspace") { gamePress("back"); return true; }
+          if (e.key === "Enter") { gamePress("ok"); return true; }
+        };
     paintGame();
     stopGameTimer();
     gameTimer = setInterval(tickGame, 50);
@@ -684,10 +736,21 @@
     $("#bcLives").innerHTML = heartsHtml(g, false);
     $("#bcNum").textContent = Math.min(g.inRound + 1, r.questions);
     $("#bcProg").style.width = Math.round(g.inRound / r.questions * 100) + "%";
-    $("#bcQ").textContent = q.text + " = ?";
-    const ans = $("#bcAns");
-    ans.textContent = g.typed || "?";
-    ans.className = "bc-ans" + (g.typed ? "" : " empty");
+    if (isOddEven(g.def)) {
+      // Drop the next number from a random spot along the top — it lands just as its clock runs out.
+      const el = $("#bcQ");
+      el.textContent = q.text;
+      el.className = "oe-num";
+      el.style.left = (18 + Math.random() * 64).toFixed(1) + "%";
+      el.style.animation = "none";
+      void el.offsetWidth;                      // restart the fall from the top
+      el.style.animation = `oe-fall ${r.perQuestion}s linear forwards`;
+    } else {
+      $("#bcQ").textContent = q.text + " = ?";
+      const ans = $("#bcAns");
+      ans.textContent = g.typed || "?";
+      ans.className = "bc-ans" + (g.typed ? "" : " empty");
+    }
     $("#bcFlash").innerHTML = "";
     g.qStart = Date.now();
     g.qDeadline = g.qStart + r.perQuestion * 1000;
@@ -742,6 +805,26 @@
     loseLife(g, `${esc(q.text)} = <b>${esc(q.answer)}</b>`);
   }
 
+  // Meteor Mayhem: Odd or Even tapped for the falling number.
+  function gamePick(pick) {
+    const g = game;
+    if (!g || g.busy || g.over || !g.qDeadline) return;
+    const q = g.qs[g.qi], el = $("#bcQ");
+    g.busy = true;
+    g.answered++;
+    g.roundMs += Math.max(0, Date.now() - g.qStart);
+    g.qDeadline = 0;
+    el.style.animationPlayState = "paused";     // the number stops where it was caught
+    if (pick === q.answer) {
+      g.correct++;
+      SOUND.play("correct");
+      el.classList.add("ok");
+      setTimeout(() => gameNext(g), 350);
+      return;
+    }
+    loseLife(g, `✗ ${oddEvenWhy(q)}`);
+  }
+
   // The question's clock ran out — counts like a wrong answer.
   function gameTimeout() {
     const g = game;
@@ -754,13 +837,16 @@
     g.qDeadline = 0;
     $("#bcClock").textContent = "0s";
     $("#bcTime").style.width = "0%";
-    loseLife(g, `⏰ Too slow! ${esc(q.text)} = <b>${esc(q.answer)}</b>`);
+    if (isOddEven(g.def)) {
+      $("#bcQ").classList.add("landed");
+      loseLife(g, `💥 It landed! ${oddEvenWhy(q)}`);
+    } else loseLife(g, `⏰ Too slow! ${esc(q.text)} = <b>${esc(q.answer)}</b>`);
   }
 
   function loseLife(g, flashHtml) {
     g.lives--;
     SOUND.play("wrong");
-    $("#bcAns").classList.add("bad");
+    ($("#bcAns") || $("#bcQ")).classList.add("bad");
     $("#bcFlash").innerHTML = flashHtml;
     $("#bcLives").innerHTML = heartsHtml(g, true);
     if (g.lives <= 0) setTimeout(() => { if (game === g && !g.over) endGame("lives"); }, 1200);
@@ -801,12 +887,12 @@
       <div class="page narrow">
         <div class="card wide center">
           <div class="big-emoji">🎉</div>
-          <h2 class="card-h">Round ${g.round + 1} cleared!</h2>
+          <h2 class="card-h">${roundWord(g.def)} ${g.round + 1} cleared!</h2>
           <div class="muted" style="font-weight:700">${g.correct} correct · answered in ${secs(g.times[g.round])} · lives left ${"❤️".repeat(g.lives)}</div>
-          ${g.roundPts[g.round] ? `<div class="points-won">${ART.coin(30)}<div><b>+${plural(g.roundPts[g.round], "point")}!</b><span>for winning Round ${g.round + 1}</span></div></div>` : ""}
+          ${g.roundPts[g.round] ? `<div class="points-won">${ART.coin(30)}<div><b>+${plural(g.roundPts[g.round], "point")}!</b><span>for winning ${roundWord(g.def)} ${g.round + 1}</span></div></div>` : ""}
           ${done.badge ? `<div class="game-badges center-row" style="margin-top:14px">${badgeChip(done.badge, earned[done.badge], g.newBadges.indexOf(done.badge) > -1)}</div>` : ""}
           <div class="summary-box" style="margin-top:16px;text-align:left">
-            ${roundRule(next, g.round + 1)} Win it for <b>${ART.coin(14)} +${STORE.arenaNextPoints(g.def.id, g.round + 1)} points</b>. Your lives carry on (${"❤️".repeat(g.lives)}). The first question starts when you tap <b>Go</b>.
+            ${roundRule(g.def, next, g.round + 1)} Win it for <b>${ART.coin(14)} +${STORE.arenaNextPoints(g.def.id, g.round + 1)} points</b>. Your lives carry on (${"❤️".repeat(g.lives)}). The first ${isOddEven(g.def) ? "number drops" : "question starts"} when you tap <b>Go</b>.
           </div>
           <div class="row" style="margin-top:18px">
             <button class="btn ghost" id="stopBtn" type="button">Stop here</button>
@@ -828,13 +914,13 @@
     stopGameTimer();
     const overlay = document.querySelector(".overlay");
     if (overlay) overlay.remove();
-    const rec = STORE.recordGame({
+    const entry = {
       game: g.def.id, subjectId: g.subjectId, ts: Date.now(),
       cleared: g.cleared, reached: g.round + 1, correct: g.correct, answered: g.answered,
-      tooSlow: g.tooSlow, livesLeft: g.lives, points: g.points,
-      r1Ms: g.cleared >= 1 ? g.times[0] : null, r2Ms: g.cleared >= 2 ? g.times[1] : null,
-      reason: reason
-    });
+      tooSlow: g.tooSlow, livesLeft: g.lives, points: g.points, reason: reason
+    };
+    g.def.rounds.forEach((r, i) => { entry["r" + (i + 1) + "Ms"] = g.cleared > i ? g.times[i] : null; });   // r1Ms, r2Ms, r3Ms…
+    const rec = STORE.recordGame(entry);
     game = null;
     renderGameResult(g, rec, reason);
   }
@@ -843,13 +929,12 @@
     const def = g.def;
     current = null;
     const won = g.cleared >= def.rounds.length;
-    const head = won ? "You beat the clock!" : reason === "lives" ? "Out of lives!" : g.cleared ? "Well played!" : "Game over";
+    const head = won ? (def.winText || "You beat the clock!") : reason === "lives" ? "Out of lives!" : g.cleared ? "Well played!" : "Game over";
     const emoji = won ? "🏆" : reason === "lives" ? "💔" : "👏";
     const earned = STORE.badges();
     const stats = [`<b>${g.correct}</b> correct out of ${g.answered}`];
-    if (g.tooSlow) stats.push(`⏰ ${g.tooSlow} too slow`);
-    if (rec.r1Ms) stats.push(`Round 1 in <b>${secs(rec.r1Ms)}</b>`);
-    if (rec.r2Ms) stats.push(`Round 2 in <b>${secs(rec.r2Ms)}</b>`);
+    if (g.tooSlow) stats.push(isOddEven(def) ? `💥 ${g.tooSlow} landed` : `⏰ ${g.tooSlow} too slow`);
+    def.rounds.forEach((r, i) => { const t = rec["r" + (i + 1) + "Ms"]; if (t) stats.push(`${roundWord(def)} ${i + 1} in <b>${secs(t)}</b>`); });
     const tip = won ? "Amazing! Can you beat your fastest time?"
       : reason === "lives" ? `Practise the tricky ones in <b>By Module → ${esc(DATA.topicLabel(def.subjectId, def.source.topicId))} → ${esc(DATA.levelLabel(def.subjectId, def.source.topicId, def.source.levelId))}</b>, then come back!`
       : "Come back and try for the next badge!";
@@ -861,8 +946,8 @@
           <h2 class="card-h">${head}</h2>
           <div class="muted" style="font-weight:700;line-height:1.7">${stats.join(" · ")}</div>
           ${g.points
-            ? `<div class="points-won">${ART.coin(30)}<div><b>+${plural(g.points, "point")}!</b><span>${g.roundPts.map((p, i) => p ? "Round " + (i + 1) + " +" + p : "").filter(Boolean).join(" · ")}</span></div></div>`
-            : `<div class="points-none">${ART.coin(18)} No points this time — win Round 1 for <b>+${STORE.arenaNextPoints(def.id, 0)}</b>!</div>`}
+            ? `<div class="points-won">${ART.coin(30)}<div><b>+${plural(g.points, "point")}!</b><span>${g.roundPts.map((p, i) => p ? roundWord(def) + " " + (i + 1) + " +" + p : "").filter(Boolean).join(" · ")}</span></div></div>`
+            : `<div class="points-none">${ART.coin(18)} No points this time — win ${roundWord(def)} 1 for <b>+${STORE.arenaNextPoints(def.id, 0)}</b>!</div>`}
           ${g.newBadges.length ? `<div class="badge-won">${g.newBadges.map(id => badgeChip(id, earned[id], true)).join("")}</div>` : ""}
           <div class="game-badges center-row" style="margin-top:14px">${def.rounds.filter(r => r.badge && g.newBadges.indexOf(r.badge) < 0).map(r => badgeChip(r.badge, earned[r.badge])).join("")}</div>
           <div class="summary-box" style="margin-top:16px;text-align:left">${tip}</div>
@@ -1151,7 +1236,7 @@
       listed += r.points;
       const def = DATA.game(r.game) || { label: r.game, icon: "🎮" };
       out.push({ ts: r.ts, kind: "earn", amount: r.points, icon: def.icon || "🎮", subj: def.subjectId,
-        title: def.label, sub: "Quest Arena — won " + plural(r.cleared || 0, "round") });
+        title: def.label, sub: "Quest Arena — won " + plural(r.cleared || 0, roundWord(def).toLowerCase()) });
     });
     const arena = STORE.arenaPoints(p);
     if (arena > listed) out.push({ ts: 0, kind: "earn", amount: arena - listed, icon: "🎮", title: "Earlier Quest Arena wins", sub: "Round bonuses from before this list started" });
@@ -1765,7 +1850,7 @@
 
   /* ===================== assessment engine ===================== */
   function shuffleOpts(q) {
-    if (!Array.isArray(q.options)) return Object.assign({}, q);
+    if (!Array.isArray(q.options) || q.fixedOrder) return Object.assign({}, q);   // fixedOrder: e.g. always Odd, then Even
     const order = shuffle(q.options.map((_, i) => i));
     return Object.assign({}, q, { options: order.map(i => q.options[i]), answer: order.indexOf(q.answer) });
   }
@@ -2740,7 +2825,7 @@
         <div class="card wide admin-card">
           <p class="muted small" style="line-height:1.6;margin-bottom:12px">Points are paid only when a player <b>beats their own best score</b> on a level: (new best − old best) × the value below. Repeating a level without beating the best earns nothing, so one level can never pay more than 100 × the value.</p>
           <div class="rate-list">${rows}</div>
-          <p class="muted small" style="margin-top:12px;line-height:1.6">New values count from the next assessment — points already earned don't change. Set a subject to 0 to switch its points off.<br/>Quest Arena games pay their own fixed points (Beat the Clock: +50 for the first Round 1 win, +60 for the first Round 2 win, then +5 per round won).</p>
+          <p class="muted small" style="margin-top:12px;line-height:1.6">New values count from the next assessment — points already earned don't change. Set a subject to 0 to switch its points off.<br/>Quest Arena games pay their own fixed points (Beat the Clock: +50 for the first Round 1 win, +60 for the first Round 2 win, then +5 per round won; Meteor Mayhem: +50 for the first win of each level, then +5 per level won).</p>
           <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn primary" id="saveRates" type="button">💾 Save points values</button></div>
         </div>
         <h3 class="section-h">💵 Cash value of 1 point</h3>
