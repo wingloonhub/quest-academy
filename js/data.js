@@ -164,7 +164,12 @@
               ] },
             { id: "mixed_operations", label: "Mixed operations", icon: "🔀", desc: "Choosing and combining +, −, × and ÷", levels: [] }
           ] },
-        { id: "fdp", label: "Fractions, Decimals & Percentages", icon: "🍕", desc: "Parts of a whole, decimals and percentages", topics: [] },
+        { id: "fdp", label: "Fractions, Decimals & Percentages", icon: "🍕", desc: "Parts of a whole, decimals and percentages", topics: [
+            { id: "fractions", label: "Fractions", icon: "🍕", desc: "Parts of a whole — reading, comparing and using fractions", levels: [
+                { id: "level1", label: "Level 1", desc: "Understanding fractions", sessionSize: 15, hideCat: true,
+                  catLabels: { BAR: "Shaded fraction bars", CIRCLE: "Shaded fraction circles", UNSHADED: "Unshaded fraction bars", NUMDEN: "Numerators & denominators" } }
+              ] }
+          ] },
         { id: "measurement", label: "Measurement", icon: "📏", desc: "Length, mass, capacity, time and money", topics: [
             { id: "time", label: "Time", icon: "🕒", desc: "Reading clocks — exact times, quarters, minutes past and to", levels: [
                 { id: "level1", label: "Level 1", desc: "Reading exact time", sessionSize: 15, hideCat: true,

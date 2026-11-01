@@ -2077,7 +2077,11 @@
     const multiNumeric = kind === "multi" && fieldAcc.every(a => isNumericAnswers(a));
     const passage = q.passage ? `<div class="passage">${fmt(q.passage)}</div>` : "";
     // q.clock: "h:mm" — a clock face is drawn for the question
-    const visual = q.clock ? `<div class="q-visual">${ART.clock(q.clock)}</div>` : q.visual ? `<div class="q-visual">${q.visual}</div>` : "";
+    // q.bar or q.circle: "shaded/parts" — a fraction picture is drawn for the question
+    const fracShape = q.bar ? "bar" : q.circle ? "circle" : "";
+    const visual = q.clock ? `<div class="q-visual">${ART.clock(q.clock)}</div>`
+      : fracShape ? `<div class="q-visual">${ART.fraction(fracShape, q[fracShape])}</div>`
+      : q.visual ? `<div class="q-visual">${q.visual}</div>` : "";
     const qText = String(q.q || "");
     const inlineBlank = kind === "typed" && qText.indexOf("___") > -1;
     const actions = `<div class="kb-actions">
@@ -2132,7 +2136,7 @@
 
     show(`
       <div class="topbar"><span class="back" id="bk">✕ Quit</span><h2>📝 ${esc(DATA.fullLabel(st.subjectId, st.topicId, st.levelId))}</h2></div>
-      <div class="qwrap${q.clock ? " clock-q" : ""}">
+      <div class="qwrap${q.clock || fracShape ? " clock-q" : ""}">
         <div class="progress-label"><span>Question ${num} of ${total}</span><span>${st.maxPts && st.maxPts.rate > 0 && st.maxPts.max > 0 ? `<span class="max-chip">${ART.coin(13)} up to <b>${st.maxPts.max}</b> pts</span> · `
           : st.maxPts && st.maxPts.replay ? `<span class="max-chip">${ART.coin(13)} replay: <b>+${st.maxPts.replay}</b> at ${st.maxPts.replayMin}%+</span> · ` : ""}✓ ${correctSoFar} correct</span></div>
         <div class="progress"><i style="width:${Math.round((st.idx / total) * 100)}%"></i></div>
@@ -2161,7 +2165,8 @@
       if (!st.byCat[c]) st.byCat[c] = { correct: 0, total: 0 };
       st.byCat[c].total++;
       if (correct) st.byCat[c].correct++;
-      const stem = kind === "spell" ? "Spell the word: " + q.word : q.clock ? qText + " (clock showing " + q.clock + ")" : (qText || "Question");
+      const stem = kind === "spell" ? "Spell the word: " + q.word : q.clock ? qText + " (clock showing " + q.clock + ")"
+        : fracShape ? qText + " (" + fracShape + ": " + q[fracShape].replace("/", " of ") + " parts shaded)" : (qText || "Question");
       st.answers.push({ q, correct, stem, chosenText, answerText });
       const fb = $("#fbk");
       if (correct) {

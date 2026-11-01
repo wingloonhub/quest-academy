@@ -233,6 +233,26 @@
     </svg>`;
   }
 
+  // Fraction picture: a "bar" or "circle" in equal parts, "shaded/parts" of them shaded,
+  // going from the left or clockwise from 12. The label never gives the fraction away.
+  function fraction(shape, value) {
+    const p = String(value).split("/").map(Number), shaded = p[0], parts = p[1];
+    const on = "#3068b1", off = "#f7f9fc", line = "#445164";
+    const style = (i) => `fill="${i < shaded ? on : off}" stroke="${line}" stroke-width="4" stroke-linejoin="round"`;
+    let cells = "";
+    if (shape === "bar") {
+      const w = 636 / parts;
+      for (let i = 0; i < parts; i++) cells += `<rect x="${(12 + i * w).toFixed(2)}" y="12" width="${w.toFixed(2)}" height="88" ${style(i)}/>`;
+      return `<svg class="frac-bar" viewBox="0 0 660 112" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Fraction bar">${cells}</svg>`;
+    }
+    const at = (i) => {
+      const a = i / parts * 2 * Math.PI;
+      return (120 + 106 * Math.sin(a)).toFixed(2) + " " + (120 - 106 * Math.cos(a)).toFixed(2);
+    };
+    for (let i = 0; i < parts; i++) cells += `<path d="M120 120L${at(i)}A106 106 0 0 1 ${at(i + 1)}Z" ${style(i)}/>`;
+    return `<svg class="frac-circle" viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Fraction circle">${cells}</svg>`;
+  }
+
   // Clock face showing "h:mm". The short hand moves on between the hours, like a
   // real clock, and the long hand stops just short of the minute marks so they can be counted.
   function clock(time, size) {
@@ -271,7 +291,7 @@
   }
 
   window.ART = {
-    crest, student, owl, subject, stars, coin, badge, blaster, clock,
+    crest, student, owl, subject, stars, coin, badge, blaster, clock, fraction,
     player: function (_pose, gender) { return student(gender); }
   };
 })();

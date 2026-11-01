@@ -307,6 +307,7 @@ button:focus-visible,.profile-card:focus-visible{outline:2px solid var(--gold);o
 /* Clock questions: keep the clock, the answer and the Check button on one screen */
 .clock-q .q-visual{padding:6px;margin-bottom:8px}
 .clock-q .q-visual svg{display:block;margin:0 auto;width:clamp(170px,24vh,230px)}
+.clock-q .q-visual svg.frac-bar{width:100%;max-width:420px}
 .clock-q .qtext{font-size:19px;margin-bottom:8px}
 .clock-q .spell-instr{font-size:13px}
 .clock-q .keyboard.numeric .kb-key{padding:8px 0}
