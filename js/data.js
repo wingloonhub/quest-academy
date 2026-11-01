@@ -236,7 +236,7 @@
       subjectId: "maths",
       kind: "blaster",
       label: "Multiple Blaster",
-      desc: "Times tables ×2 to ×10 · type the answer to blast each sum",
+      desc: "Times tables ×2 to ×10",
       icon: "🎯",
       roundName: "Level",
       winText: "You blasted every sum!",
@@ -255,7 +255,7 @@
       subjectId: "maths",
       kind: "odd_even",
       label: "Meteor Mayhem",
-      desc: "Odd or even? · falling numbers with 1 to 4 digits",
+      desc: "Odd or even?",
       icon: "☄️",
       roundName: "Level",
       winText: "You stopped every meteor!",
@@ -272,7 +272,7 @@
       subjectId: "maths",
       kind: "battle",
       label: "Divide & Conquer",
-      desc: "Times tables ×2 to ×11 · get the division right to throw your power cards at the monster",
+      desc: "Division ×2 to ×11",
       icon: "🃏",
       roundName: "Level",
       winText: "You conquered every monster!",
@@ -280,9 +280,9 @@
       source: { topicId: "operations", levelId: "division.level1" },   // where to practise if the lives run out
       lives: 3,                                                         // the player's, for the whole game
       rounds: [
-        { questions: 12, perQuestion: 15, monster: { art: "brute",  name: "Hulk",                   attack: "punch",  attackText: "a punch" },        badge: "tomb_conqueror",   points: { first: 50, repeat: 5 } },
-        { questions: 12, perQuestion: 10, monster: { art: "zombie", name: "Zombie Captain America", attack: "shield", attackText: "a shield throw" }, badge: "titan_conqueror",  points: { first: 50, repeat: 5 } },
-        { questions: 12, perQuestion: 5,  monster: { art: "spider", name: "Zombie Spiderman",       attack: "web",    attackText: "web shooting" },   badge: "undead_conqueror", points: { first: 50, repeat: 5 } }
+        { questions: 12, perQuestion: 15, monster: { art: "brute",  name: "Hulk",                   attack: "punch" },  badge: "tomb_conqueror",   points: { first: 50, repeat: 5 } },
+        { questions: 12, perQuestion: 10, monster: { art: "zombie", name: "Zombie Captain America", attack: "shield" }, badge: "titan_conqueror",  points: { first: 50, repeat: 5 } },
+        { questions: 12, perQuestion: 5,  monster: { art: "spider", name: "Zombie Spiderman",       attack: "web" },    badge: "undead_conqueror", points: { first: 50, repeat: 5 } }
       ]
     }
   ];

@@ -138,8 +138,10 @@ Operations → Division → Level 1.
 | Level 2 | Zombie Captain America, the hero's height: attacks with a shield throw (12 lives) | **10 seconds** an answer | 🛡️ **Shield Conqueror** (silver) | **+50** the first win, then +5 per win |
 | Level 3 | Zombie Spiderman: attacks with web shooting (12 lives) | **5 seconds** an answer | 🕸️ **Web Conqueror** (gold) | **+50** the first win, then +5 per win |
 
-The game page shows the points each round will pay before he starts ("Points
-you can win"). In **every game, now and in future**, winning a level opens a
+The Quest Arena shows each game as a tile with its badges won (like 🏅 1/3) and
+the points up for grabs. Tapping a tile opens the game's page, which keeps the
+words short: a table of what each level pays and its badge ("Points you can win"),
+then Start. In **every game, now and in future**, winning a level opens a
 popup with the points earned and one button to start the next level. There's no
 way out of the popup (the phone's back button does nothing while it's open); ✕
 Quit is only there during a level. The results screen shows everything won.

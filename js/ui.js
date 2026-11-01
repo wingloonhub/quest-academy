@@ -617,18 +617,17 @@
       return;
     }
     const earned = STORE.badges();
-    const cards = list.map(def => `<div class="game-card">
-        <div class="game-head"><span class="game-icon">${def.icon || "🎮"}</span>
-          <div><div class="game-title">${esc(def.label)}</div><div class="muted small">${esc(def.desc)}</div></div></div>
-        <div class="game-badges">${def.rounds.filter(r => r.badge).map(r => badgeChip(r.badge, earned[r.badge])).join("")}</div>
-        <div class="pts-line small">${ART.coin(15)} Win points: ${def.rounds.map((r, i) => `${roundWord(def)} ${i + 1} <b>+${STORE.arenaNextPoints(def.id, i)}</b>`).join(" · ")}${STORE.questBonus(def.id) ? "" : ` · every ${roundWord(def).toLowerCase()} <b>+${DATA.QUEST_BONUS}</b>`}${STORE.arenaPoints(null, null, def.id) ? ` · earned so far <b>${STORE.arenaPoints(null, null, def.id)}</b>` : ""}</div>
-        <div class="muted small">${esc(gameBest(def, STORE.gameLog(def.id)))}</div>
-        <button class="btn primary" data-game="${esc(def.id)}" type="button">Play →</button>
-      </div>`).join("");
+    const tiles = list.map(def => {
+      const ids = def.rounds.map(r => r.badge).filter(Boolean), got = ids.filter(id => earned[id]).length;
+      return `<button class="game-tile${ids.length && got === ids.length ? " done" : ""}" data-game="${esc(def.id)}" type="button">
+          <span class="gt-icon">${def.icon || "🎮"}</span>
+          <span class="gt-name">${esc(def.label)}</span>
+          <span class="gt-stats"><span>🏅 ${got}/${ids.length}</span><span class="gt-pts">${ART.coin(15)} +${pointsToWin(def)}</span></span>
+        </button>`;
+    }).join("");
     show(`${top}
       <div class="page narrow">
-        <div class="lead" style="margin-top:4px">Use what you've learned to beat the challenge and win badges.</div>
-        <div class="game-list">${cards}</div>
+        <div class="game-tiles">${tiles}</div>
         <button class="btn full" id="trophyBtn" type="button" style="margin-top:16px">🏆 Trophy Room — all my badges</button>
       </div>`, subjectId);
     $("#bk").onclick = () => renderStudyMode(subjectId);
@@ -636,40 +635,31 @@
     $$("[data-game]").forEach(b => { b.onclick = () => renderGameIntro(subjectId, b.dataset.game); });
   }
 
-  function roundRule(def, r, i) {
-    const b = r.badge && DATA.BADGES[r.badge];
-    const win = b ? ` Make it through to win the <b>${esc(b.label)}</b> badge.` : "";
-    if (isBattle(def)) return `<b>${roundWord(def)} ${i + 1}:</b> ${esc(r.monster.name)} has ${r.questions} lives and attacks with <b>${esc(r.monster.attackText)}</b> — ${i ? "only " : ""}<b>${r.perQuestion} seconds</b> for each answer${i ? "!" : "."}${win}`;
-    if (isFalling(def)) return `<b>${roundWord(def)} ${i + 1}:</b> ${r.questions} ${i ? "more " : ""}${isBlaster(def) ? "sums" : "numbers"} — each one takes ${i ? "only " : ""}<b>${r.perQuestion} seconds</b> to fall${i ? "!" : "."}${win}`;
-    return `<b>${roundWord(def)} ${i + 1}:</b> ${r.questions} ${i ? "more " : ""}questions — ${i ? "only " : ""}<b>${r.perQuestion} seconds</b> for each one${i ? "!" : "."}${win}`;
+  // What a full run can pay right now: each level's next win, plus the quest bonus if it's still to come.
+  function pointsToWin(def) {
+    return def.rounds.reduce((n, r, i) => n + STORE.arenaNextPoints(def.id, i), 0) + (STORE.questBonus(def.id) ? 0 : DATA.QUEST_BONUS);
   }
 
-  // "Points you can win" box — shown before the game starts.
+  // "Points you can win": a row for each level, its badge and what it pays.
   function pointsPlan(def) {
-    let total = 0;
+    const earned = STORE.badges(), soFar = STORE.arenaPoints(null, null, def.id), pays = def.rounds[0].points || {};
     const rows = def.rounds.map((r, i) => {
-      const next = STORE.arenaNextPoints(def.id, i);
-      const claimed = STORE.arenaWins(def.id, i) > 0;
       const b = r.badge && DATA.BADGES[r.badge];
-      total += next;
       return `<div class="pp-row">
-          <span class="pp-name">${roundWord(def)} ${i + 1}${b ? ` · ${esc(b.label)}` : ""}</span>
-          <span class="pp-pts">${ART.coin(18)} +${next}</span>
-          <span class="pp-note">${claimed
-            ? `first-win bonus (+${(r.points || {}).first || 0}) already claimed — +${(r.points || {}).repeat || 0} for every win now`
-            : `first-win bonus! After that, +${(r.points || {}).repeat || 0} each time you win it`}</span>
+          <span class="pp-medal">${b ? ART.badge(r.badge, 32, !!earned[r.badge]) : ""}</span>
+          <span class="pp-name">${roundWord(def)} ${i + 1} · ${r.perQuestion} sec${b ? `<small>${esc(b.label)}</small>` : ""}</span>
+          <span class="pp-pts">${ART.coin(18)} +${STORE.arenaNextPoints(def.id, i)}</span>
         </div>`;
     }).join("");
-    const word = roundWord(def).toLowerCase(), bonusPaid = STORE.questBonus(def.id) > 0;
     return `<div class="points-plan">
-        <div class="pp-title">${ART.coin(20)} Points you can win</div>
+        <div class="pp-title">Points you can win<small>First win +${pays.first || 0}, then +${pays.repeat || 0}</small></div>
         ${rows}
         <div class="pp-row">
-          <span class="pp-name">🏆 Every ${word} won</span>
-          <span class="pp-pts">${bonusPaid ? "✓" : `${ART.coin(18)} +${DATA.QUEST_BONUS}`}</span>
-          <span class="pp-note">${bonusPaid ? "quest bonus already claimed" : "quest bonus, paid once"}</span>
+          <span class="pp-medal">🏆</span>
+          <span class="pp-name">Win all ${def.rounds.length} ${roundWord(def).toLowerCase()}s<small>Quest bonus, paid once</small></span>
+          <span class="pp-pts">${STORE.questBonus(def.id) ? "✓" : `${ART.coin(18)} +${DATA.QUEST_BONUS}`}</span>
         </div>
-        <div class="pp-total">Win every ${word} this time: <b>+${total + (bonusPaid ? 0 : DATA.QUEST_BONUS)} points</b></div>
+        <div class="pp-total">Win them all now: <b>+${pointsToWin(def)}</b>${soFar ? ` · earned so far <b>${soFar}</b>` : ""}</div>
       </div>`;
   }
 
@@ -677,30 +667,17 @@
     const def = DATA.game(gameId);
     if (!def) return renderArena(subjectId);
     current = () => renderGameIntro(subjectId, gameId);
-    const earned = STORE.badges();
+    const log = STORE.gameLog(def.id);
     show(`
       <div class="topbar"><span class="back" id="bk">← Quest Arena</span><h2>${def.icon || "🎮"} ${esc(def.label)}</h2></div>
       <div class="page narrow">
-        <div class="card wide center">
-          <div class="big-emoji">${def.icon || "🎮"}</div>
-          <h2 class="card-h">${esc(def.label)}</h2>
+        <div class="card wide center game-page">
           <div class="muted">${esc(def.desc)}</div>
           ${isBattle(def) ? `<div class="df-lineup"><span class="df-me">${ART.hero((STORE.active() || {}).gender)}</span><b>VS</b>${def.rounds.map(r => `<span>${ART.monster(r.monster.art)}</span>`).join("")}</div>` : ""}
-          <ul class="game-rules">
-            <li><b>${"❤️".repeat(def.lives)} ${def.lives} lives</b> for the whole game — a wrong answer, or ${isFalling(def) ? `letting a ${isBlaster(def) ? "sum" : "number"} land` : "running out of time"}, costs one.</li>
-            ${def.rounds.map((r, i) => `<li>${roundRule(def, r, i)}</li>`).join("")}
-            <li>${isBattle(def)
-              ? "Type the answer on the number pad. Get it right and you throw your power cards at the monster. Get it wrong, or run out of time, and the monster hits you."
-              : isBlaster(def)
-              ? "Type the answer on the number pad. Get it right and your blaster shoots the sum down before it lands."
-              : isOddEven(def)
-              ? "Tap <b>Odd</b> or <b>Even</b> before the number hits the ground (on a keyboard: <b>O</b> / <b>E</b>, or <b>←</b> / <b>→</b>)."
-              : "Type the answer on the number pad and tap <b>✓</b> (or press Enter)."}</li>
-          </ul>
+          <div class="game-lives">${"❤️".repeat(def.lives)} <b>${def.lives} lives</b></div>
           ${pointsPlan(def)}
-          <div class="game-badges center-row">${def.rounds.filter(r => r.badge).map(r => badgeChip(r.badge, earned[r.badge])).join("")}</div>
-          <div class="muted small" style="margin-top:8px">${esc(gameBest(def, STORE.gameLog(def.id)))}</div>
-          <div class="row" style="margin-top:18px">
+          ${log.length ? `<div class="muted small">${esc(gameBest(def, log))}</div>` : ""}
+          <div class="row" style="margin-top:14px">
             <button class="btn ghost" id="backBtn" type="button">← Back</button>
             <button class="btn primary" id="startBtn" type="button">Start ▶</button>
           </div>
