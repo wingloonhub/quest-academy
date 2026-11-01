@@ -153,36 +153,52 @@
     return `<svg class="coin" width="${s}" height="${s}" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11.5" fill="#d99a1e"/><circle cx="12" cy="12" r="9" fill="#f7c948" stroke="#c98a1b" stroke-width="1"/><polygon points="${starPoints(12, 12.6, 5.8, 2.5)}" fill="#c98a1b"/></svg>`;
   }
 
-  // Badge medal (bronze / silver / gold). Icons: "ninja" = crossed swords making a ×,
-  // "wizard" = wizard hat with a ×, "comet", "rocket", "planet" (ringed),
+  // The Multiple Blaster cannon, pointing up.
+  function blaster() {
+    return `<svg viewBox="0 0 44 42" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect x="18" y="2" width="8" height="21" rx="3" fill="#e2e8f0" stroke="#475569" stroke-width="1.4"/>
+      <circle cx="22" cy="4" r="2.6" fill="#22d3ee"/>
+      <path d="M8 40 12 23q10 -7 20 0l4 17z" fill="#38bdf8" stroke="#0c4a6e" stroke-width="1.6" stroke-linejoin="round"/>
+      <circle cx="22" cy="30" r="4.5" fill="#fde68a" stroke="#0c4a6e" stroke-width="1.3"/>
+    </svg>`;
+  }
+
+  // Badge medal (bronze / silver / gold / diamond). Icons: "target" (bullseye), "blaster"
+  // (ray gun), "burst" (a hit with a ×), "crown", "comet", "rocket", "planet" (ringed),
   // anything else = a star. earned === false → greyed out.
   function badge(id, size, earned) {
     const b = (window.DATA && DATA.BADGES && DATA.BADGES[id]) || { tier: "silver", icon: "star" };
     const s = size || 40;
-    const gold = b.tier === "gold", bronze = b.tier === "bronze";
-    const c1 = gold ? "#ffe08a" : bronze ? "#ffd7b0" : "#f8fafc";
-    const c2 = gold ? "#c98a1b" : bronze ? "#b8692f" : "#94a3b8";
-    const rim = gold ? "#9a6510" : bronze ? "#7a3e12" : "#5b6b82";
-    const icon = b.icon === "ninja"
-      ? `<g stroke-linecap="round">
-          <path d="M18 15 40 37M46 15 24 37" stroke="#334155" stroke-width="4.6"/>
-          <path d="M18 15 40 37M46 15 24 37" stroke="#e2e8f0" stroke-width="2.6"/>
-          <path d="M37 40.5 43.5 34M27 40.5 20.5 34" stroke="#b45309" stroke-width="3.2"/>
-          <path d="M40 37 45.5 42.5M24 37 18.5 42.5" stroke="#111827" stroke-width="4"/>
-        </g>
-        <circle cx="32" cy="28.5" r="10.5" fill="#1e293b"/>
-        <rect x="22.5" y="20.5" width="19" height="3.2" rx="1.6" fill="#dc2626"/>
-        <path d="M41 21.5c3 -1.5 5 -1 6.5 0.5c-2 0.4 -3.6 1.4 -4.5 3z" fill="#dc2626"/>
-        <rect x="23.5" y="25.5" width="17" height="6.2" rx="3.1" fill="#f5cfa6"/>
-        <circle cx="28.6" cy="28.6" r="1.5" fill="#111827"/>
-        <circle cx="35.4" cy="28.6" r="1.5" fill="#111827"/>
-        <path d="M26.6 26.6l3 .8M37.4 26.6l-3 .8" stroke="#111827" stroke-width="1" stroke-linecap="round"/>`
-      : b.icon === "wizard"
-      ? `<path d="M32 10.5 22.5 36h19z" fill="#6d28d9" stroke="#4c1d95" stroke-width="1.2" stroke-linejoin="round"/>
-        <ellipse cx="32" cy="37" rx="13.5" ry="3.4" fill="#4c1d95"/>
-        <path d="M29 24.5l6 6M35 24.5l-6 6" stroke="#fde68a" stroke-width="2.4" stroke-linecap="round"/>
-        <polygon points="${starPoints(44.5, 17, 3.8, 1.6)}" fill="#fff"/>
-        <polygon points="${starPoints(19.5, 23, 2.7, 1.1)}" fill="#fff"/>`
+    const gold = b.tier === "gold", bronze = b.tier === "bronze", diamond = b.tier === "diamond";
+    const c1 = gold ? "#ffe08a" : bronze ? "#ffd7b0" : diamond ? "#e0f7ff" : "#f8fafc";
+    const c2 = gold ? "#c98a1b" : bronze ? "#b8692f" : diamond ? "#1e9fd6" : "#94a3b8";
+    const rim = gold ? "#9a6510" : bronze ? "#7a3e12" : diamond ? "#0b5f8a" : "#5b6b82";
+    const icon = b.icon === "target"
+      ? `<circle cx="32" cy="30" r="13.5" fill="#ef4444" stroke="#991b1b" stroke-width="1.3"/>
+        <circle cx="32" cy="30" r="9.3" fill="#fff"/>
+        <circle cx="32" cy="30" r="5.3" fill="#ef4444"/>
+        <circle cx="32" cy="30" r="1.9" fill="#fff"/>
+        <path d="M32 13.5v6.5M32 40v6.5M15.5 30H22M42 30h6.5" stroke="#1e293b" stroke-width="2.2" stroke-linecap="round"/>`
+      : b.icon === "blaster"
+      ? `<g transform="rotate(-18 32 30)">
+          <path d="M19.5 35.5 17.5 46h7l2.5-10.5z" fill="#475569" stroke="#1e293b" stroke-width="1.2" stroke-linejoin="round"/>
+          <rect x="14" y="23" width="26" height="13" rx="5.5" fill="#38bdf8" stroke="#0c4a6e" stroke-width="1.4"/>
+          <rect x="39" y="26" width="8" height="7" rx="2" fill="#e2e8f0" stroke="#475569" stroke-width="1.2"/>
+          <circle cx="22" cy="29.5" r="2.4" fill="#fde68a"/>
+          <circle cx="30" cy="29.5" r="2.4" fill="#fde68a"/>
+          <path d="M49.5 29.5H54" stroke="#ef4444" stroke-width="2.6" stroke-linecap="round"/>
+        </g>`
+      : b.icon === "burst"
+      ? `<polygon points="32,12 36.6,21.3 46.1,15.9 42.6,26 52.5,30 42.6,34 46.1,44.1 36.6,38.7 32,48 27.4,38.7 17.9,44.1 21.4,34 11.5,30 21.4,26 17.9,15.9 27.4,21.3" fill="#f97316" stroke="#9a3412" stroke-width="1.3" stroke-linejoin="round"/>
+        <circle cx="32" cy="30" r="9" fill="#fde68a"/>
+        <path d="M27.8 25.8l8.4 8.4M36.2 25.8l-8.4 8.4" stroke="#b91c1c" stroke-width="3" stroke-linecap="round"/>`
+      : b.icon === "crown"
+      ? `<path d="M18 37 15 20l9 7 8-12.5L40 27l9-7-3 17z" fill="#facc15" stroke="#92400e" stroke-width="1.4" stroke-linejoin="round"/>
+        <rect x="17.5" y="37" width="29" height="5.5" rx="2" fill="#f59e0b" stroke="#92400e" stroke-width="1.3"/>
+        <circle cx="32" cy="29.5" r="4" fill="#ef4444" stroke="#fff" stroke-width="1.4"/>
+        <circle cx="15" cy="19.5" r="2" fill="#fff"/>
+        <circle cx="32" cy="14" r="2" fill="#fff"/>
+        <circle cx="49" cy="19.5" r="2" fill="#fff"/>`
       : b.icon === "comet"
       ? `<path d="M16.5 14.5C24 19.5 30 24 37 28.5L33 33.5C27.5 27 22 21.5 16.5 14.5z" fill="#fb923c" opacity=".85"/>
         <path d="M21 13C27.5 18.5 32.5 22.5 39 27L37 29.5C31 25 26 19.5 21 13z" fill="#fde68a"/>
@@ -206,7 +222,7 @@
         <polygon points="${starPoints(45, 17.5, 3.2, 1.3)}" fill="#fff"/>
         <polygon points="${starPoints(19.5, 41, 2.5, 1)}" fill="#fff"/>`
       : `<polygon points="${starPoints(32, 30.5, 11, 4.8)}" fill="${rim}"/>`;
-    const gid = gold ? "qaBadgeGold" : bronze ? "qaBadgeBronze" : "qaBadgeSilver";
+    const gid = gold ? "qaBadgeGold" : bronze ? "qaBadgeBronze" : diamond ? "qaBadgeDiamond" : "qaBadgeSilver";
     return `<svg class="badge-medal${earned === false ? " locked" : ""}" width="${s}" height="${s}" viewBox="0 0 64 64" aria-hidden="true">
       <defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient></defs>
       <path d="M21 42 15 62l8.5-3.5L28 64l6-19z" fill="#3b82f6"/>
@@ -255,7 +271,7 @@
   }
 
   window.ART = {
-    crest, student, owl, subject, stars, coin, badge, clock,
+    crest, student, owl, subject, stars, coin, badge, blaster, clock,
     player: function (_pose, gender) { return student(gender); }
   };
 })();

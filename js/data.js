@@ -211,10 +211,12 @@
   });
 
   /* Quest Arena games. A game takes its questions from a level's bank —
-     or, with kind: "odd_even", makes up fresh numbers every game.
+     or, with a kind, makes up fresh numbers every game.
      kind: "odd_even"     → numbers fall from the sky; tap Odd or Even before each one lands;
+     kind: "blaster"      → times-table sums fall (tables.from to tables.to on both sides of the ×);
+                            type the answer and the blaster shoots the sum before it lands;
      roundName            → what the game calls a round on screen ("Level"; default "Round");
-     rounds[].perQuestion → seconds allowed for EACH question — for "odd_even", the
+     rounds[].perQuestion → seconds allowed for EACH question — for falling games, the
                             seconds a number takes to fall (running out of time costs
                             a life, like a wrong answer);
      rounds[].badge       → the badge for clearing that round (see BADGES);
@@ -222,16 +224,22 @@
                               repeat: points for every win after that }. */
   const GAMES = [
     {
-      id: "beat_the_clock",
+      id: "multiple_blaster",
       subjectId: "maths",
-      label: "Beat the Clock",
-      desc: "Multiplication · 1 digit × 1 digit",
-      icon: "⏱️",
-      source: { topicId: "operations", levelId: "multiplication.level1", maxFactor: 9 },   // only 1-digit × 1-digit
-      lives: 3,                                                                            // for the whole game
+      kind: "blaster",
+      label: "Multiple Blaster",
+      desc: "Times tables ×2 to ×10 · type the answer to blast each sum",
+      icon: "🎯",
+      roundName: "Level",
+      winText: "You blasted every sum!",
+      tables: { from: 2, to: 10 },
+      source: { topicId: "operations", levelId: "multiplication.level1" },   // where to practise if the lives run out
+      lives: 3,                                                               // for the whole game
       rounds: [
-        { questions: 15, perQuestion: 10, badge: "times_table_ninja",     points: { first: 50, repeat: 5 } },
-        { questions: 15, perQuestion: 5,  badge: "multiplication_wizard", points: { first: 60, repeat: 5 } }
+        { questions: 15, perQuestion: 15, badge: "blaster_cadet",   points: { first: 50, repeat: 5 } },
+        { questions: 15, perQuestion: 10, badge: "blaster_ace",     points: { first: 50, repeat: 5 } },
+        { questions: 15, perQuestion: 5,  badge: "blaster_captain", points: { first: 50, repeat: 5 } },
+        { questions: 15, perQuestion: 3,  badge: "master_blaster",  points: { first: 50, repeat: 5 } }
       ]
     },
     {
@@ -253,10 +261,14 @@
     }
   ];
   const BADGES = {
-    times_table_ninja:     { label: "Times Table Ninja",     tier: "silver", icon: "ninja",
-                             desc: "Survived Round 1 of Beat the Clock — 15 times-table questions, 10 seconds each, with only 3 lives! 🥷" },
-    multiplication_wizard: { label: "Multiplication Wizard", tier: "gold",   icon: "wizard",
-                             desc: "Beat Round 2 of Beat the Clock — 15 more times-table questions with just 5 seconds each! 🧙" },
+    blaster_cadet:         { label: "Blaster Cadet",         tier: "bronze",  icon: "target",
+                             desc: "Cleared Level 1 of Multiple Blaster — shot down 15 falling sums before they landed! 🎯" },
+    blaster_ace:           { label: "Blaster Ace",           tier: "silver",  icon: "blaster",
+                             desc: "Cleared Level 2 of Multiple Blaster — 15 more sums, falling in just 10 seconds each! ⚡" },
+    blaster_captain:       { label: "Blaster Captain",       tier: "gold",    icon: "burst",
+                             desc: "Cleared Level 3 of Multiple Blaster — 15 more sums in only 5 seconds each! 💥" },
+    master_blaster:        { label: "Master Blaster",        tier: "diamond", icon: "crown",
+                             desc: "Cleared Level 4 of Multiple Blaster — 15 sums crashing down in just 3 seconds each! 👑" },
     comet_catcher:         { label: "Comet Catcher",         tier: "bronze", icon: "comet",
                              desc: "Cleared Level 1 of Meteor Mayhem — sorted 15 falling numbers into odd and even before they landed! ☄️" },
     rocket_ranger:         { label: "Rocket Ranger",         tier: "silver", icon: "rocket",
@@ -264,6 +276,20 @@
     galaxy_guardian:       { label: "Galaxy Guardian",       tier: "gold",   icon: "planet",
                              desc: "Cleared Level 3 of Meteor Mayhem — 15 numbers crashing down in only 3 seconds each! 🪐" }
   };
+
+  /* Quest bonus — for EVERY game, now and in future: extra points, paid once, for
+     winning all of its levels. STORE works it out from the wins (see questBonus). */
+  const QUEST_BONUS = 50;
+
+  /* Games that were replaced. They can't be played and their badges are gone, but the
+     points they paid stay in the player's total (the wins are still in "arenaWins"). */
+  const RETIRED_GAMES = [
+    { id: "beat_the_clock", subjectId: "maths", label: "Beat the Clock", icon: "⏱️",
+      rounds: [
+        { badge: "times_table_ninja",     points: { first: 50, repeat: 5 } },
+        { badge: "multiplication_wizard", points: { first: 60, repeat: 5 } }
+      ] }
+  ];
 
   /* Levels that have moved. Results saved before a move still use the old
      ids, so STORE maps them to the new place whenever it loads or syncs:
@@ -298,6 +324,7 @@
   const byId = (list, id) => (list || []).filter(x => x.id === id)[0] || null;
   function games(subjectId) { return GAMES.filter(g => g.subjectId === subjectId); }
   function game(gameId) { return byId(GAMES, gameId); }
+  function anyGame(gameId) { return game(gameId) || byId(RETIRED_GAMES, gameId); }
 
   function subject(subjectId) { return byId(SUBJECTS, subjectId); }
   // A MODULE (called "topic" in the rest of the code).
@@ -369,7 +396,7 @@
   }
 
   window.DATA = {
-    DEFAULT_SESSION_SIZE, SCHOOL_YEARS, SUBJECTS, GAMES, BADGES, MOVED, REPLAY_BONUS, games, game,
+    DEFAULT_SESSION_SIZE, SCHOOL_YEARS, SUBJECTS, GAMES, RETIRED_GAMES, BADGES, MOVED, REPLAY_BONUS, QUEST_BONUS, games, game, anyGame,
     subject, topic, level, moduleTopics, moduleTopic, topicLevels, bank, levelCount, topicCount,
     levelYears, yearTopics, topicLabel, levelLabel, fullLabel, catLabel
   };

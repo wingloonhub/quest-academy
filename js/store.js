@@ -549,7 +549,7 @@
       const p = profile || STORE.active(); if (!p) return 0;
       const per = (p.arenaWins || {})[gameId + "#" + roundIdx] || {};
       let n = Object.keys(per).reduce(function (a, d) { return a + (Number(per[d]) || 0); }, 0);
-      const D = window.DATA, def = D && D.game ? D.game(gameId) : null;
+      const D = window.DATA, def = D && D.anyGame ? D.anyGame(gameId) : null;
       const badge = def && def.rounds[roundIdx] && def.rounds[roundIdx].badge;
       if (badge && (p.badges || {})[badge]) n = Math.max(n, 1);
       return n;
@@ -561,23 +561,31 @@
     },
     // Points the NEXT win of a round will pay.
     arenaNextPoints(gameId, roundIdx, profile) {
-      const D = window.DATA, def = D && D.game ? D.game(gameId) : null;
+      const D = window.DATA, def = D && D.anyGame ? D.anyGame(gameId) : null;
       const round = def && def.rounds[roundIdx];
       const n = STORE.arenaWins(gameId, roundIdx, profile);
       return STORE.arenaRoundPoints(round, n + 1) - STORE.arenaRoundPoints(round, n);
     },
+    // The one-off bonus for winning every level of a game. It's worked out from the wins,
+    // so it's paid once however many devices he plays on, and it reaches players who won
+    // them all before the bonus existed. Replaced games don't pay it.
+    questBonus(gameId, profile) {
+      const D = window.DATA, def = D && D.game ? D.game(gameId) : null;
+      if (!def) return 0;
+      return def.rounds.every(function (r, i) { return STORE.arenaWins(gameId, i, profile) > 0; }) ? D.QUEST_BONUS : 0;
+    },
     arenaPoints(profile, subjectId, gameId) {
       const D = window.DATA;
       if (!D || !D.GAMES) return 0;
-      return D.GAMES.filter(function (g) { return (!subjectId || g.subjectId === subjectId) && (!gameId || g.id === gameId); })
+      return D.GAMES.concat(D.RETIRED_GAMES).filter(function (g) { return (!subjectId || g.subjectId === subjectId) && (!gameId || g.id === gameId); })
         .reduce(function (sum, g) {
-          return sum + g.rounds.reduce(function (s2, r, i) { return s2 + STORE.arenaRoundPoints(r, STORE.arenaWins(g.id, i, profile)); }, 0);
+          return sum + STORE.questBonus(g.id, profile) + g.rounds.reduce(function (s2, r, i) { return s2 + STORE.arenaRoundPoints(r, STORE.arenaWins(g.id, i, profile)); }, 0);
         }, 0);
     },
     // Record one round win on this device; returns the points it earned.
     recordArenaWin(gameId, roundIdx) {
       const p = STORE.active(); if (!p) return 0;
-      const def = window.DATA && DATA.game ? DATA.game(gameId) : null;
+      const def = window.DATA && DATA.anyGame ? DATA.anyGame(gameId) : null;
       const round = def && def.rounds[roundIdx];
       const key = gameId + "#" + roundIdx, dev = deviceId();
       const before = STORE.arenaWins(gameId, roundIdx, p);

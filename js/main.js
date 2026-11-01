@@ -22,7 +22,7 @@
   }
 
   // ===== Phone / browser back button — move around inside the app instead of leaving =====
-  //   1. A popup is open → close it.
+  //   1. A popup is open → close it (unless it's locked: then back does nothing).
   //   2. The screen has a top-bar back button (id="bk") → press it.
   //   3. Otherwise we're at the top (menu / login) — press back twice within 2 s to leave.
   (function () {
@@ -34,6 +34,7 @@
       var modal = document.querySelector(".overlay");
       if (modal) {
         pushState();
+        if (modal.hasAttribute("data-locked")) return;
         var cancel = modal.querySelector("#cfNo, #pmNo");
         if (cancel) cancel.click(); else modal.remove();
         return;

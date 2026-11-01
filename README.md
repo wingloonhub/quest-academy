@@ -37,7 +37,7 @@ There is a progress report at every step, so you can see where he's weak:
 | Dashboard: big **My points** panel (points available, what they’re worth in MYR at the admin’s cash value, on hold and used — tap it for the points history), Trophy Room and 🛍️ Shop cards | ✅ built |
 | 🛍️ Shop → **Redeem cash** (parent approves on the admin page) · 📜 Points history | ✅ built — more shop items to come |
 | Study Mode inside each subject: **By Module**, **By School Year** (Year 1–6) or **Quest Arena** (games) | ✅ built |
-| Quest Arena → Maths → Beat the Clock (2 badges) · Meteor Mayhem — odd or even (3 badges) · 🏆 Trophy Room | ✅ built |
+| Quest Arena → Maths → Multiple Blaster — times tables ×2 to ×10 (4 badges) · Meteor Mayhem — odd or even (3 badges) · 🏆 Trophy Room | ✅ built |
 | Maths → 8 modules (Numbers & Place value, Operations, Fractions, Decimals & Percentages, Measurement, Geometry, Statistics & probability, Word problems, Mathematical reasoning) · Numbers & Place value → 2 topics (Comparing & Ordering Numbers, Odd & Even Numbers) · Operations → 6 topics (Addition, Subtraction, Multiplication, Division, Missing numbers, Mixed operations) · Measurement → Time | ✅ built |
 | Maths levels ready: Numbers & Place value → Comparing & Ordering Numbers → Level 1: ascending & descending order, 2- to 4-digit (80 questions — tap the numbers into order, 15 per test) · Level 2: greater than, less than or equal to (80 multiple-choice >, <, =, 15 per test) · Odd & Even Numbers → Level 1: identify (Odd / Even multiple choice), count, patterns & reasoning (80 questions, 15 per test) · Operations → Addition → Level 1: 2- and 3-digit (50 questions, 10 per test) · Operations → Subtraction → Level 1: 2- and 3-digit, with and without borrowing (80 questions, 15 per test) · Operations → Multiplication → Level 1: 1 digit × 1 digit (tables 2–10, 90 questions, 20 per test) · Level 2: 2 digits × 1 digit (80 questions, 15 per test) · Operations → Division → Level 1: dividing by 2 to 9, no remainders (80 questions, 15 per test) · Operations → Missing numbers → Level 1a: 3-digit addition & subtraction · Level 2a: multiplication & division, 1 to 11 times tables (80 questions each, 15 per test) · Measurement → Time → Level 1: reading exact time · Level 2: quarter past, half past & quarter to · Level 3.1: minutes past & to, recognition (multiple choice) · Level 3.2: minutes past & to, application (written in words) — every question has a clock drawn from its time (80 questions each, 15 per test) · Mathematical reasoning → Equal groups → Level 1: identify groups & items in each group (80 word problems with two answer boxes, 15 per test) — not linked to a school year yet | ✅ loaded |
 | English → 7 modules (Grammar, Tenses & verbs, Vocabulary, Spelling, Punctuation & capitalisation, Reading comprehension, Writing) | ✅ built |
@@ -87,14 +87,24 @@ admin page only.
 ### Quest Arena (games)
 
 Each subject's Study Mode has a third choice, **Quest Arena**. Maths has
-**⏱️ Beat the Clock** (times tables, 1 digit × 1 digit — questions come from
-Operations → Multiplication → Level 1, ×1 to ×9 only, never repeated within a game):
+**🎯 Multiple Blaster** (times tables ×2 to ×10, no ×1): a sum like 2 × 8 falls from the
+sky and he types the answer on the number pad. The blaster fires by itself as soon as the
+right answer is typed and shoots the sum down before it lands (there's no ✓ key, which
+matters at 3 seconds). The sums are made up fresh every game: every table comes up in every
+level, never twice in a row; no sum repeats in a game and no answer repeats in a level, so
+7 × 8 and 8 × 7 can't share one. A miss shows the right answer. If the lives run out it
+points him to Operations → Multiplication → Level 1.
 
 | | Rule | Badge | Points |
 |---|---|---|---|
-| Lives | ❤️❤️❤️ for the whole game; a wrong answer — or running out of time — costs one (the right answer flashes up) | | |
-| Round 1 | 15 questions, **10 seconds for each one** | 🥷 **Times Table Ninja** (silver) | **+50** the first win, then +5 per win |
-| Round 2 | 15 more questions, **only 5 seconds for each one** | 🧙 **Multiplication Wizard** (gold) | **+60** the first win, then +5 per win |
+| Lives | ❤️❤️❤️ for the whole game; a wrong answer — or letting a sum land — costs one | | |
+| Level 1 | 15 sums, each **takes 15 seconds to fall** | 🎯 **Blaster Cadet** (bronze) | **+50** the first win, then +5 per win |
+| Level 2 | 15 more, **10 seconds to fall** | ⚡ **Blaster Ace** (silver) | **+50** the first win, then +5 per win |
+| Level 3 | 15 more, **5 seconds to fall** | 💥 **Blaster Captain** (gold) | **+50** the first win, then +5 per win |
+| Level 4 | 15 more, **only 3 seconds to fall** | 👑 **Master Blaster** (diamond) | **+50** the first win, then +5 per win |
+
+Multiple Blaster replaced Beat the Clock, whose badges are gone. The points it paid stay in
+the player's total (`RETIRED_GAMES` in `js/data.js`).
 
 **☄️ Meteor Mayhem** (odd or even): numbers with 1 to 4 digits fall from the sky and he
 taps **Odd** or **Even** before each one lands (keyboard: O / E or ← / →). The numbers are
@@ -110,11 +120,19 @@ run out it points him to Numbers & Place value → Odd & Even Numbers → Level 
 | Level 3 | 15 more, **only 3 seconds to fall** | 🪐 **Galaxy Guardian** (gold) | **+50** the first win, then +5 per win |
 
 The game page shows the points each round will pay before he starts ("Points
-you can win"), and the points won appear between rounds and on the results
-screen. Arena points add to the player's total; round wins are counted per
-device so two devices can't double-count. A badge earned before points existed
-still credits its first-win bonus. Points per round are set in `js/data.js`
-(`rounds[].points`).
+you can win"). In **every game, now and in future**, winning a level opens a
+popup with the points earned and one button to start the next level. There's no
+way out of the popup (the phone's back button does nothing while it's open); ✕
+Quit is only there during a level. The results screen shows everything won.
+
+**Quest bonus, for every game now and in future:** winning all of a game's
+levels pays a further **+50 points, once** (`QUEST_BONUS` in `js/data.js`). It's
+worked out from the wins, so it arrives by itself, even for a player who won them
+all before the bonus existed, and it can't be paid twice. Replaced games don't pay it.
+
+Arena points add to the player's total; round wins are counted per device so two
+devices can't double-count. A badge earned before points existed still credits
+its first-win bonus. Points per round are set in `js/data.js` (`rounds[].points`).
 
 Badges belong to the player, sync across devices (the first date earned is
 kept) and live in the **🏆 Trophy Room** (on the main menu): earned badges in

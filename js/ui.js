@@ -273,7 +273,7 @@
     const stars = totalStars(hist);
     const sum = STORE.pointsSummary();
     const myrRate = STORE.myrPerPoint();      // cash value of 1 point (0 = cash off → no "Worth" line)
-    const badgeCount = Object.keys(STORE.badges()).length;
+    const badgeCount = badgeTotals().got;      // only badges that still exist (not those of replaced games)
     const pendingAll = STORE.profilesList().reduce((n, pl) => n + STORE.redemptions(pl).filter(r => r.status === "pending").length, 0);
     const email = (STORE.state.account || {}).email || "";
     show(`
@@ -465,13 +465,15 @@
   }
 
   /* ===================== Quest Arena (games) =====================
-     A subject's arena lists its games (DATA.games). Beat the Clock: every
-     question has its own countdown (rounds[].perQuestion seconds). A wrong
-     answer — or running out of time — costs one of the lives, which last the
-     whole game. Clearing a round earns its badge.
-     Games with kind "odd_even" (Meteor Mayhem) use the same lives, rounds,
-     points and badges, but each number falls from the sky over perQuestion
-     seconds and the player taps Odd or Even before it lands. */
+     A subject's arena lists its games (DATA.games). A game with no kind asks
+     typed questions from a level's bank, each with its own countdown
+     (rounds[].perQuestion seconds). A wrong answer — or running out of time —
+     costs one of the lives, which last the whole game. Clearing a round earns
+     its badge.
+     Falling games use the same lives, rounds, points and badges, but the
+     question falls from the sky over perQuestion seconds. Kind "odd_even"
+     (Meteor Mayhem): tap Odd or Even before the number lands. Kind "blaster"
+     (Multiple Blaster): type the answer to a falling sum and it's shot down. */
   let game = null;          // the run in progress
   let gameTimer = null;
   function stopGameTimer() { if (gameTimer) { clearInterval(gameTimer); gameTimer = null; } }
@@ -479,7 +481,9 @@
   // Answering time, e.g. "42.3s" (or "1:05" past a minute).
   const secs = (ms) => (ms < 60000 ? (Math.max(0, ms) / 1000).toFixed(1) + "s" : mmss(ms));
   const isOddEven = (def) => !!def && def.kind === "odd_even";
-  // What the game calls a round on screen: "Round" (Beat the Clock) or "Level" (Meteor Mayhem).
+  const isBlaster = (def) => !!def && def.kind === "blaster";
+  const isFalling = (def) => isOddEven(def) || isBlaster(def);
+  // What the game calls a round on screen: "Level", or "Round" if the game doesn't say.
   const roundWord = (def) => (def && def.roundName) || "Round";
 
   // Meteor Mayhem: n different numbers with 1 to 4 digits (each length picked
@@ -501,6 +505,39 @@
   // "4738 is even — it ends in 8." (shown when a number is missed)
   function oddEvenWhy(q) {
     return `${esc(q.text)} is <b>${q.answer.toLowerCase()}</b> — it ends in ${esc(q.text.slice(-1))}.`;
+  }
+
+  // Multiple Blaster: every sum for one game, with tables.from to tables.to on both sides
+  // of the × (so never × 1). Every table comes up in every level, never twice in a row;
+  // no sum repeats in a game and no answer repeats in a level, so 7 × 8 and 8 × 7 can't
+  // share one.
+  function blasterSums(def) {
+    const nums = [];
+    for (let n = def.tables.from; n <= def.tables.to; n++) nums.push(n);
+    const deal = () => {
+      const usedSums = new Set(), sums = [];
+      let last = 0;
+      for (const r of def.rounds) {
+        const usedAnswers = new Set();
+        let queue = [];
+        for (let i = 0; i < r.questions; i++) {
+          if (!queue.length) {
+            queue = shuffle(nums);
+            if (queue[queue.length - 1] === last) queue.reverse();
+          }
+          const table = last = queue.pop();
+          const times = shuffle(nums).filter(t => !usedSums.has(table + "×" + t) && !usedAnswers.has(table * t))[0];
+          if (!times) return null;              // this table has run out late in the game
+          usedSums.add(table + "×" + times);
+          usedAnswers.add(table * times);
+          sums.push({ text: table + " × " + times, answer: String(table * times) });
+        }
+      }
+      return sums;
+    };
+    let sums = deal();
+    while (!sums) sums = deal();                // happens now and then, so simply deal again
+    return sums;
   }
 
   function badgeChip(badgeId, earnedTs, isNew) {
@@ -565,7 +602,7 @@
         <div class="game-head"><span class="game-icon">${def.icon || "🎮"}</span>
           <div><div class="game-title">${esc(def.label)}</div><div class="muted small">${esc(def.desc)}</div></div></div>
         <div class="game-badges">${def.rounds.filter(r => r.badge).map(r => badgeChip(r.badge, earned[r.badge])).join("")}</div>
-        <div class="pts-line small">${ART.coin(15)} Win points: ${def.rounds.map((r, i) => `${roundWord(def)} ${i + 1} <b>+${STORE.arenaNextPoints(def.id, i)}</b>`).join(" · ")}${STORE.arenaPoints(null, null, def.id) ? ` · earned so far <b>${STORE.arenaPoints(null, null, def.id)}</b>` : ""}</div>
+        <div class="pts-line small">${ART.coin(15)} Win points: ${def.rounds.map((r, i) => `${roundWord(def)} ${i + 1} <b>+${STORE.arenaNextPoints(def.id, i)}</b>`).join(" · ")}${STORE.questBonus(def.id) ? "" : ` · every ${roundWord(def).toLowerCase()} <b>+${DATA.QUEST_BONUS}</b>`}${STORE.arenaPoints(null, null, def.id) ? ` · earned so far <b>${STORE.arenaPoints(null, null, def.id)}</b>` : ""}</div>
         <div class="muted small">${esc(gameBest(def, STORE.gameLog(def.id)))}</div>
         <button class="btn primary" data-game="${esc(def.id)}" type="button">Play →</button>
       </div>`).join("");
@@ -583,7 +620,7 @@
   function roundRule(def, r, i) {
     const b = r.badge && DATA.BADGES[r.badge];
     const win = b ? ` Make it through to win the <b>${esc(b.label)}</b> badge.` : "";
-    if (isOddEven(def)) return `<b>${roundWord(def)} ${i + 1}:</b> ${r.questions} ${i ? "more " : ""}numbers — each one takes ${i ? "only " : ""}<b>${r.perQuestion} seconds</b> to fall${i ? "!" : "."}${win}`;
+    if (isFalling(def)) return `<b>${roundWord(def)} ${i + 1}:</b> ${r.questions} ${i ? "more " : ""}${isBlaster(def) ? "sums" : "numbers"} — each one takes ${i ? "only " : ""}<b>${r.perQuestion} seconds</b> to fall${i ? "!" : "."}${win}`;
     return `<b>${roundWord(def)} ${i + 1}:</b> ${r.questions} ${i ? "more " : ""}questions — ${i ? "only " : ""}<b>${r.perQuestion} seconds</b> for each one${i ? "!" : "."}${win}`;
   }
 
@@ -603,10 +640,16 @@
             : `first-win bonus! After that, +${(r.points || {}).repeat || 0} each time you win it`}</span>
         </div>`;
     }).join("");
+    const word = roundWord(def).toLowerCase(), bonusPaid = STORE.questBonus(def.id) > 0;
     return `<div class="points-plan">
         <div class="pp-title">${ART.coin(20)} Points you can win</div>
         ${rows}
-        <div class="pp-total">Win every ${roundWord(def).toLowerCase()} this time: <b>+${total} points</b></div>
+        <div class="pp-row">
+          <span class="pp-name">🏆 Every ${word} won</span>
+          <span class="pp-pts">${bonusPaid ? "✓" : `${ART.coin(18)} +${DATA.QUEST_BONUS}`}</span>
+          <span class="pp-note">${bonusPaid ? "quest bonus already claimed" : "quest bonus, paid once"}</span>
+        </div>
+        <div class="pp-total">Win every ${word} this time: <b>+${total + (bonusPaid ? 0 : DATA.QUEST_BONUS)} points</b></div>
       </div>`;
   }
 
@@ -623,9 +666,11 @@
           <h2 class="card-h">${esc(def.label)}</h2>
           <div class="muted">${esc(def.desc)}</div>
           <ul class="game-rules">
-            <li><b>${"❤️".repeat(def.lives)} ${def.lives} lives</b> for the whole game — a wrong answer, or ${isOddEven(def) ? "letting a number land" : "running out of time"}, costs one.</li>
+            <li><b>${"❤️".repeat(def.lives)} ${def.lives} lives</b> for the whole game — a wrong answer, or ${isFalling(def) ? `letting a ${isBlaster(def) ? "sum" : "number"} land` : "running out of time"}, costs one.</li>
             ${def.rounds.map((r, i) => `<li>${roundRule(def, r, i)}</li>`).join("")}
-            <li>${isOddEven(def)
+            <li>${isBlaster(def)
+              ? "Type the answer on the number pad. Get it right and your blaster shoots the sum down before it lands."
+              : isOddEven(def)
               ? "Tap <b>Odd</b> or <b>Even</b> before the number hits the ground (on a keyboard: <b>O</b> / <b>E</b>, or <b>←</b> / <b>→</b>)."
               : "Type the answer on the number pad and tap <b>✓</b> (or press Enter)."}</li>
           </ul>
@@ -649,6 +694,7 @@
     const need = def.rounds.reduce((n, r) => n + r.questions, 0);
     let qs;
     if (isOddEven(def)) qs = oddEvenNumbers(need);
+    else if (isBlaster(def)) qs = blasterSums(def);
     else {
       const pool = gamePool(def);
       if (!pool.length) { toast("This game's questions aren't ready yet.", "bad"); return; }
@@ -659,7 +705,7 @@
     game = {
       def, subjectId, qs: qs, qi: 0, round: 0, inRound: 0,
       lives: def.lives, correct: 0, answered: 0, tooSlow: 0, cleared: 0,
-      times: [], roundMs: 0, newBadges: [], points: 0, roundPts: [], typed: "", busy: false, over: false,
+      times: [], roundMs: 0, newBadges: [], points: 0, roundPts: [], questBonus: 0, typed: "", busy: false, over: false,
       qStart: 0, qDeadline: 0, lastTick: 0
     };
     renderGameRound();
@@ -669,13 +715,30 @@
     const g = game;
     if (!g) return;
     const r = g.def.rounds[g.round];
-    const fall = isOddEven(g.def);
+    const fall = isFalling(g.def), blaster = isBlaster(g.def);
     current = null;
-    // Meteor Mayhem: the number falls down the sky (#bcQ); Beat the Clock: a question and the number pad.
-    const play = fall
+    // Multiple Blaster has no ✓ key: it fires by itself once the answer is typed.
+    const flash = `<div class="bc-flash" id="bcFlash"></div>`;
+    const pad = `<div class="keyboard numeric bc-pad">
+          ${["123", "456", "789"].map(row => `<div class="kb-row">${row.split("").map(c => `<button type="button" class="kb-key" data-key="${c}">${c}</button>`).join("")}</div>`).join("")}
+          <div class="kb-row"><button type="button" class="kb-key kb-back" data-key="back" aria-label="Delete">⌫</button><button type="button" class="kb-key" data-key="0">0</button>${blaster ? "" : `<button type="button" class="kb-key kb-ok" data-key="ok" aria-label="Check">✓</button>`}</div>
+        </div>`;
+    // Falling games: the question falls down the sky (#bcQ). Otherwise it sits above the number pad.
+    const play = blaster
+      ? `<div class="oe-sky mb-sky" id="oeSky">
+          <div class="oe-num" id="bcQ"></div>
+          <div class="mb-beam" id="mbBeam"></div>
+          <div class="mb-gun" id="mbGun">${ART.blaster()}</div>
+          <div class="oe-ground"></div>
+          ${flash}
+        </div>
+        <div class="bc-timebar"><i id="bcTime"></i></div>
+        <div class="bc-ans" id="bcAns"></div>
+        ${pad}`
+      : fall
       ? `<div class="oe-sky" id="oeSky"><div class="oe-num" id="bcQ"></div><div class="oe-ground"></div></div>
         <div class="bc-timebar"><i id="bcTime"></i></div>
-        <div class="bc-flash" id="bcFlash"></div>
+        ${flash}
         <div class="oe-btns">
           <button type="button" class="oe-btn odd" data-pick="Odd">Odd</button>
           <button type="button" class="oe-btn even" data-pick="Even">Even</button>
@@ -683,14 +746,11 @@
       : `<div class="bc-q" id="bcQ"></div>
         <div class="bc-timebar"><i id="bcTime"></i></div>
         <div class="bc-ans" id="bcAns"></div>
-        <div class="bc-flash" id="bcFlash"></div>
-        <div class="keyboard numeric bc-pad">
-          ${["123", "456", "789"].map(row => `<div class="kb-row">${row.split("").map(c => `<button type="button" class="kb-key" data-key="${c}">${c}</button>`).join("")}</div>`).join("")}
-          <div class="kb-row"><button type="button" class="kb-key kb-back" data-key="back" aria-label="Delete">⌫</button><button type="button" class="kb-key" data-key="0">0</button><button type="button" class="kb-key kb-ok" data-key="ok" aria-label="Check">✓</button></div>
-        </div>`;
+        ${flash}
+        ${pad}`;
     show(`
       <div class="topbar"><span class="back" id="bk">✕ Quit</span><h2>${g.def.icon || "🎮"} ${esc(g.def.label)}</h2></div>
-      <div class="qwrap bc-wrap${fall ? " oe-wrap" : ""}">
+      <div class="qwrap bc-wrap${blaster ? " mb-wrap" : fall ? " oe-wrap" : ""}">
         <div class="bc-hud">
           <span class="bc-lives" id="bcLives"></span>
           <span class="bc-round">${roundWord(g.def)} ${g.round + 1} · <b id="bcNum">1</b>/${r.questions}</span>
@@ -709,7 +769,7 @@
     };
     $$(".bc-pad .kb-key").forEach(b => { b.onclick = () => gamePress(b.dataset.key); });
     $$(".oe-btn").forEach(b => { b.onclick = () => gamePick(b.dataset.pick); });
-    keyHandler = fall
+    keyHandler = isOddEven(g.def)
       ? (e) => {
           if (e.key === "o" || e.key === "O" || e.key === "ArrowLeft") { gamePick("Odd"); return true; }
           if (e.key === "e" || e.key === "E" || e.key === "ArrowRight") { gamePick("Even"); return true; }
@@ -736,17 +796,18 @@
     $("#bcLives").innerHTML = heartsHtml(g, false);
     $("#bcNum").textContent = Math.min(g.inRound + 1, r.questions);
     $("#bcProg").style.width = Math.round(g.inRound / r.questions * 100) + "%";
-    if (isOddEven(g.def)) {
+    if (isFalling(g.def)) {
       // Drop the next number from a random spot along the top — it lands just as its clock runs out.
-      const el = $("#bcQ");
+      const el = $("#bcQ"), blaster = isBlaster(g.def);
       el.textContent = q.text;
       el.className = "oe-num";
-      el.style.left = (18 + Math.random() * 64).toFixed(1) + "%";
+      el.style.left = (blaster ? 26 + Math.random() * 48 : 18 + Math.random() * 64).toFixed(1) + "%";   // a sum is wider
+      if (blaster) $("#mbGun").style.left = $("#mbBeam").style.left = el.style.left;   // the blaster takes aim
       el.style.animation = "none";
       void el.offsetWidth;                      // restart the fall from the top
-      el.style.animation = `oe-fall ${r.perQuestion}s linear forwards`;
-    } else {
-      $("#bcQ").textContent = q.text + " = ?";
+      el.style.animation = `${blaster ? "mb-fall" : "oe-fall"} ${r.perQuestion}s linear forwards`;
+    } else $("#bcQ").textContent = q.text + " = ?";
+    if (!isOddEven(g.def)) {
       const ans = $("#bcAns");
       ans.textContent = g.typed || "?";
       ans.className = "bc-ans" + (g.typed ? "" : " empty");
@@ -784,25 +845,39 @@
     const ans = $("#bcAns");
     ans.textContent = g.typed || "?";
     ans.className = "bc-ans" + (g.typed ? "" : " empty");
+    if (isBlaster(g.def) && g.typed.length === g.qs[g.qi].answer.length) gameSubmit();
   }
 
   function gameSubmit() {
     const g = game;
     if (!g || g.busy || g.over || !g.typed) return;
-    const q = g.qs[g.qi];
+    const q = g.qs[g.qi], blaster = isBlaster(g.def);
     const ok = Number(g.typed) === Number(q.answer);
     g.busy = true;
     g.answered++;
     g.roundMs += Math.max(0, Date.now() - g.qStart);
     g.qDeadline = 0;
+    if (blaster) $("#bcQ").style.animationPlayState = "paused";   // the sum stops where it was answered
     if (ok) {
       g.correct++;
       SOUND.play("correct");
       $("#bcAns").classList.add("ok");
-      setTimeout(() => gameNext(g), 250);
+      if (blaster) fireBlaster();
+      setTimeout(() => gameNext(g), blaster ? 350 : 250);
       return;
     }
+    if (blaster) $("#bcQ").classList.add("bad");
     loseLife(g, `${esc(q.text)} = <b>${esc(q.answer)}</b>`);
+  }
+
+  // Multiple Blaster: shoot the falling sum (the blaster took aim when it dropped).
+  function fireBlaster() {
+    const el = $("#bcQ"), beam = $("#mbBeam");
+    beam.style.height = Math.max(0, $("#mbGun").getBoundingClientRect().top - el.getBoundingClientRect().bottom) + "px";
+    beam.classList.remove("fire");
+    void beam.offsetWidth;                      // fire again from the start
+    beam.classList.add("fire");
+    el.classList.add("ok");
   }
 
   // Meteor Mayhem: Odd or Even tapped for the falling number.
@@ -837,9 +912,9 @@
     g.qDeadline = 0;
     $("#bcClock").textContent = "0s";
     $("#bcTime").style.width = "0%";
-    if (isOddEven(g.def)) {
+    if (isFalling(g.def)) {
       $("#bcQ").classList.add("landed");
-      loseLife(g, `💥 It landed! ${oddEvenWhy(q)}`);
+      loseLife(g, `💥 It landed! ${isBlaster(g.def) ? `${esc(q.text)} = <b>${esc(q.answer)}</b>` : oddEvenWhy(q)}`);
     } else loseLife(g, `⏰ Too slow! ${esc(q.text)} = <b>${esc(q.answer)}</b>`);
   }
 
@@ -867,9 +942,11 @@
     g.times[g.round] = g.roundMs;
     stopGameTimer();
     g.cleared = g.round + 1;
+    const bonusBefore = STORE.questBonus(g.def.id);
     const gained = STORE.recordArenaWin(g.def.id, g.round);
     g.roundPts[g.round] = gained;
     g.points += gained;
+    g.questBonus += STORE.questBonus(g.def.id) - bonusBefore;
     if (r.badge && STORE.awardBadge(r.badge)) g.newBadges.push(r.badge);
     SOUND.play("win");
     if (gained) setTimeout(() => SOUND.play("coin"), 600);
@@ -877,34 +954,25 @@
     else endGame("won");
   }
 
+  // A level is won: a popup with the points earned and one way on, the next level.
+  // It's locked, so there's no way out of it, not even the phone's back button.
   function renderRoundBreak() {
-    const g = game;
-    const done = g.def.rounds[g.round], next = g.def.rounds[g.round + 1];
-    const earned = STORE.badges();
-    current = null;
-    show(`
-      <div class="topbar"><span class="back" id="bk">✕ Stop</span><h2>${g.def.icon || "🎮"} ${esc(g.def.label)}</h2></div>
-      <div class="page narrow">
-        <div class="card wide center">
-          <div class="big-emoji">🎉</div>
-          <h2 class="card-h">${roundWord(g.def)} ${g.round + 1} cleared!</h2>
-          <div class="muted" style="font-weight:700">${g.correct} correct · answered in ${secs(g.times[g.round])} · lives left ${"❤️".repeat(g.lives)}</div>
-          ${g.roundPts[g.round] ? `<div class="points-won">${ART.coin(30)}<div><b>+${plural(g.roundPts[g.round], "point")}!</b><span>for winning ${roundWord(g.def)} ${g.round + 1}</span></div></div>` : ""}
-          ${done.badge ? `<div class="game-badges center-row" style="margin-top:14px">${badgeChip(done.badge, earned[done.badge], g.newBadges.indexOf(done.badge) > -1)}</div>` : ""}
-          <div class="summary-box" style="margin-top:16px;text-align:left">
-            ${roundRule(g.def, next, g.round + 1)} Win it for <b>${ART.coin(14)} +${STORE.arenaNextPoints(g.def.id, g.round + 1)} points</b>. Your lives carry on (${"❤️".repeat(g.lives)}). The first ${isOddEven(g.def) ? "number drops" : "question starts"} when you tap <b>Go</b>.
-          </div>
-          <div class="row" style="margin-top:18px">
-            <button class="btn ghost" id="stopBtn" type="button">Stop here</button>
-            <button class="btn primary" id="goBtn" type="button">Go! ⚡</button>
-          </div>
-        </div>
-      </div>`, g.subjectId);
-    const stop = () => { if (game === g && !g.over) endGame("stopped"); };
-    $("#bk").onclick = stop;
-    $("#stopBtn").onclick = stop;
-    $("#goBtn").onclick = () => { if (game !== g) return; g.round++; renderGameRound(); };
-    keyHandler = (e) => { if (e.key === "Enter") { $("#goBtn").click(); return true; } };
+    const g = game, pts = g.roundPts[g.round], word = roundWord(g.def);
+    document.body.insertAdjacentHTML("beforeend", `
+      <div class="overlay" id="roundUp" data-locked><div class="modal">
+        <div class="big-emoji">🎉</div>
+        <h2>${word} ${g.round + 1} cleared!</h2>
+        ${pts ? `<div class="points-won">${ART.coin(30)}<div><b>+${plural(pts, "point")}!</b><span>for winning ${word} ${g.round + 1}</span></div></div>` : ""}
+        <div class="row"><button class="btn primary" id="goBtn" type="button">Start ${word} ${g.round + 2} ▶</button></div>
+      </div></div>`);
+    const go = $("#goBtn");
+    go.onclick = () => {
+      $("#roundUp").remove();
+      if (game !== g) return;
+      g.round++;
+      renderGameRound();
+    };
+    go.focus();                                 // Enter starts it on a keyboard
   }
 
   function endGame(reason) {
@@ -933,7 +1001,7 @@
     const emoji = won ? "🏆" : reason === "lives" ? "💔" : "👏";
     const earned = STORE.badges();
     const stats = [`<b>${g.correct}</b> correct out of ${g.answered}`];
-    if (g.tooSlow) stats.push(isOddEven(def) ? `💥 ${g.tooSlow} landed` : `⏰ ${g.tooSlow} too slow`);
+    if (g.tooSlow) stats.push(isFalling(def) ? `💥 ${g.tooSlow} landed` : `⏰ ${g.tooSlow} too slow`);
     def.rounds.forEach((r, i) => { const t = rec["r" + (i + 1) + "Ms"]; if (t) stats.push(`${roundWord(def)} ${i + 1} in <b>${secs(t)}</b>`); });
     const tip = won ? "Amazing! Can you beat your fastest time?"
       : reason === "lives" ? `Practise the tricky ones in <b>By Module → ${esc(DATA.topicLabel(def.subjectId, def.source.topicId))} → ${esc(DATA.levelLabel(def.subjectId, def.source.topicId, def.source.levelId))}</b>, then come back!`
@@ -948,6 +1016,7 @@
           ${g.points
             ? `<div class="points-won">${ART.coin(30)}<div><b>+${plural(g.points, "point")}!</b><span>${g.roundPts.map((p, i) => p ? roundWord(def) + " " + (i + 1) + " +" + p : "").filter(Boolean).join(" · ")}</span></div></div>`
             : `<div class="points-none">${ART.coin(18)} No points this time — win ${roundWord(def)} 1 for <b>+${STORE.arenaNextPoints(def.id, 0)}</b>!</div>`}
+          ${g.questBonus ? `<div class="points-won">${ART.coin(30)}<div><b>+${plural(g.questBonus, "bonus point")}!</b><span>🏆 Quest complete — every ${roundWord(def).toLowerCase()} won</span></div></div>` : ""}
           ${g.newBadges.length ? `<div class="badge-won">${g.newBadges.map(id => badgeChip(id, earned[id], true)).join("")}</div>` : ""}
           <div class="game-badges center-row" style="margin-top:14px">${def.rounds.filter(r => r.badge && g.newBadges.indexOf(r.badge) < 0).map(r => badgeChip(r.badge, earned[r.badge])).join("")}</div>
           <div class="summary-box" style="margin-top:16px;text-align:left">${tip}</div>
@@ -1234,9 +1303,16 @@
     let listed = 0;
     STORE.gameLog(null, p).filter(r => r.points > 0).forEach(r => {
       listed += r.points;
-      const def = DATA.game(r.game) || { label: r.game, icon: "🎮" };
+      const def = DATA.anyGame(r.game) || { label: r.game, icon: "🎮" };
       out.push({ ts: r.ts, kind: "earn", amount: r.points, icon: def.icon || "🎮", subj: def.subjectId,
         title: def.label, sub: "Quest Arena — won " + plural(r.cleared || 0, roundWord(def).toLowerCase()) });
+    });
+    DATA.GAMES.forEach(def => {
+      const bonus = STORE.questBonus(def.id, p);
+      if (!bonus) return;
+      listed += bonus;
+      out.push({ ts: STORE.badges(p)[def.rounds[def.rounds.length - 1].badge] || 0, kind: "earn", amount: bonus, icon: "🏆", subj: def.subjectId,
+        title: def.label, sub: "Quest bonus — every " + roundWord(def).toLowerCase() + " won" });
     });
     const arena = STORE.arenaPoints(p);
     if (arena > listed) out.push({ ts: 0, kind: "earn", amount: arena - listed, icon: "🎮", title: "Earlier Quest Arena wins", sub: "Round bonuses from before this list started" });
@@ -2880,7 +2956,7 @@
         <div class="card wide admin-card">
           <p class="muted small" style="line-height:1.6;margin-bottom:12px">Points are paid only when a player <b>beats their own best score</b> on a level: (new best − old best) × the value below. Repeating a level without beating the best earns nothing, so one level can never pay more than 100 × the value.</p>
           <div class="rate-list">${rows}</div>
-          <p class="muted small" style="margin-top:12px;line-height:1.6">New values count from the next assessment — points already earned don't change. Set a subject to 0 to switch its points off.<br/>Quest Arena games pay their own fixed points (Beat the Clock: +50 for the first Round 1 win, +60 for the first Round 2 win, then +5 per round won; Meteor Mayhem: +50 for the first win of each level, then +5 per level won).</p>
+          <p class="muted small" style="margin-top:12px;line-height:1.6">New values count from the next assessment — points already earned don't change. Set a subject to 0 to switch its points off.<br/>Quest Arena games pay their own fixed points (Multiple Blaster and Meteor Mayhem: +50 for the first win of each level, then +5 per level won). Winning every level of a game pays a further +${DATA.QUEST_BONUS}, once.</p>
           <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn primary" id="saveRates" type="button">💾 Save points values</button></div>
         </div>
         <h3 class="section-h">💵 Cash value of 1 point</h3>

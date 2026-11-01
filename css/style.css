@@ -675,14 +675,39 @@ button:focus-visible,.profile-card:focus-visible{outline:2px solid var(--gold);o
 .oe-btn.odd{background:linear-gradient(180deg,#a855f7,#6d28d9);border-color:#d8b4fe}
 .oe-btn.even{background:linear-gradient(180deg,#22d3ee,#0e7490);border-color:#a5f3fc}
 
+/* Multiple Blaster — a sum falls; type the answer and the blaster shoots it before it lands */
+.mb-sky{height:clamp(170px,calc(100vh - 440px),340px);height:clamp(170px,calc(100dvh - 440px),340px);margin:8px 0 6px}   /* the sky takes what the number pad leaves */
+.mb-sky .oe-num{height:54px;padding:0 14px;display:flex;align-items:center;font-size:30px;transition:scale .25s,opacity .25s,background .15s;
+  background:radial-gradient(circle at 35% 30%,#a5b4fc,#6366f1 55%,#3730a3);box-shadow:0 0 18px rgba(99,102,241,.8),0 -12px 24px rgba(165,180,252,.3)}
+.mb-sky .oe-num::before{background:linear-gradient(0deg,rgba(165,180,252,.7),transparent)}
+.mb-sky .oe-num.ok{scale:1.4;opacity:0;background:radial-gradient(circle at 35% 30%,#86efac,#22c55e 55%,#166534)}
+.mb-sky .oe-num.bad,.mb-sky .oe-num.landed{background:radial-gradient(circle at 35% 30%,#fca5a5,#ef4444 55%,#7f1d1d);box-shadow:0 0 22px rgba(239,68,68,.85)}
+.mb-gun{position:absolute;left:50%;bottom:16px;z-index:2;width:44px;height:42px;margin-left:-22px;transition:left .2s}
+.mb-gun svg{display:block;width:100%;height:100%}
+.mb-beam{position:absolute;left:50%;bottom:58px;z-index:2;width:6px;height:0;margin-left:-3px;border-radius:3px;opacity:0;background:linear-gradient(0deg,#22d3ee,#fff);box-shadow:0 0 12px #22d3ee}
+.mb-beam.fire{animation:mb-fire .3s ease-out}
+.mb-wrap .bc-timebar{margin:2px auto 8px}
+.mb-wrap .bc-ans{width:130px;min-height:48px;font-size:30px;line-height:44px}
+.mb-sky .bc-flash{position:absolute;top:8px;left:8px;right:8px;z-index:3;min-height:0;margin:0;font-size:16px;border-radius:10px}
+.mb-sky .bc-flash:not(:empty){padding:3px 8px;background:rgba(7,11,36,.85)}
+.mb-wrap .bc-pad{margin-top:8px}
+.mb-wrap .bc-pad .kb-key{padding:11px 0;font-size:22px}
+@media(max-height:680px){
+  .mb-sky{height:clamp(150px,calc(100vh - 416px),340px);height:clamp(150px,calc(100dvh - 416px),340px)}
+  .mb-wrap .bc-ans{min-height:42px;font-size:26px;line-height:38px}
+  .mb-wrap .bc-pad .kb-key{padding:8px 0;font-size:20px}
+}
+@keyframes mb-fall{from{top:0}to{top:calc(100% - 112px)}}   /* stops on the blaster: sum 54px + blaster 42px + ground 16px */
+@keyframes mb-fire{from{opacity:1}to{opacity:0}}
+
 /* ---------- Trophy Room ---------- */
-.trophy-card{display:flex;align-items:center;gap:14px;width:100%;margin-top:14px;text-align:left;background:linear-gradient(160deg,#2a2650,var(--panel-solid));border:1px solid var(--border-strong);border-radius:16px;padding:12px 16px;transition:transform .15s,box-shadow .2s}
+.trophy-card{display:flex;flex-wrap:wrap;align-items:center;gap:14px;width:100%;margin-top:14px;text-align:left;background:linear-gradient(160deg,#2a2650,var(--panel-solid));border:1px solid var(--border-strong);border-radius:16px;padding:12px 16px;transition:transform .15s,box-shadow .2s}
 .trophy-card:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(0,0,0,.4),0 0 0 1px rgba(242,193,78,.3)}
 .trophy-card-icon{font-size:30px}
-.trophy-card-text{display:flex;flex-direction:column;flex:1;min-width:0}
+.trophy-card-text{display:flex;flex-direction:column;flex:1 1 150px;min-width:0}
 .trophy-card-text b{font-family:var(--display);font-size:19px;color:var(--ink-strong)}
 .trophy-card-text small{color:var(--gold-bright);font-weight:800;font-size:12.5px}
-.trophy-card-medals{display:flex;gap:4px;flex-shrink:0}
+.trophy-card-medals{display:flex;flex-wrap:wrap;justify-content:center;gap:4px;margin:0 auto}   /* drop to their own row when there's no room */
 .trophy-hero{display:flex;align-items:center;gap:16px;background:linear-gradient(160deg,#2a2650,var(--panel-solid));border:1px solid var(--border-strong);border-radius:18px;padding:16px 18px}
 .trophy-hero .bar{max-width:320px}
 .trophy-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px}
@@ -739,7 +764,7 @@ button:focus-visible,.profile-card:focus-visible{outline:2px solid var(--gold);o
 .menu-cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
 .menu-cards .trophy-card{margin-top:0}
 @media(max-width:700px){.menu-cards{grid-template-columns:1fr}}
-.shop-card{background:linear-gradient(160deg,#173a35,var(--panel-solid));border-color:rgba(52,211,153,.5)}
+.shop-card{flex-wrap:nowrap;background:linear-gradient(160deg,#173a35,var(--panel-solid));border-color:rgba(52,211,153,.5)}
 .shop-card .trophy-card-text small{color:#7fe0c4}
 .shop-card .soon-pill{border-color:#34d399;background:rgba(52,211,153,.18)}
 
