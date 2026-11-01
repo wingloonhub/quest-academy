@@ -106,8 +106,8 @@
         { id: "kata_tugas",          label: "Kata tugas",                  icon: "🔗", desc: "Kata hubung, kata sendi nama, kata tanya, kata seru…",   topics: [] },
         { id: "pembentukan_kata",    label: "Pembentukan kata",            icon: "🧱", desc: "Imbuhan, kata majmuk dan kata ganda",                     topics: [
             { id: "kata_dasar", label: "Kata dasar", icon: "🌱", desc: "Kata asal tanpa imbuhan", levels: [
-                { id: "level1", label: "Level 1", desc: "Kata kerja dasar bergambar", sessionSize: 15, hideCat: true,
-                  catLabels: { RUTIN: "Rutin harian", RUMAH: "Kerja rumah", GERAK: "Sukan & permainan", BELAJAR: "Belajar & lain-lain" } }
+                { id: "bergambar", label: "Level 1", desc: "Kata kerja dasar bergambar", sessionSize: 15, hideCat: true,
+                  catLabels: { RUTIN: "Rutin harian", RUMAH: "Kerja rumah & kebun", GERAK: "Gerakan, sukan & seni", BELAJAR: "Belajar & berfikir", SOSIAL: "Bersama orang lain", PERASAAN: "Perasaan" } }
             ] },
             { id: "imbuhan_awalan", label: "Imbuhan awalan", icon: "⏮️", desc: "Imbuhan di depan kata dasar", levels: [] },
             { id: "imbuhan_akhiran", label: "Imbuhan akhiran", icon: "⏭️", desc: "Imbuhan di belakang kata dasar", levels: [] },
@@ -362,7 +362,8 @@
      and the Parent Report under this name ("subject|module|<topic>.<level>"). */
   const RETIRED = {
     "english|grammar|conjunctions.level1": "Conjunctions · Old Level 1 (removed)",
-    "english|punctuation|punctuation_marks.level1": "Punctuation · Old Level 1 (removed)"
+    "english|punctuation|punctuation_marks.level1": "Punctuation · Old Level 1 (removed)",
+    "bahasa|pembentukan_kata|kata_dasar.level1": "Kata dasar · Old Level 1 (removed)"
   };
 
   const byId = (list, id) => (list || []).filter(x => x.id === id)[0] || null;
