@@ -473,7 +473,11 @@
      Falling games use the same lives, rounds, points and badges, but the
      question falls from the sky over perQuestion seconds. Kind "odd_even"
      (Meteor Mayhem): tap Odd or Even before the number lands. Kind "blaster"
-     (Multiple Blaster): type the answer to a falling sum and it's shot down. */
+     (Multiple Blaster): type the answer to a falling sum and it's shot down.
+     Kind "battle" (Divide & Conquer): each level is a fight with a monster that
+     has rounds[].questions lives, so wrong answers don't move the level on:
+     it ends when the monster's lives are gone. A wrong answer, or the clock,
+     and the monster hits the player, which costs one of the player's lives. */
   let game = null;          // the run in progress
   let gameTimer = null;
   function stopGameTimer() { if (gameTimer) { clearInterval(gameTimer); gameTimer = null; } }
@@ -482,7 +486,10 @@
   const secs = (ms) => (ms < 60000 ? (Math.max(0, ms) / 1000).toFixed(1) + "s" : mmss(ms));
   const isOddEven = (def) => !!def && def.kind === "odd_even";
   const isBlaster = (def) => !!def && def.kind === "blaster";
+  const isBattle = (def) => !!def && def.kind === "battle";
   const isFalling = (def) => isOddEven(def) || isBlaster(def);
+  // These games have no ✓ key: the answer goes in by itself once it's typed.
+  const autoAnswers = (def) => isBlaster(def) || isBattle(def);
   // What the game calls a round on screen: "Level", or "Round" if the game doesn't say.
   const roundWord = (def) => (def && def.roundName) || "Round";
 
@@ -507,38 +514,50 @@
     return `${esc(q.text)} is <b>${q.answer.toLowerCase()}</b> — it ends in ${esc(q.text.slice(-1))}.`;
   }
 
-  // Multiple Blaster: every sum for one game, with tables.from to tables.to on both sides
-  // of the × (so never × 1). Every table comes up in every level, never twice in a row;
-  // no sum repeats in a game and no answer repeats in a level, so 7 × 8 and 8 × 7 can't
-  // share one.
-  function blasterSums(def) {
+  // Times-table facts for one game, tables.from to tables.to on both sides (so never × 1):
+  // `size(r)` facts for each level. Every table comes up in every level, never twice in a
+  // row; no product repeats in a level; and a fact never repeats in a game. factKey says
+  // which facts count as the same.
+  function dealFacts(def, size, factKey) {
     const nums = [];
     for (let n = def.tables.from; n <= def.tables.to; n++) nums.push(n);
     const deal = () => {
-      const usedSums = new Set(), sums = [];
+      const usedFacts = new Set(), facts = [];
       let last = 0;
       for (const r of def.rounds) {
-        const usedAnswers = new Set();
+        const usedProducts = new Set();
         let queue = [];
-        for (let i = 0; i < r.questions; i++) {
+        for (let i = 0; i < size(r); i++) {
           if (!queue.length) {
             queue = shuffle(nums);
             if (queue[queue.length - 1] === last) queue.reverse();
           }
           const table = last = queue.pop();
-          const times = shuffle(nums).filter(t => !usedSums.has(table + "×" + t) && !usedAnswers.has(table * t))[0];
+          const times = shuffle(nums).filter(t => !usedFacts.has(factKey(table, t)) && !usedProducts.has(table * t))[0];
           if (!times) return null;              // this table has run out late in the game
-          usedSums.add(table + "×" + times);
-          usedAnswers.add(table * times);
-          sums.push({ text: table + " × " + times, answer: String(table * times) });
+          usedFacts.add(factKey(table, times));
+          usedProducts.add(table * times);
+          facts.push({ table, times });
         }
       }
-      return sums;
+      return facts;
     };
-    let sums = deal();
-    while (!sums) sums = deal();                // happens now and then, so simply deal again
-    return sums;
+    let facts = deal();
+    while (!facts) facts = deal();              // happens now and then, so simply deal again
+    return facts;
   }
+  // Multiple Blaster: 7 × 8 and 8 × 7 are different sums, but can't share a level (same answer).
+  function blasterSums(def) {
+    return dealFacts(def, r => r.questions, (a, b) => a + "×" + b)
+      .map(f => ({ text: f.table + " × " + f.times, answer: String(f.table * f.times) }));
+  }
+  // Divide & Conquer: 56 ÷ 7 and 56 ÷ 8 are one fact, so a game only uses one of them.
+  // Each level has enough for the monster's lives plus every miss the player can survive.
+  function battleSums(def) {
+    return dealFacts(def, r => battleSize(def, r), (a, b) => Math.min(a, b) + "×" + Math.max(a, b))
+      .map(f => ({ text: (f.table * f.times) + " ÷ " + f.table, answer: String(f.times) }));
+  }
+  const battleSize = (def, r) => r.questions + def.lives - 1;
 
   function badgeChip(badgeId, earnedTs, isNew) {
     const b = DATA.BADGES[badgeId] || { label: badgeId };
@@ -620,6 +639,7 @@
   function roundRule(def, r, i) {
     const b = r.badge && DATA.BADGES[r.badge];
     const win = b ? ` Make it through to win the <b>${esc(b.label)}</b> badge.` : "";
+    if (isBattle(def)) return `<b>${roundWord(def)} ${i + 1}:</b> ${esc(r.monster.name)} has ${r.questions} lives — ${i ? "only " : ""}<b>${r.perQuestion} seconds</b> for each answer${i ? "!" : "."}${win}`;
     if (isFalling(def)) return `<b>${roundWord(def)} ${i + 1}:</b> ${r.questions} ${i ? "more " : ""}${isBlaster(def) ? "sums" : "numbers"} — each one takes ${i ? "only " : ""}<b>${r.perQuestion} seconds</b> to fall${i ? "!" : "."}${win}`;
     return `<b>${roundWord(def)} ${i + 1}:</b> ${r.questions} ${i ? "more " : ""}questions — ${i ? "only " : ""}<b>${r.perQuestion} seconds</b> for each one${i ? "!" : "."}${win}`;
   }
@@ -665,10 +685,13 @@
           <div class="big-emoji">${def.icon || "🎮"}</div>
           <h2 class="card-h">${esc(def.label)}</h2>
           <div class="muted">${esc(def.desc)}</div>
+          ${isBattle(def) ? `<div class="df-lineup"><span class="df-me">${ART.hero((STORE.active() || {}).gender)}</span><b>VS</b>${def.rounds.map(r => `<span>${ART.monster(r.monster.art)}</span>`).join("")}</div>` : ""}
           <ul class="game-rules">
             <li><b>${"❤️".repeat(def.lives)} ${def.lives} lives</b> for the whole game — a wrong answer, or ${isFalling(def) ? `letting a ${isBlaster(def) ? "sum" : "number"} land` : "running out of time"}, costs one.</li>
             ${def.rounds.map((r, i) => `<li>${roundRule(def, r, i)}</li>`).join("")}
-            <li>${isBlaster(def)
+            <li>${isBattle(def)
+              ? "Type the answer on the number pad. Get it right and you hit the monster. Get it wrong, or run out of time, and the monster hits you."
+              : isBlaster(def)
               ? "Type the answer on the number pad. Get it right and your blaster shoots the sum down before it lands."
               : isOddEven(def)
               ? "Tap <b>Odd</b> or <b>Even</b> before the number hits the ground (on a keyboard: <b>O</b> / <b>E</b>, or <b>←</b> / <b>→</b>)."
@@ -695,6 +718,7 @@
     let qs;
     if (isOddEven(def)) qs = oddEvenNumbers(need);
     else if (isBlaster(def)) qs = blasterSums(def);
+    else if (isBattle(def)) qs = battleSums(def);
     else {
       const pool = gamePool(def);
       if (!pool.length) { toast("This game's questions aren't ready yet.", "bad"); return; }
@@ -715,16 +739,29 @@
     const g = game;
     if (!g) return;
     const r = g.def.rounds[g.round];
-    const fall = isFalling(g.def), blaster = isBlaster(g.def);
+    const fall = isFalling(g.def), blaster = isBlaster(g.def), battle = isBattle(g.def), auto = autoAnswers(g.def);
     current = null;
-    // Multiple Blaster has no ✓ key: it fires by itself once the answer is typed.
     const flash = `<div class="bc-flash" id="bcFlash"></div>`;
     const pad = `<div class="keyboard numeric bc-pad">
           ${["123", "456", "789"].map(row => `<div class="kb-row">${row.split("").map(c => `<button type="button" class="kb-key" data-key="${c}">${c}</button>`).join("")}</div>`).join("")}
-          <div class="kb-row"><button type="button" class="kb-key kb-back" data-key="back" aria-label="Delete">⌫</button><button type="button" class="kb-key" data-key="0">0</button>${blaster ? "" : `<button type="button" class="kb-key kb-ok" data-key="ok" aria-label="Check">✓</button>`}</div>
+          <div class="kb-row"><button type="button" class="kb-key kb-back" data-key="back" aria-label="Delete">⌫</button><button type="button" class="kb-key" data-key="0">0</button>${auto ? "" : `<button type="button" class="kb-key kb-ok" data-key="ok" aria-label="Check">✓</button>`}</div>
         </div>`;
     // Falling games: the question falls down the sky (#bcQ). Otherwise it sits above the number pad.
-    const play = blaster
+    const play = battle
+      ? `<div class="df-arena ${esc(r.monster.art)}" id="dfArena">
+          ${ART.arena(r.monster.art)}
+          <div class="df-hp"><span class="df-name">${esc(r.monster.name)}</span><span class="df-pips" id="dfPips"></span></div>
+          <div class="df-ground"></div>
+          <div class="df-fighter df-hero" id="dfHero">${ART.hero((STORE.active() || {}).gender)}</div>
+          <div class="df-fighter df-foe" id="dfFoe">${ART.monster(r.monster.art)}</div>
+          <div class="df-boom" id="dfBoom"><b>💥</b><span>−1</span></div>
+          ${flash}
+        </div>
+        <div class="bc-q" id="bcQ"></div>
+        <div class="bc-timebar"><i id="bcTime"></i></div>
+        <div class="bc-ans" id="bcAns"></div>
+        ${pad}`
+      : blaster
       ? `<div class="oe-sky mb-sky" id="oeSky">
           <div class="oe-num" id="bcQ"></div>
           <div class="mb-beam" id="mbBeam"></div>
@@ -750,16 +787,17 @@
         ${pad}`;
     show(`
       <div class="topbar"><span class="back" id="bk">✕ Quit</span><h2>${g.def.icon || "🎮"} ${esc(g.def.label)}</h2></div>
-      <div class="qwrap bc-wrap${blaster ? " mb-wrap" : fall ? " oe-wrap" : ""}">
+      <div class="qwrap bc-wrap${auto ? " mb-wrap" : fall ? " oe-wrap" : ""}${battle ? " df-wrap" : ""}">
         <div class="bc-hud">
           <span class="bc-lives" id="bcLives"></span>
-          <span class="bc-round">${roundWord(g.def)} ${g.round + 1} · <b id="bcNum">1</b>/${r.questions}</span>
+          <span class="bc-round">${roundWord(g.def)} ${g.round + 1}${battle ? "" : ` · <b id="bcNum">1</b>/${r.questions}`}</span>
           <span class="bc-clock" id="bcClock">${r.perQuestion}s</span>
         </div>
-        <div class="progress"><i id="bcProg" style="width:0%"></i></div>
+        ${battle ? "" : `<div class="progress"><i id="bcProg" style="width:0%"></i></div>`}
         ${play}
       </div>`, g.subjectId);
     g.inRound = 0; g.typed = ""; g.busy = false; g.roundMs = 0;
+    if (battle) g.qi = g.round * battleSize(g.def, r);   // each level has its own sums, however many the last one used
     $("#bk").onclick = () => {
       showConfirm("Quit the game?", g.cleared ? "Your badge stays, but this run ends here." : "This run won't count.", "Quit", () => {
         if (game !== g || g.over) return;
@@ -794,8 +832,15 @@
     const g = game; if (!g) return;
     const r = g.def.rounds[g.round], q = g.qs[g.qi];
     $("#bcLives").innerHTML = heartsHtml(g, false);
-    $("#bcNum").textContent = Math.min(g.inRound + 1, r.questions);
-    $("#bcProg").style.width = Math.round(g.inRound / r.questions * 100) + "%";
+    if (isBattle(g.def)) {
+      paintFoeLives(g, g.inRound);
+      $("#dfHero").classList.remove("strike", "hurt");
+      $("#dfFoe").classList.remove("strike", "hurt");
+      $("#dfBoom").className = "df-boom";
+    } else {
+      $("#bcNum").textContent = Math.min(g.inRound + 1, r.questions);
+      $("#bcProg").style.width = Math.round(g.inRound / r.questions * 100) + "%";
+    }
     if (isFalling(g.def)) {
       // Drop the next number from a random spot along the top — it lands just as its clock runs out.
       const el = $("#bcQ"), blaster = isBlaster(g.def);
@@ -845,13 +890,13 @@
     const ans = $("#bcAns");
     ans.textContent = g.typed || "?";
     ans.className = "bc-ans" + (g.typed ? "" : " empty");
-    if (isBlaster(g.def) && g.typed.length === g.qs[g.qi].answer.length) gameSubmit();
+    if (autoAnswers(g.def) && g.typed.length === g.qs[g.qi].answer.length) gameSubmit();
   }
 
   function gameSubmit() {
     const g = game;
     if (!g || g.busy || g.over || !g.typed) return;
-    const q = g.qs[g.qi], blaster = isBlaster(g.def);
+    const q = g.qs[g.qi], blaster = isBlaster(g.def), battle = isBattle(g.def);
     const ok = Number(g.typed) === Number(q.answer);
     g.busy = true;
     g.answered++;
@@ -862,12 +907,38 @@
       g.correct++;
       SOUND.play("correct");
       $("#bcAns").classList.add("ok");
+      if (battle) return heroHits(g);
       if (blaster) fireBlaster();
       setTimeout(() => gameNext(g), blaster ? 350 : 250);
       return;
     }
     if (blaster) $("#bcQ").classList.add("bad");
+    if (battle) battleHit("foe");
     loseLife(g, `${esc(q.text)} = <b>${esc(q.answer)}</b>`);
+  }
+
+  // Divide & Conquer: the monster's lives, one gone for each hit.
+  function paintFoeLives(g, hits) {
+    const lives = g.def.rounds[g.round].questions;
+    $("#dfPips").innerHTML = Array.from({ length: lives }, (_, i) => `<i class="${i < lives - hits ? "on" : ""}"></i>`).join("");
+  }
+  // Someone lands a hit: attacker is "hero" or "foe".
+  function battleHit(attacker) {
+    const hero = $("#dfHero"), foe = $("#dfFoe"), boom = $("#dfBoom");
+    hero.classList.remove("strike", "hurt");
+    foe.classList.remove("strike", "hurt");
+    void hero.offsetWidth;                      // play it again from the start
+    (attacker === "hero" ? hero : foe).classList.add("strike");
+    (attacker === "hero" ? foe : hero).classList.add("hurt");
+    boom.className = "df-boom " + (attacker === "hero" ? "on-foe" : "on-hero");
+  }
+  // A right answer: the hero hits the monster, and the last hit knocks it out.
+  function heroHits(g) {
+    const beaten = g.inRound + 1 >= g.def.rounds[g.round].questions;
+    battleHit("hero");
+    paintFoeLives(g, g.inRound + 1);
+    if (beaten) $("#dfFoe").classList.add("down");
+    setTimeout(() => gameNext(g), beaten ? 1500 : 700);
   }
 
   // Multiple Blaster: shoot the falling sum (the blaster took aim when it dropped).
@@ -915,7 +986,10 @@
     if (isFalling(g.def)) {
       $("#bcQ").classList.add("landed");
       loseLife(g, `💥 It landed! ${isBlaster(g.def) ? `${esc(q.text)} = <b>${esc(q.answer)}</b>` : oddEvenWhy(q)}`);
-    } else loseLife(g, `⏰ Too slow! ${esc(q.text)} = <b>${esc(q.answer)}</b>`);
+    } else {
+      if (isBattle(g.def)) battleHit("foe");
+      loseLife(g, `⏰ Too slow! ${esc(q.text)} = <b>${esc(q.answer)}</b>`);
+    }
   }
 
   function loseLife(g, flashHtml) {
@@ -924,13 +998,16 @@
     ($("#bcAns") || $("#bcQ")).classList.add("bad");
     $("#bcFlash").innerHTML = flashHtml;
     $("#bcLives").innerHTML = heartsHtml(g, true);
-    if (g.lives <= 0) setTimeout(() => { if (game === g && !g.over) endGame("lives"); }, 1200);
-    else setTimeout(() => gameNext(g), 1100);
+    if (g.lives <= 0) {
+      if (isBattle(g.def)) $("#dfHero").classList.add("down");
+      setTimeout(() => { if (game === g && !g.over) endGame("lives"); }, isBattle(g.def) ? 1700 : 1200);
+    } else setTimeout(() => gameNext(g, true), 1100);
   }
 
-  function gameNext(g) {
+  function gameNext(g, missed) {
     if (game !== g || g.over) return;
-    g.qi++; g.inRound++; g.typed = ""; g.busy = false;
+    g.qi++; g.typed = ""; g.busy = false;
+    if (!(missed && isBattle(g.def))) g.inRound++;   // a miss doesn't hurt the monster
     const r = g.def.rounds[g.round];
     if (g.inRound >= r.questions) return roundCleared();
     paintGame();
@@ -2961,7 +3038,7 @@
         <div class="card wide admin-card">
           <p class="muted small" style="line-height:1.6;margin-bottom:12px">Points are paid only when a player <b>beats their own best score</b> on a level: (new best − old best) × the value below. Repeating a level without beating the best earns nothing, so one level can never pay more than 100 × the value.</p>
           <div class="rate-list">${rows}</div>
-          <p class="muted small" style="margin-top:12px;line-height:1.6">New values count from the next assessment — points already earned don't change. Set a subject to 0 to switch its points off.<br/>Quest Arena games pay their own fixed points (Multiple Blaster and Meteor Mayhem: +50 for the first win of each level, then +5 per level won). Winning every level of a game pays a further +${DATA.QUEST_BONUS}, once.</p>
+          <p class="muted small" style="margin-top:12px;line-height:1.6">New values count from the next assessment — points already earned don't change. Set a subject to 0 to switch its points off.<br/>Quest Arena games pay their own fixed points: +50 for the first win of each level, then +5 per level won. Winning every level of a game pays a further +${DATA.QUEST_BONUS}, once.</p>
           <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn primary" id="saveRates" type="button">💾 Save points values</button></div>
         </div>
         <h3 class="section-h">💵 Cash value of 1 point</h3>

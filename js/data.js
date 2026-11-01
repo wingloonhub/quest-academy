@@ -220,6 +220,8 @@
      kind: "odd_even"     → numbers fall from the sky; tap Odd or Even before each one lands;
      kind: "blaster"      → times-table sums fall (tables.from to tables.to on both sides of the ×);
                             type the answer and the blaster shoots the sum before it lands;
+     kind: "battle"       → a monster for each level (rounds[].monster) with rounds[].questions lives;
+                            a right answer hits it, a wrong one (or the clock) and it hits you;
      roundName            → what the game calls a round on screen ("Level"; default "Round");
      rounds[].perQuestion → seconds allowed for EACH question — for falling games, the
                             seconds a number takes to fall (running out of time costs
@@ -263,6 +265,24 @@
         { questions: 15, perQuestion: 5,  badge: "rocket_ranger",   points: { first: 50, repeat: 5 } },
         { questions: 15, perQuestion: 3,  badge: "galaxy_guardian", points: { first: 50, repeat: 5 } }
       ]
+    },
+    {
+      id: "divide_conquer",
+      subjectId: "maths",
+      kind: "battle",
+      label: "Divide & Conquer",
+      desc: "Times tables ×2 to ×11 · get the division right to hit the monster",
+      icon: "⚔️",
+      roundName: "Level",
+      winText: "You conquered every monster!",
+      tables: { from: 2, to: 11 },
+      source: { topicId: "operations", levelId: "division.level1" },   // where to practise if the lives run out
+      lives: 3,                                                         // the player's, for the whole game
+      rounds: [
+        { questions: 12, perQuestion: 15, monster: { art: "mummy",  name: "Bandage Boss" },    badge: "tomb_conqueror",   points: { first: 50, repeat: 5 } },
+        { questions: 12, perQuestion: 10, monster: { art: "brute",  name: "Gronk the Green" }, badge: "titan_conqueror",  points: { first: 50, repeat: 5 } },
+        { questions: 12, perQuestion: 5,  monster: { art: "zombie", name: "Captain Rot" },     badge: "undead_conqueror", points: { first: 50, repeat: 5 } }
+      ]
     }
   ];
   const BADGES = {
@@ -279,7 +299,13 @@
     rocket_ranger:         { label: "Rocket Ranger",         tier: "silver", icon: "rocket",
                              desc: "Cleared Level 2 of Meteor Mayhem — 15 more numbers, falling in just 5 seconds each! 🚀" },
     galaxy_guardian:       { label: "Galaxy Guardian",       tier: "gold",   icon: "planet",
-                             desc: "Cleared Level 3 of Meteor Mayhem — 15 numbers crashing down in only 3 seconds each! 🪐" }
+                             desc: "Cleared Level 3 of Meteor Mayhem — 15 numbers crashing down in only 3 seconds each! 🪐" },
+    tomb_conqueror:        { label: "Tomb Conqueror",        tier: "bronze", icon: "mummy",
+                             desc: "Cleared Level 1 of Divide & Conquer — knocked out Bandage Boss the mummy! ⚔️" },
+    titan_conqueror:       { label: "Titan Conqueror",       tier: "silver", icon: "fist",
+                             desc: "Cleared Level 2 of Divide & Conquer — brought down Gronk the Green with just 10 seconds an answer! 💪" },
+    undead_conqueror:      { label: "Undead Conqueror",      tier: "gold",   icon: "shield",
+                             desc: "Cleared Level 3 of Divide & Conquer — beat Captain Rot and his shield with only 5 seconds an answer! 🛡️" }
   };
 
   /* Quest bonus — for EVERY game, now and in future: extra points, paid once, for

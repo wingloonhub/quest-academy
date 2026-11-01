@@ -37,7 +37,7 @@ There is a progress report at every step, so you can see where he's weak:
 | Dashboard: big **My points** panel (points available, what they’re worth in MYR at the admin’s cash value, on hold and used — tap it for the points history), Trophy Room and 🛍️ Shop cards | ✅ built |
 | 🛍️ Shop → **Redeem cash** (parent approves on the admin page) · 📜 Points history | ✅ built — more shop items to come |
 | Study Mode inside each subject: **By Module**, **By School Year** (Year 1–6) or **Quest Arena** (games) | ✅ built |
-| Quest Arena → Maths → Multiple Blaster — times tables ×2 to ×10 (4 badges) · Meteor Mayhem — odd or even (3 badges) · 🏆 Trophy Room | ✅ built |
+| Quest Arena → Maths → Multiple Blaster — times tables ×2 to ×10 (4 badges) · Meteor Mayhem — odd or even (3 badges) · Divide & Conquer — division, ×2 to ×11, monster fights (3 badges) · 🏆 Trophy Room | ✅ built |
 | Maths → 8 modules (Numbers & Place value, Operations, Fractions, Decimals & Percentages, Measurement, Geometry, Statistics & probability, Word problems, Mathematical reasoning) · Numbers & Place value → 2 topics (Comparing & Ordering Numbers, Odd & Even Numbers) · Operations → 6 topics (Addition, Subtraction, Multiplication, Division, Missing numbers, Mixed operations) · Fractions, Decimals & Percentages → Fractions · Measurement → Time | ✅ built |
 | Maths levels ready: Numbers & Place value → Comparing & Ordering Numbers → Level 1: ascending & descending order, 2- to 4-digit (80 questions — tap the numbers into order, 15 per test) · Level 2: greater than, less than or equal to (80 multiple-choice >, <, =, 15 per test) · Odd & Even Numbers → Level 1: identify (Odd / Even multiple choice), count, patterns & reasoning (80 questions, 15 per test) · Operations → Addition → Level 1: 2- and 3-digit (50 questions, 10 per test) · Operations → Subtraction → Level 1: 2- and 3-digit, with and without borrowing (80 questions, 15 per test) · Operations → Multiplication → Level 1: 1 digit × 1 digit (tables 2–10, 90 questions, 20 per test) · Level 2: 2 digits × 1 digit (80 questions, 15 per test) · Operations → Division → Level 1: dividing by 2 to 9, no remainders (80 questions, 15 per test) · Operations → Missing numbers → Level 1a: 3-digit addition & subtraction · Level 2a: multiplication & division, 1 to 11 times tables (80 questions each, 15 per test) · Fractions, Decimals & Percentages → Fractions → Level 1: understanding fractions, shaded bars and circles drawn from their fractions, unshaded bars, numerators & denominators (80 questions, 15 per test) · Measurement → Time → Level 1: reading exact time · Level 2: quarter past, half past & quarter to · Level 3.1: minutes past & to, recognition (multiple choice) · Level 3.2: minutes past & to, application (written in words) — every question has a clock drawn from its time (80 questions each, 15 per test) · Mathematical reasoning → Equal groups → Level 1: identify groups & items in each group (80 word problems with two answer boxes, 15 per test) — not linked to a school year yet | ✅ loaded |
 | English → 7 modules (Grammar, Tenses & verbs, Vocabulary, Spelling, Punctuation & capitalisation, Reading comprehension, Writing) | ✅ built |
@@ -118,6 +118,23 @@ run out it points him to Numbers & Place value → Odd & Even Numbers → Level 
 | Level 1 | 15 numbers, each **takes 10 seconds to fall** | ☄️ **Comet Catcher** (bronze) | **+50** the first win, then +5 per win |
 | Level 2 | 15 more, **5 seconds to fall** | 🚀 **Rocket Ranger** (silver) | **+50** the first win, then +5 per win |
 | Level 3 | 15 more, **only 3 seconds to fall** | 🪐 **Galaxy Guardian** (gold) | **+50** the first win, then +5 per win |
+
+**⚔️ Divide & Conquer** (division, ×2 to ×11, no ×1 or ÷1): a fight against a different
+monster each level. His hero matches the Boy or Girl chosen on his player profile. A sum
+like 56 ÷ 7 shows above the number pad; a right answer goes in by itself and his hero hits
+the monster, taking one of its 12 lives. A wrong answer or running out of time and the
+monster hits him, costing one of his 3 lives (they last the whole game) and taking none of
+the monster's, so a level ends when the monster's lives are gone. Every hit shows the
+attacker lunging, a 💥 with −1 and the one hit flashing. Sums are made up fresh every game:
+all 10 tables come up in every level, never twice in a row, and a fact never repeats in a
+game, so 56 ÷ 7 and 56 ÷ 8 can't both come up. If his lives run out it points him to
+Operations → Division → Level 1.
+
+| | Monster | Time | Badge | Points |
+|---|---|---|---|---|
+| Level 1 | Bandage Boss, a mummy (12 lives) | **15 seconds** an answer | ⚔️ **Tomb Conqueror** (bronze) | **+50** the first win, then +5 per win |
+| Level 2 | Gronk the Green, a big green brute (12 lives) | **10 seconds** an answer | 💪 **Titan Conqueror** (silver) | **+50** the first win, then +5 per win |
+| Level 3 | Captain Rot, a zombie with a star shield (12 lives) | **5 seconds** an answer | 🛡️ **Undead Conqueror** (gold) | **+50** the first win, then +5 per win |
 
 The game page shows the points each round will pay before he starts ("Points
 you can win"). In **every game, now and in future**, winning a level opens a
