@@ -158,7 +158,19 @@
             { id: "mixed_operations", label: "Mixed operations", icon: "🔀", desc: "Choosing and combining +, −, × and ÷", levels: [] }
           ] },
         { id: "fdp", label: "Fractions, Decimals & Percentages", icon: "🍕", desc: "Parts of a whole, decimals and percentages", topics: [] },
-        { id: "measurement", label: "Measurement", icon: "📏", desc: "Length, mass, capacity, time and money", topics: [] },
+        { id: "measurement", label: "Measurement", icon: "📏", desc: "Length, mass, capacity, time and money", topics: [
+            { id: "time", label: "Time", icon: "🕒", desc: "Reading clocks — exact times, quarters, minutes past and to", levels: [
+                { id: "level1", label: "Level 1", desc: "Reading exact time", sessionSize: 15, hideCat: true,
+                  catLabels: { ON5: "Long hand on a number", BETWEEN: "Long hand between the numbers" } },
+                { id: "level2", label: "Level 2", desc: "Quarter past, half past & quarter to", sessionSize: 15, hideCat: true,
+                  catLabels: { QP_D: "Quarter past · digital time", HP_D: "Half past · digital time", QT_D: "Quarter to · digital time",
+                               QP_W: "Quarter past · in words", HP_W: "Half past · in words", QT_W: "Quarter to · in words" } },
+                { id: "level3_1", label: "Level 3.1", desc: "Minutes past & to — recognition", sessionSize: 15, hideCat: true,
+                  catLabels: { PAST: "Minutes past", TO: "Minutes to" } },
+                { id: "level3_2", label: "Level 3.2", desc: "Minutes past & to — application", sessionSize: 15, hideCat: true,
+                  catLabels: { PAST: "Minutes past", TO: "Minutes to" } }
+              ] }
+          ] },
         { id: "geometry", label: "Geometry", icon: "📐", desc: "Shapes, angles, lines and position", topics: [] },
         { id: "statistics_probability", label: "Statistics & probability", icon: "📊", desc: "Tables, charts, graphs and chance", topics: [] },
         { id: "word_problems", label: "Word problems", icon: "🧩", desc: "Picking the right operation for real-life problems", topics: [] },

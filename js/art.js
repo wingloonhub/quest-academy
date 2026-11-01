@@ -217,6 +217,33 @@
     </svg>`;
   }
 
+  // Clock face showing "h:mm". The short hand moves on between the hours, like a
+  // real clock, and the long hand stops just short of the minute marks so they can be counted.
+  function clock(time, size) {
+    const parts = String(time).split(":").map(Number), h = parts[0], m = parts[1];
+    const s = size || 230;
+    const at = (deg, r) => {
+      const a = deg * Math.PI / 180;
+      return (100 + r * Math.sin(a)).toFixed(1) + " " + (100 - r * Math.cos(a)).toFixed(1);
+    };
+    const line = (deg, r0, r1, colour, width) => {
+      const a = at(deg, r0).split(" "), b = at(deg, r1).split(" ");
+      return `<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="${colour}" stroke-width="${width}" stroke-linecap="round"/>`;
+    };
+    let face = "";
+    for (let i = 0; i < 60; i++) face += i % 5 ? line(i * 6, 88, 92, "#94a3b8", 1) : line(i * 6, 83, 92, "#475a73", 3);
+    for (let i = 1; i <= 12; i++) {
+      const p = at(i * 30, 67).split(" ");
+      face += `<text x="${p[0]}" y="${p[1]}" dy=".35em" text-anchor="middle" font-size="15" font-weight="700" fill="#1e3a5f">${i}</text>`;
+    }
+    return `<svg class="clock" width="${s}" height="${s}" viewBox="0 0 200 200" role="img" aria-label="Clock">
+      <circle cx="100" cy="100" r="96" fill="#fff" stroke="#2c4a6e" stroke-width="4"/>${face}
+      ${line((h % 12) * 30 + m / 2, -6, 46, "#1a3352", 7)}
+      ${line(m * 6, -8, 80, "#0e87a3", 3.5)}
+      <circle cx="100" cy="100" r="6" fill="#1a3352"/>
+    </svg>`;
+  }
+
   // Row of 3 stars, `n` of them lit.
   function stars(n, size) {
     const s = size || 22;
@@ -228,7 +255,7 @@
   }
 
   window.ART = {
-    crest, student, owl, subject, stars, coin, badge,
+    crest, student, owl, subject, stars, coin, badge, clock,
     player: function (_pose, gender) { return student(gender); }
   };
 })();

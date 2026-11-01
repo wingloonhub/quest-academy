@@ -1932,7 +1932,7 @@
     return [q.word].concat(q.alt || []).filter(a => a != null && String(a).trim() !== "").map(String);
   }
   function isNumericAnswers(list) {
-    return list.length > 0 && list.every(a => /\d/.test(a) && /^[\d.,\/\s-]+$/.test(a.trim()));
+    return list.length > 0 && list.every(a => /\d/.test(a) && /^[\d.,:\/\s-]+$/.test(a.trim()));
   }
   // Punctuation options: "!" → big ! + "exclamation mark"; "x / y" → "① x … ② y …" (two sentences).
   // Comparison signs work the same way: ">" → big > + "greater than".
@@ -1953,7 +1953,7 @@
     const key = (k, label, cls) => `<button type="button" class="kb-key${cls ? " " + cls : ""}" data-key="${esc(k)}">${label || esc(k)}</button>`;
     const back = key("back", "⌫", "kb-back");
     if (numeric) {
-      const extras = [".", "/", "-"].filter(has).map(c => key(c)).join("");
+      const extras = [".", "/", "-", ":"].filter(has).map(c => key(c)).join("");
       return ["123", "456", "789"].map(r => `<div class="kb-row">${r.split("").map(c => key(c)).join("")}</div>`).join("")
         + `<div class="kb-row">${extras}${key("0")}${back}</div>`;
     }
@@ -2000,7 +2000,8 @@
     const fieldAcc = kind === "multi" ? q.fields.map(f => [f.word].concat(f.alt || []).filter(a => a != null).map(String)) : [];
     const multiNumeric = kind === "multi" && fieldAcc.every(a => isNumericAnswers(a));
     const passage = q.passage ? `<div class="passage">${fmt(q.passage)}</div>` : "";
-    const visual = q.visual ? `<div class="q-visual">${q.visual}</div>` : "";
+    // q.clock: "h:mm" — a clock face is drawn for the question
+    const visual = q.clock ? `<div class="q-visual">${ART.clock(q.clock)}</div>` : q.visual ? `<div class="q-visual">${q.visual}</div>` : "";
     const qText = String(q.q || "");
     const inlineBlank = kind === "typed" && qText.indexOf("___") > -1;
     const actions = `<div class="kb-actions">
@@ -2055,7 +2056,7 @@
 
     show(`
       <div class="topbar"><span class="back" id="bk">✕ Quit</span><h2>📝 ${esc(DATA.fullLabel(st.subjectId, st.topicId, st.levelId))}</h2></div>
-      <div class="qwrap">
+      <div class="qwrap${q.clock ? " clock-q" : ""}">
         <div class="progress-label"><span>Question ${num} of ${total}</span><span>${st.maxPts && st.maxPts.rate > 0 && st.maxPts.max > 0 ? `<span class="max-chip">${ART.coin(13)} up to <b>${st.maxPts.max}</b> pts</span> · `
           : st.maxPts && st.maxPts.replay ? `<span class="max-chip">${ART.coin(13)} replay: <b>+${st.maxPts.replay}</b> at ${st.maxPts.replayMin}%+</span> · ` : ""}✓ ${correctSoFar} correct</span></div>
         <div class="progress"><i style="width:${Math.round((st.idx / total) * 100)}%"></i></div>
@@ -2084,7 +2085,7 @@
       if (!st.byCat[c]) st.byCat[c] = { correct: 0, total: 0 };
       st.byCat[c].total++;
       if (correct) st.byCat[c].correct++;
-      const stem = kind === "spell" ? "Spell the word: " + q.word : (qText || "Question");
+      const stem = kind === "spell" ? "Spell the word: " + q.word : q.clock ? qText + " (clock showing " + q.clock + ")" : (qText || "Question");
       st.answers.push({ q, correct, stem, chosenText, answerText });
       const fb = $("#fbk");
       if (correct) {
@@ -2272,7 +2273,7 @@
       if (e.key === "Backspace") { press("back"); return true; }
       const raw = String(e.key || "").length === 1 ? e.key.replace("’", "'") : "";
       const k = exactCase ? raw : raw.toLowerCase();     // keep the capital the child typed
-      if (k && (numeric ? /[0-9.\/-]/.test(k) : /[a-zA-Z' -]/.test(k))) { press(k); return true; }
+      if (k && (numeric ? /[0-9.:\/-]/.test(k) : /[a-zA-Z' -]/.test(k))) { press(k); return true; }
     };
     paint();
 

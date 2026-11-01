@@ -304,6 +304,12 @@ button:focus-visible,.profile-card:focus-visible{outline:2px solid var(--gold);o
 .passage{background:#f4efe1;color:#2a2416;border-radius:12px;padding:14px 16px;font-family:var(--display);font-size:16px;line-height:1.7;margin-bottom:14px;max-height:42vh;overflow:auto;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
 .q-visual{background:#fbfaf6;border-radius:12px;padding:12px;margin-bottom:14px;text-align:center;color:#1a2457}
 .q-visual svg{max-width:100%;height:auto;max-height:240px}
+/* Clock questions: keep the clock, the answer and the Check button on one screen */
+.clock-q .q-visual{padding:6px;margin-bottom:8px}
+.clock-q .q-visual svg{display:block;margin:0 auto;width:clamp(170px,24vh,230px)}
+.clock-q .qtext{font-size:19px;margin-bottom:8px}
+.clock-q .spell-instr{font-size:13px}
+.clock-q .keyboard.numeric .kb-key{padding:8px 0}
 .qtext{font-size:21px;font-weight:700;line-height:1.55;margin-bottom:16px;color:var(--ink-strong)}
 .qtext .blank{display:inline-block;min-width:56px;border-bottom:3px solid var(--accent);text-align:center;color:var(--accent);margin:0 4px}
 .qtext .mark-blank{min-width:40px;height:1.1em;vertical-align:baseline;background:rgba(155,140,255,.12);border-radius:6px 6px 0 0}
