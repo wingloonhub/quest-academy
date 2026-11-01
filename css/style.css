@@ -534,6 +534,10 @@ button:focus-visible,.profile-card:focus-visible{outline:2px solid var(--gold);o
 .pin-pad{max-width:300px;margin:6px auto 12px}
 .kb-ok{background:linear-gradient(180deg,#2f7d4a,#1d5232);border-color:rgba(78,196,106,.6)}
 .admin-card{padding:18px}
+.admin-tabs{display:flex;gap:4px;margin-top:14px;padding:4px;background:var(--panel-solid);border:1px solid var(--border);border-radius:14px}
+.admin-tab{flex:1 1 auto;min-height:44px;padding:8px 6px;border:0;border-radius:10px;background:none;color:var(--muted);font-family:var(--font);font-size:15px;font-weight:800;cursor:pointer}
+.admin-tab.on{background:var(--gold);color:#231704}
+.admin-tab.on .hold-count{background:#231704;color:var(--gold-bright)}
 .rate-list{display:flex;flex-direction:column;gap:10px}
 .rate-row{display:grid;grid-template-columns:150px auto 1fr;align-items:center;gap:12px;background:var(--panel-solid);border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:12px;padding:10px 12px}
 .rate-name{display:inline-flex;align-items:center;gap:8px;font-family:var(--display);font-weight:800;font-size:17px;color:var(--ink-strong)}
@@ -695,8 +699,6 @@ button:focus-visible,.profile-card:focus-visible{outline:2px solid var(--gold);o
 .mb-wrap .bc-pad .kb-key{padding:11px 0;font-size:22px}
 @media(max-height:680px){
   .mb-sky{height:clamp(150px,calc(100vh - 416px),340px);height:clamp(150px,calc(100dvh - 416px),340px)}
-  .df-arena{height:clamp(120px,calc(100vh - 446px),270px);height:clamp(120px,calc(100dvh - 446px),270px)}
-  .df-wrap .bc-q{font-size:30px}
   .mb-wrap .bc-ans{min-height:42px;font-size:26px;line-height:38px}
   .mb-wrap .bc-pad .kb-key{padding:8px 0;font-size:20px}
 }
@@ -704,14 +706,17 @@ button:focus-visible,.profile-card:focus-visible{outline:2px solid var(--gold);o
 @keyframes mb-fire{from{opacity:1}to{opacity:0}}
 
 /* Divide & Conquer — a right answer hits the monster; a wrong one and it hits you */
-.df-arena{position:relative;height:clamp(150px,calc(100vh - 480px),270px);height:clamp(150px,calc(100dvh - 480px),270px);margin:8px 0 4px;border-radius:18px;overflow:hidden;border:1px solid var(--border)}
-.df-arena.mummy{background:linear-gradient(180deg,#f9a24f,#fbcf7c 70%,#f2c06d)}
+.df-arena{position:relative;height:clamp(150px,calc(100vh - 480px),270px);height:clamp(150px,calc(100dvh - 480px),270px);margin:8px 0 4px;border-radius:18px;overflow:hidden;border:1px solid var(--border);--hit:.2s}
+.df-arena.atk-shield{--hit:.4s}
+.df-arena.atk-web{--hit:.28s}
 .df-arena.brute{background:linear-gradient(180deg,#3b2a78,#a8467c 65%,#f08a5d)}
 .df-arena.zombie{background:linear-gradient(180deg,#0f2027,#1f3b3a 60%,#35594a)}
+.df-arena.spider{background:linear-gradient(180deg,#0b1437,#27306e 62%,#5b3a86)}
 .df-scene{position:absolute;left:0;right:0;bottom:14px;width:100%;height:calc(100% - 14px)}
 .df-ground{position:absolute;left:0;right:0;bottom:0;height:18px;background:#b9843f;border-top:2px solid rgba(0,0,0,.25)}
 .df-arena.brute .df-ground{background:#4a4063}
 .df-arena.zombie .df-ground{background:#2c3e2d}
+.df-arena.spider .df-ground{background:#1e1b3a}
 .df-hp{position:absolute;top:6px;right:8px;z-index:3;display:flex;flex-direction:column;align-items:flex-end;gap:3px;padding:4px 8px;border-radius:10px;background:rgba(7,11,36,.72)}
 .df-arena .bc-flash{top:48px}
 .df-name{font-family:var(--display);font-size:14px;font-weight:800;color:#fff;line-height:1}
@@ -722,26 +727,65 @@ button:focus-visible,.profile-card:focus-visible{outline:2px solid var(--gold);o
 .df-fighter svg{display:block;height:100%;width:auto;overflow:visible}
 .df-hero{left:2%}
 .df-foe{right:2%;height:64%}
-.df-arm{transform-origin:72px 70px}
-.df-hero.strike{animation:df-lunge-right .55s ease-in-out;z-index:3}
-.df-hero.strike .df-arm{animation:df-swing .55s ease-in-out}
+.df-arena.brute .df-foe{height:89.5%}
+.df-arena.brute .df-hp{right:auto;left:8px;align-items:flex-start}
+.df-arena.zombie .df-foe{height:59%}
+.df-arm{transform-origin:72px 72px}
+.df-hero.strike{animation:df-step .55s ease-out;z-index:3}
+.df-hero.strike .df-arm{animation:df-whip .55s ease-in-out}
+.df-hero.strike .df-fan{animation:df-fan-away .55s}
 .df-foe.strike{animation:df-lunge-left .55s ease-in-out;z-index:3}
-.df-fighter.hurt{animation:df-hurt .55s .2s}
-.df-fighter.hurt.down{animation:df-hurt .55s .2s,df-down .7s .75s forwards}
+.df-punch{transform-origin:48px 62px}
+.df-foe.strike .df-punch{animation:df-punch .55s ease-in-out}
+.atk-shield .df-foe.strike,.atk-web .df-foe.strike{animation:df-lean .55s ease-out}
+.df-foe.strike .df-shield{animation:df-shield-out .78s}
+.df-fighter.hurt{animation:df-hurt .55s var(--hit)}
+.df-fighter.hurt.down{animation:df-hurt .55s var(--hit),df-down .7s calc(var(--hit) + .55s) forwards}
+.df-foe.hurt{animation:df-hurt .55s .34s}
+.df-foe.hurt.down{animation:df-hurt .55s .34s,df-down .7s .9s forwards}
+.df-cards{position:absolute;inset:0;z-index:4;overflow:hidden;pointer-events:none}
+.df-cards i{position:absolute;left:var(--from,20%);bottom:calc(10px + 30%);width:18px;height:26px;border-radius:3px;background:#fff;border:1.5px solid #ff2fd6;box-shadow:0 0 6px 2px #ff2fd6,0 0 16px 6px rgba(255,47,214,.55);color:#db2777;font:800 14px/23px sans-serif;text-align:center;opacity:0}
+.df-cards i:nth-child(2){bottom:calc(10px + 42%)}
+.df-cards i:nth-child(3){bottom:calc(10px + 18%)}
+.df-hero.strike~.df-cards i{animation:df-throw .24s .1s linear}
+.df-hero.strike~.df-cards i:nth-child(2){animation-delay:.14s}
+.df-hero.strike~.df-cards i:nth-child(3){animation-delay:.18s}
+.df-shot{position:absolute;inset:0;z-index:4;overflow:hidden;pointer-events:none}
+.df-fly{position:absolute;left:var(--foe-at);bottom:var(--foe-y);width:var(--foe-size);opacity:0}
+.df-fly svg{display:block;width:100%;height:auto;overflow:visible}
+.df-foe.strike~.df-shot .df-fly{animation:df-shield-fly .7s .08s ease-in-out}
+.df-strand{position:absolute;left:var(--hero-at);right:calc(100% - var(--foe-at));bottom:var(--foe-y);height:3px;background:#f8fafc;box-shadow:0 0 4px #fff;transform-origin:right center;opacity:0}
+.df-foe.strike~.df-shot .df-strand{animation:df-web-shoot .7s .06s}
+.df-splat{position:absolute;left:var(--hero-at);bottom:var(--foe-y);height:70%;aspect-ratio:1;opacity:0}
+.df-splat svg{display:block;width:100%;height:100%}
+.df-foe.strike~.df-shot .df-splat{animation:df-web-stick .75s .26s}
 .df-boom{position:absolute;bottom:26%;z-index:4;opacity:0;pointer-events:none;display:flex;flex-direction:column;align-items:center;line-height:1}
 .df-boom b{font-size:58px}
 .df-boom span{font-family:var(--display);font-size:22px;font-weight:800;color:#fff;text-shadow:0 2px 4px #000,0 0 8px #dc2626}
-.df-boom.on-foe{right:15%;animation:df-boom .65s .2s}
-.df-boom.on-hero{left:9%;animation:df-boom .65s .2s}
+.df-boom.on-foe{left:calc(var(--land,70%) - 40px);animation:df-boom .65s .34s}
+.df-boom.on-foe b{filter:hue-rotate(290deg) saturate(1.8)}
+.df-boom.on-hero{left:calc(var(--hero-at,12%) - 40px);animation:df-boom .65s var(--hit)}
 .df-wrap .bc-q{font-size:36px;margin:2px 0 0;line-height:1.15}
+@media(max-height:680px){
+  .df-arena{height:clamp(120px,calc(100vh - 446px),270px);height:clamp(120px,calc(100dvh - 446px),270px)}
+  .df-wrap .bc-q{font-size:30px}
+}
 .df-lineup{display:flex;align-items:flex-end;justify-content:center;gap:6px;margin:12px 0 2px}
 .df-lineup span{display:block;height:64px}
 .df-lineup .df-me{height:76px}
 .df-lineup svg{display:block;height:100%;width:auto}
 .df-lineup b{align-self:center;font-family:var(--display);font-size:18px;color:var(--gold-bright)}
-@keyframes df-lunge-right{40%{transform:translateX(105%)}}
-@keyframes df-lunge-left{40%{transform:translateX(-95%)}}
-@keyframes df-swing{45%{transform:rotate(95deg)}}
+@keyframes df-step{35%{transform:translateX(7%)}}
+@keyframes df-lunge-left{40%{transform:translateX(var(--lunge,-95%))}}
+@keyframes df-punch{15%{transform:rotate(-20deg)}40%{transform:rotate(70deg)}}
+@keyframes df-lean{30%{transform:translateX(-6%)}}
+@keyframes df-shield-out{0%,9%{opacity:1}11%,90%{opacity:0}100%{opacity:1}}
+@keyframes df-shield-fly{from{opacity:1;transform:translate(-50%,50%) rotate(0)}48%{opacity:1;transform:translate(calc(var(--hero-at) - var(--foe-at) - 50%),50%) rotate(-540deg)}to{opacity:1;transform:translate(-50%,50%) rotate(-1080deg)}}
+@keyframes df-web-shoot{0%{opacity:1;transform:scaleX(0)}30%,70%{opacity:1;transform:scaleX(1)}100%{opacity:0;transform:scaleX(1)}}
+@keyframes df-web-stick{0%{opacity:.9;transform:translate(-50%,50%) scale(.2)}18%,75%{opacity:.95;transform:translate(-50%,50%) scale(1)}100%{opacity:0;transform:translate(-50%,50%) scale(1)}}
+@keyframes df-whip{22%{transform:rotate(-70deg)}42%{transform:rotate(38deg)}}
+@keyframes df-fan-away{0%,24%{opacity:1}26%,88%{opacity:0}100%{opacity:1}}
+@keyframes df-throw{from{opacity:1;transform:translateX(0) rotate(0) scale(.7)}to{opacity:1;transform:translateX(calc(var(--land) - var(--from))) rotate(900deg) scale(1.15)}}
 @keyframes df-hurt{15%,55%{transform:translateX(7px);filter:brightness(1.3) sepia(1) saturate(7) hue-rotate(-45deg)}35%,75%{transform:translateX(-7px);filter:none}}
 @keyframes df-down{to{transform:translateY(16%) rotate(10deg);opacity:0}}
 @keyframes df-boom{0%{opacity:0;transform:scale(.3)}30%{opacity:1;transform:scale(1.25)}100%{opacity:0;transform:translateY(-16px)}}

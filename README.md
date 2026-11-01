@@ -119,22 +119,24 @@ run out it points him to Numbers & Place value → Odd & Even Numbers → Level 
 | Level 2 | 15 more, **5 seconds to fall** | 🚀 **Rocket Ranger** (silver) | **+50** the first win, then +5 per win |
 | Level 3 | 15 more, **only 3 seconds to fall** | 🪐 **Galaxy Guardian** (gold) | **+50** the first win, then +5 per win |
 
-**⚔️ Divide & Conquer** (division, ×2 to ×11, no ×1 or ÷1): a fight against a different
-monster each level. His hero matches the Boy or Girl chosen on his player profile. A sum
-like 56 ÷ 7 shows above the number pad; a right answer goes in by itself and his hero hits
-the monster, taking one of its 12 lives. A wrong answer or running out of time and the
-monster hits him, costing one of his 3 lives (they last the whole game) and taking none of
-the monster's, so a level ends when the monster's lives are gone. Every hit shows the
-attacker lunging, a 💥 with −1 and the one hit flashing. Sums are made up fresh every game:
+**🃏 Divide & Conquer** (division, ×2 to ×11, no ×1 or ÷1): a fight against a different
+monster each level. His hero is a card thrower in a long coat, boy or girl to match his
+player profile. A sum like 56 ÷ 7 shows above the number pad; a right answer goes in by
+itself and his hero throws glowing power cards at the monster, taking one of its 12 lives.
+A wrong answer or running out of time and the monster hits him, costing one of his 3 lives
+(they last the whole game) and taking none of the monster's, so a level ends when the
+monster's lives are gone. Every hit shows the cards flying or the monster's own attack
+(a punch, a thrown shield or a web), a 💥 and the one hit flashing. Sums are made up fresh
+every game:
 all 10 tables come up in every level, never twice in a row, and a fact never repeats in a
 game, so 56 ÷ 7 and 56 ÷ 8 can't both come up. If his lives run out it points him to
 Operations → Division → Level 1.
 
 | | Monster | Time | Badge | Points |
 |---|---|---|---|---|
-| Level 1 | Bandage Boss, a mummy (12 lives) | **15 seconds** an answer | ⚔️ **Tomb Conqueror** (bronze) | **+50** the first win, then +5 per win |
-| Level 2 | Gronk the Green, a big green brute (12 lives) | **10 seconds** an answer | 💪 **Titan Conqueror** (silver) | **+50** the first win, then +5 per win |
-| Level 3 | Captain Rot, a zombie with a star shield (12 lives) | **5 seconds** an answer | 🛡️ **Undead Conqueror** (gold) | **+50** the first win, then +5 per win |
+| Level 1 | Hulk, 1.5× the hero's height: attacks with a punch (12 lives) | **15 seconds** an answer | 💪 **Hulk Conqueror** (bronze) | **+50** the first win, then +5 per win |
+| Level 2 | Zombie Captain America, the hero's height: attacks with a shield throw (12 lives) | **10 seconds** an answer | 🛡️ **Shield Conqueror** (silver) | **+50** the first win, then +5 per win |
+| Level 3 | Zombie Spiderman: attacks with web shooting (12 lives) | **5 seconds** an answer | 🕸️ **Web Conqueror** (gold) | **+50** the first win, then +5 per win |
 
 The game page shows the points each round will pay before he starts ("Points
 you can win"). In **every game, now and in future**, winning a level opens a
@@ -205,13 +207,16 @@ and still pending on another, the decision wins.
 
 **Menu → 🔒 Admin** (bottom of the menu). The first time, it asks for the
 account password, then you choose a **4–8 digit PIN**. After that the PIN
-unlocks it on every device. On the admin page you can:
+unlocks it on every device. The page has 3 tabs and always opens on Redemptions;
+after you do something on a tab it stays on that tab.
 
-- set **points per 1%** for English, Bahasa and Maths (0 switches a subject's
-  points off; halves like 1.5 are fine),
-- set the **💵 cash value of 1 point** in MYR with 2 decimals (e.g. 0.10 →
-  1 point = MYR 0.10, so 100 points = MYR 10.00; 0.00 switches cash off).
-  Requests already waiting keep the value they were made at,
+**Redemptions**
+
+- **approve or reject redemption requests** (the menu's Admin link and the tab
+  show how many are waiting), and see past requests.
+
+**Adjustments**
+
 - **⭐ give bonus points** for things done outside the app — pick the player,
   type the points and a **reason** (required, e.g. "Read a book"; quick
   buttons for common ones), then confirm. The points go straight to his
@@ -222,11 +227,17 @@ unlocks it on every device. On the admin page you can:
   off his available balance and he sees the reason in his points history. You
   can't deduct more than he has available, and points on hold can't be deducted
   unless you reject that request first. "Earned" doesn't change. Deducted by
-  mistake? Tap **Undo** on it in the list and the points come back,
+  mistake? Tap **Undo** on it in the list and the points come back.
+
+**Setup**
+
+- set **points per 1%** for English, Bahasa and Maths (0 switches a subject's
+  points off; halves like 1.5 are fine),
+- set the **💵 cash value of 1 point** in MYR with 2 decimals (e.g. 0.10 →
+  1 point = MYR 0.10, so 100 points = MYR 10.00; 0.00 switches cash off).
+  Requests already waiting keep the value they were made at,
 - set the **🎮 points per hour** of video game console time (e.g. 50 → 1 hour
   = 50 points, 2 hours = 100; 0 switches console time off),
-- **approve or reject redemption requests** (the menu's Admin link shows how
-  many are waiting), and see past requests,
 - see each player's points — available, on hold, used and earned,
 - delete a player — the only place this can be done, and it asks for the
   admin PIN again before deleting (wrong PINs count towards the 60-second lock),

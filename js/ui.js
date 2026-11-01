@@ -639,7 +639,7 @@
   function roundRule(def, r, i) {
     const b = r.badge && DATA.BADGES[r.badge];
     const win = b ? ` Make it through to win the <b>${esc(b.label)}</b> badge.` : "";
-    if (isBattle(def)) return `<b>${roundWord(def)} ${i + 1}:</b> ${esc(r.monster.name)} has ${r.questions} lives — ${i ? "only " : ""}<b>${r.perQuestion} seconds</b> for each answer${i ? "!" : "."}${win}`;
+    if (isBattle(def)) return `<b>${roundWord(def)} ${i + 1}:</b> ${esc(r.monster.name)} has ${r.questions} lives and attacks with <b>${esc(r.monster.attackText)}</b> — ${i ? "only " : ""}<b>${r.perQuestion} seconds</b> for each answer${i ? "!" : "."}${win}`;
     if (isFalling(def)) return `<b>${roundWord(def)} ${i + 1}:</b> ${r.questions} ${i ? "more " : ""}${isBlaster(def) ? "sums" : "numbers"} — each one takes ${i ? "only " : ""}<b>${r.perQuestion} seconds</b> to fall${i ? "!" : "."}${win}`;
     return `<b>${roundWord(def)} ${i + 1}:</b> ${r.questions} ${i ? "more " : ""}questions — ${i ? "only " : ""}<b>${r.perQuestion} seconds</b> for each one${i ? "!" : "."}${win}`;
   }
@@ -690,7 +690,7 @@
             <li><b>${"❤️".repeat(def.lives)} ${def.lives} lives</b> for the whole game — a wrong answer, or ${isFalling(def) ? `letting a ${isBlaster(def) ? "sum" : "number"} land` : "running out of time"}, costs one.</li>
             ${def.rounds.map((r, i) => `<li>${roundRule(def, r, i)}</li>`).join("")}
             <li>${isBattle(def)
-              ? "Type the answer on the number pad. Get it right and you hit the monster. Get it wrong, or run out of time, and the monster hits you."
+              ? "Type the answer on the number pad. Get it right and you throw your power cards at the monster. Get it wrong, or run out of time, and the monster hits you."
               : isBlaster(def)
               ? "Type the answer on the number pad. Get it right and your blaster shoots the sum down before it lands."
               : isOddEven(def)
@@ -748,13 +748,15 @@
         </div>`;
     // Falling games: the question falls down the sky (#bcQ). Otherwise it sits above the number pad.
     const play = battle
-      ? `<div class="df-arena ${esc(r.monster.art)}" id="dfArena">
+      ? `<div class="df-arena ${esc(r.monster.art)} atk-${esc(r.monster.attack)}" id="dfArena">
           ${ART.arena(r.monster.art)}
           <div class="df-hp"><span class="df-name">${esc(r.monster.name)}</span><span class="df-pips" id="dfPips"></span></div>
           <div class="df-ground"></div>
           <div class="df-fighter df-hero" id="dfHero">${ART.hero((STORE.active() || {}).gender)}</div>
           <div class="df-fighter df-foe" id="dfFoe">${ART.monster(r.monster.art)}</div>
           <div class="df-boom" id="dfBoom"><b>💥</b><span>−1</span></div>
+          <div class="df-cards" id="dfCards"><i>♦</i><i>♠</i><i>♥</i></div>
+          <div class="df-shot">${ART.foeShot(r.monster.attack)}</div>
           ${flash}
         </div>
         <div class="bc-q" id="bcQ"></div>
@@ -928,17 +930,32 @@
     hero.classList.remove("strike", "hurt");
     foe.classList.remove("strike", "hurt");
     void hero.offsetWidth;                      // play it again from the start
+    aimShots(hero, foe);
     (attacker === "hero" ? hero : foe).classList.add("strike");
     (attacker === "hero" ? foe : hero).classList.add("hurt");
     boom.className = "df-boom " + (attacker === "hero" ? "on-foe" : "on-hero");
   }
-  // A right answer: the hero hits the monster, and the last hit knocks it out.
+  // Every attack leaves the right hand and lands on its target, on any screen size.
+  function aimShots(hero, foe) {
+    const arena = $("#dfArena"), box = arena.getBoundingClientRect();
+    const him = hero.getBoundingClientRect(), it = foe.getBoundingClientRect();
+    arena.style.setProperty("--from", (him.left + him.width * 0.72 - box.left) + "px");
+    arena.style.setProperty("--land", (it.left + it.width * 0.4 - box.left) + "px");
+    arena.style.setProperty("--hero-at", (him.left + him.width * 0.5 - box.left) + "px");
+    arena.style.setProperty("--lunge", (him.right - him.width * 0.05 - it.left) + "px");
+    const hand = foe.querySelector(".df-from"); if (!hand) return;
+    const held = hand.getBoundingClientRect();
+    arena.style.setProperty("--foe-at", (held.left + held.width / 2 - box.left) + "px");
+    arena.style.setProperty("--foe-y", (box.bottom - held.top - held.height / 2) + "px");
+    arena.style.setProperty("--foe-size", held.width + "px");
+  }
+  // A right answer: the hero's cards hit the monster, and the last hit knocks it out.
   function heroHits(g) {
     const beaten = g.inRound + 1 >= g.def.rounds[g.round].questions;
     battleHit("hero");
     paintFoeLives(g, g.inRound + 1);
     if (beaten) $("#dfFoe").classList.add("down");
-    setTimeout(() => gameNext(g), beaten ? 1500 : 700);
+    setTimeout(() => gameNext(g), beaten ? 1500 : 850);
   }
 
   // Multiple Blaster: shoot the falling sum (the blaster took aim when it dropped).
@@ -2803,6 +2820,7 @@
      resetting it first asks for the account password. 5 wrong PINs in a row
      lock the pad for 60 seconds. Leaving the admin page locks it again. */
   let adminUnlocked = false;
+  let adminTab = "redemptions";   // the admin tab showing; stays put while the page redraws
   const PIN_FAIL_KEY = "qa_pin_fail";
   function randomHex(n) {
     const a = new Uint8Array(n);
@@ -2836,6 +2854,7 @@
   function leaveAdmin() { adminUnlocked = false; renderMenu(); }
 
   function renderAdmin() {
+    adminTab = "redemptions";     // coming in from the menu always starts here
     if (!window.crypto || !crypto.subtle) { toast("The admin page needs a secure (https) connection.", "bad"); return; }
     if (!STORE.settings().pin) return renderAdminVerify("setup");
     if (!adminUnlocked) return renderPinEntry();
@@ -3042,30 +3061,17 @@
       <div class="topbar"><span class="back" id="bk">← Menu</span><h2>🔒 Admin</h2></div>
       <div class="page narrow">
         <div class="summary-box">Parents only. Changes are saved to the cloud and apply on every device signed in to this account.</div>
-        <h3 class="section-h">Points for each 1%</h3>
-        <div class="card wide admin-card">
-          <p class="muted small" style="line-height:1.6;margin-bottom:12px">Points are paid only when a player <b>beats their own best score</b> on a level: (new best − old best) × the value below. Repeating a level without beating the best earns nothing, so one level can never pay more than 100 × the value.</p>
-          <div class="rate-list">${rows}</div>
-          <p class="muted small" style="margin-top:12px;line-height:1.6">New values count from the next assessment — points already earned don't change. Set a subject to 0 to switch its points off.<br/>Quest Arena games pay their own fixed points: +50 for the first win of each level, then +5 per level won. Winning every level of a game pays a further +${DATA.QUEST_BONUS}, once.</p>
-          <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn primary" id="saveRates" type="button">💾 Save points values</button></div>
+        <div class="admin-tabs" role="tablist" aria-label="Admin sections">
+          <button class="admin-tab" id="adminTab_redemptions" data-tab="redemptions" role="tab" aria-controls="adminPanel_redemptions" type="button">Redemptions${pending.length ? `<span class="hold-count">${pending.length}</span>` : ""}</button>
+          <button class="admin-tab" id="adminTab_adjustments" data-tab="adjustments" role="tab" aria-controls="adminPanel_adjustments" type="button">Adjustments</button>
+          <button class="admin-tab" id="adminTab_setup" data-tab="setup" role="tab" aria-controls="adminPanel_setup" type="button">Setup</button>
         </div>
-        <h3 class="section-h">💵 Cash value of 1 point</h3>
-        <div class="card wide admin-card">
-          <p class="muted small" style="line-height:1.6;margin-bottom:12px">What one point is worth when a player redeems cash in the Shop. Set it to 0.00 to switch cash redemption off. Requests already waiting keep the value they were made at.</p>
-          <div class="myr-wrap admin-myr"><span class="myr-prefix">MYR</span><input id="myrRate" type="number" inputmode="decimal" min="0" step="0.01" value="${myrRate.toFixed(2)}" aria-label="MYR per point"/><span class="myr-suffix">per point</span></div>
-          <div class="muted small" id="myrEx" style="margin-top:8px"></div>
-          <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn primary" id="saveMyr" type="button">💾 Save cash value</button></div>
-        </div>
-        <h3 class="section-h">🎮 Video game console — points per hour</h3>
-        <div class="card wide admin-card">
-          <p class="muted small" style="line-height:1.6;margin-bottom:12px">How many points one hour of video game console time costs in the Shop. Players ask for whole or half hours, and you approve each request below. Set it to 0 to switch console time off. Requests already waiting keep the value they were made at.</p>
-          <div class="myr-wrap admin-myr"><input id="pphRate" type="number" inputmode="numeric" min="0" step="1" value="${pphRate}" aria-label="Points per hour"/><span class="myr-suffix">points per hour</span></div>
-          <div class="muted small" id="pphEx" style="margin-top:8px"></div>
-          <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn primary" id="savePph" type="button">💾 Save console points</button></div>
-        </div>
+        <div class="admin-panel" id="adminPanel_redemptions" data-panel="redemptions" role="tabpanel" aria-labelledby="adminTab_redemptions">
         <h3 class="section-h">Redemption requests ${pending.length ? `<span class="hold-count">${pending.length} waiting</span>` : ""}</h3>
         <div class="req-list">${pending.length ? pending.map(x => reqCard(x, true)).join("") : `<div class="muted">No requests waiting.</div>`}</div>
         ${decided.length ? `<details class="past-reqs"><summary>Past requests (${decided.length})</summary><div class="req-list">${decided.slice(0, 30).map(x => reqCard(x, false)).join("")}</div></details>` : ""}
+        </div>
+        <div class="admin-panel" id="adminPanel_adjustments" data-panel="adjustments" role="tabpanel" aria-labelledby="adminTab_adjustments">
         <h3 class="section-h">⭐ Give bonus points</h3>
         <div class="card wide admin-card">
           ${profiles.length ? `
@@ -3107,6 +3113,29 @@
             </div>`).join("")}</div></details>` : ""}`
           : `<div class="muted">Add a player first.</div>`}
         </div>
+        </div>
+        <div class="admin-panel" id="adminPanel_setup" data-panel="setup" role="tabpanel" aria-labelledby="adminTab_setup">
+        <h3 class="section-h">Points for each 1%</h3>
+        <div class="card wide admin-card">
+          <p class="muted small" style="line-height:1.6;margin-bottom:12px">Points are paid only when a player <b>beats their own best score</b> on a level: (new best − old best) × the value below. Repeating a level without beating the best earns nothing, so one level can never pay more than 100 × the value.</p>
+          <div class="rate-list">${rows}</div>
+          <p class="muted small" style="margin-top:12px;line-height:1.6">New values count from the next assessment — points already earned don't change. Set a subject to 0 to switch its points off.<br/>Quest Arena games pay their own fixed points: +50 for the first win of each level, then +5 per level won. Winning every level of a game pays a further +${DATA.QUEST_BONUS}, once.</p>
+          <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn primary" id="saveRates" type="button">💾 Save points values</button></div>
+        </div>
+        <h3 class="section-h">💵 Cash value of 1 point</h3>
+        <div class="card wide admin-card">
+          <p class="muted small" style="line-height:1.6;margin-bottom:12px">What one point is worth when a player redeems cash in the Shop. Set it to 0.00 to switch cash redemption off. Requests already waiting keep the value they were made at.</p>
+          <div class="myr-wrap admin-myr"><span class="myr-prefix">MYR</span><input id="myrRate" type="number" inputmode="decimal" min="0" step="0.01" value="${myrRate.toFixed(2)}" aria-label="MYR per point"/><span class="myr-suffix">per point</span></div>
+          <div class="muted small" id="myrEx" style="margin-top:8px"></div>
+          <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn primary" id="saveMyr" type="button">💾 Save cash value</button></div>
+        </div>
+        <h3 class="section-h">🎮 Video game console — points per hour</h3>
+        <div class="card wide admin-card">
+          <p class="muted small" style="line-height:1.6;margin-bottom:12px">How many points one hour of video game console time costs in the Shop. Players ask for whole or half hours, and you approve each request on the Redemptions tab. Set it to 0 to switch console time off. Requests already waiting keep the value they were made at.</p>
+          <div class="myr-wrap admin-myr"><input id="pphRate" type="number" inputmode="numeric" min="0" step="1" value="${pphRate}" aria-label="Points per hour"/><span class="myr-suffix">points per hour</span></div>
+          <div class="muted small" id="pphEx" style="margin-top:8px"></div>
+          <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn primary" id="savePph" type="button">💾 Save console points</button></div>
+        </div>
         <h3 class="section-h">Players &amp; points</h3>
         <div class="rep-grid">${players || `<div class="muted">No players yet.</div>`}</div>
         <h3 class="section-h">Admin PIN</h3>
@@ -3114,7 +3143,15 @@
           <button class="btn" id="changePin" type="button">🔑 Change PIN</button>
           <button class="btn ghost" id="lockAdmin" type="button">🔒 Lock admin</button>
         </div>
+        </div>
       </div>`);
+    const showTab = (tab) => {
+      adminTab = tab;
+      $$("[data-tab]").forEach(b => { b.classList.toggle("on", b.dataset.tab === tab); b.setAttribute("aria-selected", b.dataset.tab === tab); });
+      $$("[data-panel]").forEach(p => { p.hidden = p.dataset.panel !== tab; });
+    };
+    $$("[data-tab]").forEach(b => { b.onclick = () => showTab(b.dataset.tab); });
+    showTab(adminTab);
     const read = (id) => { const v = Number($("#rate_" + id).value); return isFinite(v) && v >= 0 ? Math.min(100, Math.round(v * 100) / 100) : 0; };
     const refreshEx = (id) => { $("#ex_" + id).innerHTML = example(read(id)); };
     $$(".stepper [data-step]").forEach(b => {

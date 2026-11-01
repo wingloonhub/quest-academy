@@ -4,6 +4,13 @@
   "use strict";
 
   // Points of a 5-pointed star centred on (cx, cy).
+  // A spider web in a 100 × 100 box: spokes and sagging rings.
+  function webPath() {
+    const at = (r, i) => [50 + r * Math.sin(i * Math.PI / 4), 50 - r * Math.cos(i * Math.PI / 4)].map(n => n.toFixed(1)).join(" ");
+    const ring = (r) => "M" + at(r, 0) + [1, 2, 3, 4, 5, 6, 7, 8].map(i => "Q" + at(r * 0.8, i - 0.5) + " " + at(r, i)).join("");
+    return [0, 1, 2, 3, 4, 5, 6, 7].map(i => "M50 50L" + at(48, i)).join("") + ring(18) + ring(32) + ring(46);
+  }
+
   function starPoints(cx, cy, R, r) {
     const pts = [];
     for (let i = 0; i < 10; i++) {
@@ -163,68 +170,66 @@
     </svg>`;
   }
 
-  // Divide & Conquer: the player's hero, facing right. gender: "boy" | "girl"
+  // Divide & Conquer: the player's hero, facing right: a card thrower in a long coat. gender: "boy" | "girl"
   function hero(gender) {
     const girl = gender === "girl";
-    const skin = "#f0c39a", hair = girl ? "#5b2c0e" : "#2b1a0c", tunic = girl ? "#c026d3" : "#2563eb", dark = girl ? "#86198f" : "#1e3a8a", cape = girl ? "#f472b6" : "#ef4444";
+    const skin = "#f0c39a", cowl = "#1c1730", suit = "#2a2140", glow = "#ff2fd6";
+    const hair = girl ? "#a8431c" : "#7a3e1d", coat = girl ? "#7b2f6b" : "#7c4a1e", coatDark = girl ? "#571f4c" : "#54300f";
+    const lining = girl ? "#c0559f" : "#b27a3c", plate = girl ? "#f472b6" : "#db2777", boot = girl ? "#7c3aed" : "#2563eb";
     const hairBack = girl
-      ? `<path d="M34 34q-8 30 0 52l15-7q-8-18-4-42z" fill="${hair}"/><path d="M36 22q-24 8-20 46 2 10 8 12 8-22 16-40z" fill="${hair}"/><rect x="29" y="19" width="12" height="7" rx="3" fill="#f2c14e" transform="rotate(-25 35 22)"/>`
+      ? `<path d="M37 30Q14 62 22 100q10 8 24 2-10-34 0-68z" fill="${hair}" stroke="#6e2a12" stroke-width="1.2" stroke-linejoin="round"/>`
       : "";
-    const hairTop = girl
-      ? `<path d="M35 38q-4-28 24-30 28 2 24 30-3-10-12-13-16 6-36 13z" fill="${hair}"/><path d="M44 12l6 7 9-10 9 10 6-7 1 10H43z" fill="#f2c14e" stroke="#b45309" stroke-width="1.2" stroke-linejoin="round"/>`
-      : `<path d="M35 38q-5-30 24-31 29 1 24 31-3-9-9-13l-5 6-6-9-7 8-5-6q-11 4-16 14z" fill="${hair}"/>`;
+    const card = (deg) => `<g transform="rotate(${deg} 106 86)"><rect x="98" y="50" width="16" height="24" rx="2.5" fill="#fff" stroke="${glow}" stroke-width="2"/><path d="M106 56l4 6-4 6-4-6z" fill="${glow}"/></g>`;
     return `<svg viewBox="0 0 136 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Your hero">
-      <path d="M40 66Q12 94 16 130l36-14z" fill="${cape}" stroke="${dark}" stroke-width="1.6" stroke-linejoin="round"/>
+      <path d="M46 60Q10 92 6 138q11-7 16 1 8-8 15 0 8-8 16-1l9-24z" fill="${coat}" stroke="${coatDark}" stroke-width="1.6" stroke-linejoin="round"/>
+      <path d="M46 72Q24 98 19 128q8-4 13 1 7-7 14-2z" fill="${lining}"/>
       ${hairBack}
-      <rect x="42" y="110" width="13" height="26" rx="4" fill="${dark}"/>
-      <rect x="62" y="110" width="13" height="26" rx="4" fill="${dark}"/>
-      <path d="M38 134h18v9q0 3-3 3H38q-3 0-3-3 0-9 3-9zM61 134h18q6 0 6 9 0 3-3 3H61z" fill="#7c2d12"/>
-      <path d="M38 72q0-11 11-11h20q11 0 11 11v42H38z" fill="${tunic}" stroke="${dark}" stroke-width="1.6"/>
-      <rect x="37" y="103" width="44" height="8" rx="2" fill="#f2c14e" stroke="#b45309" stroke-width="1"/>
-      <circle cx="59" cy="83" r="10" fill="#fde68a" stroke="#b45309" stroke-width="1.2"/>
-      <rect x="52" y="81.8" width="14" height="2.6" rx="1.3" fill="#7c2d12"/><circle cx="59" cy="78" r="1.9" fill="#7c2d12"/><circle cx="59" cy="88.2" r="1.9" fill="#7c2d12"/>
-      <circle cx="59" cy="38" r="25" fill="${skin}" stroke="#c08a5e" stroke-width="1.2"/>
-      ${hairTop}
-      <circle cx="63" cy="39" r="3.4" fill="#1b1b2f"/><circle cx="77" cy="39" r="3.4" fill="#1b1b2f"/>
-      <circle cx="64.2" cy="37.8" r="1.1" fill="#fff"/><circle cx="78.2" cy="37.8" r="1.1" fill="#fff"/>
-      <path d="M57 32.5q5-3 9-.5M73 32q4-2 8 .5" stroke="${hair}" stroke-width="2" fill="none" stroke-linecap="round"/>
-      <path d="M64 50q7 6 14 0" stroke="#7c2d12" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+      <path d="M39 100h40l-1 36H62l-3-20-3 20H40z" fill="${suit}"/>
+      <path d="M43 113h9l-1 20h-7zM66 113h9l-1 20h-7z" fill="${plate}"/>
+      <path d="M38 130h18v13q0 3-3 3H38q-3 0-3-3 0-13 3-13zM61 130h16q8 2 8 13 0 3-3 3H61z" fill="${boot}" stroke="#172554" stroke-width="1.2"/>
+      <path d="M38 72q0-11 11-11h20q11 0 11 11v36H38z" fill="${suit}" stroke="#14101f" stroke-width="1.6"/>
+      <path d="M44 64h30q4 14 2 28-17 13-34 0-2-14 2-28z" fill="${plate}" stroke="#14101f" stroke-width="1.4" stroke-linejoin="round"/>
+      <path d="M49 69h12q-8 5-14 15-1-8 2-15z" fill="#fff" opacity=".28"/>
+      <rect x="52" y="80.8" width="14" height="2.6" rx="1.3" fill="#fff"/><circle cx="59" cy="76" r="1.9" fill="#fff"/><circle cx="59" cy="88.2" r="1.9" fill="#fff"/>
+      <rect x="37" y="102" width="44" height="7" rx="2" fill="#f2c14e" stroke="#b45309" stroke-width="1"/>
+      <path d="M38 62q-7 3-7 13l-1 52q8 4 15-1l4-66z" fill="${coat}" stroke="${coatDark}" stroke-width="1.6" stroke-linejoin="round"/>
+      <path d="M80 62q6 4 6 12l1 36q-5 3-9 0l-4-46z" fill="${coat}" stroke="${coatDark}" stroke-width="1.6" stroke-linejoin="round"/>
+      <path d="M33 62 40 46l10 16-6 6zM85 62l-7-16-10 16 6 6z" fill="${coatDark}" stroke="#2f1a07" stroke-width="1.2" stroke-linejoin="round"/>
+      <path d="M38 27Q20 30 21 52q2 8 8 11-2-12 5-19 2 10 7 15z" fill="${hair}" stroke="#4a2410" stroke-width="1.2" stroke-linejoin="round"/>
+      <circle cx="59" cy="38" r="25.5" fill="${cowl}" stroke="#000" stroke-width="1.2"/>
+      <ellipse cx="67" cy="42" rx="16.5" ry="19" fill="${skin}" stroke="${plate}" stroke-width="2.6"/>
+      <path d="M35 28Q27 13 40 15 35 3 49 8 51-1 61 6 70-1 74 9 86 7 81 17 91 21 82 29 71 15 58 15 45 15 35 28z" fill="${hair}" stroke="#4a2410" stroke-width="1.2" stroke-linejoin="round"/>
+      <path d="M67 16q7 4 6 13-5-3-7-9M56 15q3 6 1 12-5-4-5-10" fill="${hair}" stroke="#4a2410" stroke-width="1" stroke-linejoin="round"/>
+      <ellipse cx="62.5" cy="41" rx="4.8" ry="4.6" fill="#14101f"/><ellipse cx="76.5" cy="41" rx="4.8" ry="4.6" fill="#14101f"/>
+      <circle cx="63.8" cy="41" r="2.5" fill="#ff2d55"/><circle cx="77.8" cy="41" r="2.5" fill="#ff2d55"/>
+      <circle cx="64.7" cy="39.8" r=".9" fill="#fff"/><circle cx="78.7" cy="39.8" r=".9" fill="#fff"/>
+      <path d="M57 34q5-2 10 .5M72 34.5q5-2.5 9.5-.5" stroke="#4a2410" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <path d="M64 53q8 3 14-3" stroke="${girl ? "#be185d" : "#7c2d12"}" stroke-width="2.2" fill="none" stroke-linecap="round"/>
       <g class="df-arm">
-        <path d="M72 70 96 76" stroke="${tunic}" stroke-width="13" stroke-linecap="round"/>
-        <circle cx="98" cy="76" r="7.5" fill="${skin}" stroke="#c08a5e" stroke-width="1.2"/>
-        <g transform="rotate(24 98 76)">
-          <rect x="93.5" y="18" width="9" height="50" fill="#e2e8f0" stroke="#475569" stroke-width="1.4"/>
-          <path d="M93.5 18 98 8l4.5 10z" fill="#f8fafc" stroke="#475569" stroke-width="1.4" stroke-linejoin="round"/>
-          <path d="M98 12v54" stroke="#94a3b8" stroke-width="1.2"/>
-          <rect x="85" y="66" width="26" height="6" rx="2.5" fill="#f2c14e" stroke="#b45309" stroke-width="1"/>
-          <rect x="94.5" y="72" width="7" height="13" rx="2" fill="#7c2d12"/>
+        <path d="M72 72 102 86" stroke="${coat}" stroke-width="13" stroke-linecap="round"/>
+        <path d="M95 77l-5 11" stroke="${coatDark}" stroke-width="2.4" stroke-linecap="round"/>
+        <g class="df-fan">
+          <circle cx="106" cy="64" r="28" fill="${glow}" opacity=".16"/><circle cx="106" cy="64" r="19" fill="${glow}" opacity=".24"/>
+          ${card(-26)}${card(0)}${card(26)}
         </g>
+        <circle cx="105" cy="87" r="7.5" fill="${suit}" stroke="#14101f" stroke-width="1.2"/>
+        <path d="M100 82v-3M104 81v-4M108 81v-4M111.5 83v-3" stroke="${skin}" stroke-width="3" stroke-linecap="round"/>
       </g>
     </svg>`;
   }
 
-  // Divide & Conquer: the monsters, facing left. art: "mummy" | "brute" | "zombie"
+  // The zombie's shield, in its hand and when it flies.
+  function capShield() {
+    return `<circle class="df-from" cx="45" cy="100" r="42" fill="#dc2626" stroke="#7f1d1d" stroke-width="2.4"/>
+      <circle cx="45" cy="100" r="33" fill="#f1f5f9"/>
+      <circle cx="45" cy="100" r="24" fill="#dc2626"/>
+      <circle cx="45" cy="100" r="16.5" fill="#1d4ed8"/>
+      <polygon points="${starPoints(45, 100, 13, 5.6)}" fill="#fff"/>
+      <path d="M10 82q10-28 38-32" stroke="#fff" stroke-opacity=".45" stroke-width="3" fill="none" stroke-linecap="round"/>`;
+  }
+
+  // Divide & Conquer: the monsters, facing left. art: "brute" | "zombie" | "spider"
   function monster(art) {
-    if (art === "mummy") {
-      const wrap = "#b9a988";
-      return `<svg viewBox="0 0 150 170" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A mummy">
-        <path d="M108 118q22 14 18 44-10-8-26-26z" fill="#e4d8bb" stroke="${wrap}" stroke-width="1.6"/>
-        <path d="M58 136h20v30H58zM88 136h20v30H88z" fill="#e8dcc0" stroke="#8a7a5a" stroke-width="2" stroke-linejoin="round"/>
-        <path d="M58 146l20-5M58 157l20-6M88 147l20-5M88 158l20-6" stroke="${wrap}" stroke-width="2.4"/>
-        <path d="M52 76q0-20 20-20h22q20 0 20 20v62q0 6-6 6H58q-6 0-6-6z" fill="#e8dcc0" stroke="#8a7a5a" stroke-width="2"/>
-        <path d="M52 84q30-14 62-6M52 98q30 8 62-8M52 112q30-14 62-4M52 126q30 8 62-6M52 138q30-8 62 2" stroke="${wrap}" stroke-width="3" fill="none"/>
-        <path d="M58 72 20 62q-10-2-12 6t8 11l40 12z" fill="#efe5cd" stroke="#8a7a5a" stroke-width="2" stroke-linejoin="round"/>
-        <path d="M30 66l-3 15M44 69l-3 16" stroke="${wrap}" stroke-width="2.4"/>
-        <path d="M60 94 22 88q-10-1-11 7t9 10l40 6z" fill="#e8dcc0" stroke="#8a7a5a" stroke-width="2" stroke-linejoin="round"/>
-        <path d="M33 90l-2 15M47 92l-2 16" stroke="${wrap}" stroke-width="2.4"/>
-        <rect x="46" y="8" width="72" height="62" rx="28" fill="#efe5cd" stroke="#8a7a5a" stroke-width="2"/>
-        <path d="M48 26q34-12 68 0M47 60q34 10 70-2M46 40l72-8" stroke="${wrap}" stroke-width="3" fill="none"/>
-        <path d="M50 37q32-7 64 0v15q-32 8-64 0z" fill="#2b2118"/>
-        <circle cx="66" cy="45" r="7" fill="#facc15"/><circle cx="64" cy="45" r="3" fill="#7f1d1d"/>
-        <circle cx="96" cy="45" r="5.5" fill="#facc15"/><circle cx="94.5" cy="45" r="2.4" fill="#7f1d1d"/>
-        <path d="M116 22q16 6 18 22-10-2-20-10z" fill="#efe5cd" stroke="${wrap}" stroke-width="1.6"/>
-      </svg>`;
-    }
     if (art === "brute") {
       const g1 = "#4ade80", g2 = "#16a34a", line = "#14532d";
       return `<svg viewBox="0 0 176 176" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A green monster">
@@ -235,10 +240,12 @@
         <path d="M150 62q20 8 20 34l-4 22" stroke="${line}" stroke-width="30" fill="none" stroke-linecap="round"/>
         <path d="M150 62q20 8 20 34l-4 22" stroke="${g1}" stroke-width="25" fill="none" stroke-linecap="round"/>
         <circle cx="164" cy="128" r="17" fill="${g1}" stroke="${line}" stroke-width="2.4"/>
+        <g class="df-punch">
         <path d="M48 62Q18 72 18 100l6 22" stroke="${line}" stroke-width="30" fill="none" stroke-linecap="round"/>
         <path d="M48 62Q18 72 18 100l6 22" stroke="${g1}" stroke-width="25" fill="none" stroke-linecap="round"/>
         <circle cx="24" cy="132" r="19" fill="${g1}" stroke="${line}" stroke-width="2.4"/>
         <path d="M12 124v12M20 118v16M29 118v16" stroke="${g2}" stroke-width="2.6" stroke-linecap="round"/>
+        </g>
         <path d="M68 28q0-24 30-24t30 24v14q-2 16-30 18-28-2-30-18z" fill="${g1}" stroke="${line}" stroke-width="2.4"/>
         <path d="M67 28q-3-26 31-27 34 1 31 27l-8-10-8 6-7-8-8 7-7-7-8 7-8-6z" fill="#111827"/>
         <path d="M72 29l19 5M112 34l-14 1" stroke="#111827" stroke-width="4.5" stroke-linecap="round"/>
@@ -248,8 +255,36 @@
         <path d="M86 46v8M94 46v8M102 46v8" stroke="${line}" stroke-width="1.4"/>
       </svg>`;
     }
+    if (art === "spider") {
+      const red = "#dc2626", blue = "#1d4ed8", dark = "#7f1d1d", navy = "#172554", skin = "#a3b18a", line = "#3f4f32";
+      return `<svg viewBox="0 0 160 172" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A zombie in a spider suit">
+        <path d="M124 72q22 8 20 38" stroke="${dark}" stroke-width="20" fill="none" stroke-linecap="round"/>
+        <path d="M124 72q22 8 20 38" stroke="${red}" stroke-width="16" fill="none" stroke-linecap="round"/>
+        <circle cx="144" cy="116" r="10" fill="${skin}" stroke="${line}" stroke-width="2"/>
+        <path d="M66 126h24v38q0 5-5 5H60q-5 0-5-5zM96 126h24l6 38q0 5-5 5h-20q-5 0-5-5z" fill="${blue}" stroke="${navy}" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M57 148h32v16q0 5-5 5H60q-5 0-5-5zM96 148h28l2 16q0 5-5 5h-20q-5 0-5-5z" fill="${red}" stroke="${dark}" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M68 132l14 2-3 11-12-2zM106 130l10 4-1 10-9-3z" fill="${skin}" stroke="${line}" stroke-width="1.5" stroke-linejoin="round"/>
+        <path d="M60 74q0-18 18-18h30q18 0 18 18v56H60z" fill="${blue}" stroke="${navy}" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M68 56h50l8 18-2 16-16 12 2 28H78l2-28-16-12-4-16z" fill="${red}" stroke="${dark}" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M93 84 93 56M93 84 72 58M93 84l21-26M93 84 62 76M93 84l31-8M93 84 66 92M93 84l27 8M93 84 84 128M93 84l10 44M78 72q15 8 30 0M72 86q21 14 42 0" stroke="#450a0a" stroke-width="1.2" fill="none"/>
+        <ellipse cx="93" cy="84" rx="4" ry="8" fill="#111827"/>
+        <path d="M93 80 83 72M93 80l10-8M93 84H81M93 84h12M93 88l-10 8M93 88l10 8" stroke="#111827" stroke-width="2" fill="none" stroke-linecap="round"/>
+        <path d="M108 104l11 2-3 13-11-5z" fill="${skin}" stroke="${line}" stroke-width="1.5" stroke-linejoin="round"/>
+        <path d="M62 8q30-12 54 4 12 12 8 36-4 22-30 24-28-2-34-24-4-22 2-40z" fill="${red}" stroke="${dark}" stroke-width="2.2"/>
+        <path d="M78 40 64 6M78 40 90 2M78 40 58 22M78 40 56 44M78 40 62 62M78 40l10 32M63 22q10 8 22-4M60 42q12 10 28 2M66 56q12 4 24 0" stroke="#450a0a" stroke-width="1.2" fill="none"/>
+        <path d="M94 2 89 12l8 6-7 8 8 8-7 9 7 8-5 9 6 11q24-4 27-24 4-24-8-36-10-8-24-8z" fill="${skin}" stroke="${line}" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M60 28q14-6 25 8-2 14-14 15-13-3-11-23z" fill="#f8fafc" stroke="#111827" stroke-width="3.4" stroke-linejoin="round"/>
+        <circle cx="108" cy="34" r="9" fill="#f8fafc" stroke="${line}" stroke-width="1.8"/><circle cx="105" cy="35" r="3.6" fill="#b91c1c"/>
+        <path d="M94 56l5 3 5-4 5 4 6-4-2 9-8 3-9-1z" fill="#f8fafc" stroke="${line}" stroke-width="1.8" stroke-linejoin="round"/>
+        <path d="M116 16l6 8M120 12l-4 8M116 54l7 2M118 50l2 9" stroke="${line}" stroke-width="1.8" stroke-linecap="round"/>
+        <path d="M66 70Q42 70 22 84" stroke="${dark}" stroke-width="20" fill="none" stroke-linecap="round"/>
+        <path d="M66 70Q42 70 22 84" stroke="${red}" stroke-width="16" fill="none" stroke-linecap="round"/>
+        <path d="M44 62l4 16M34 66l6 15" stroke="#450a0a" stroke-width="1.2"/>
+        <circle class="df-from" cx="16" cy="88" r="10" fill="${skin}" stroke="${line}" stroke-width="2"/>
+        <path d="M11 82 4 74M8 87 0 84" stroke="${skin}" stroke-width="4.5" stroke-linecap="round"/>
+      </svg>`;
+    }
     const skin = "#a3b18a", line = "#3f4f32", suit = "#1e3a8a";
-    const star = starPoints(45, 100, 13, 5.6);
     return `<svg viewBox="0 0 160 172" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A zombie with a shield">
       <path d="M66 128h24v36q0 5-5 5H60q-5 0-5-5zM96 128h24l6 36q0 5-5 5h-20q-5 0-5-5z" fill="${suit}" stroke="#172554" stroke-width="2" stroke-linejoin="round"/>
       <path d="M72 150l14 6-6 13h-14zM110 146l12 12-4 11h-12z" fill="#0f172a"/>
@@ -264,22 +299,24 @@
       <path d="M97 28l11 11M108 28 97 39" stroke="#1f2937" stroke-width="3.4" stroke-linecap="round"/>
       <path d="M68 54l6 4 5-4 6 5 5-5 6 4 6-5-2 10-8 4-14 0-8-5z" fill="#f8fafc" stroke="${line}" stroke-width="1.8" stroke-linejoin="round"/>
       <path d="M112 16l6 8M116 12l-4 8M112 54l8 2M114 50l2 9" stroke="${line}" stroke-width="1.8" stroke-linecap="round"/>
-      <circle cx="45" cy="100" r="42" fill="#dc2626" stroke="#7f1d1d" stroke-width="2.4"/>
-      <circle cx="45" cy="100" r="33" fill="#f1f5f9"/>
-      <circle cx="45" cy="100" r="24" fill="#dc2626"/>
-      <circle cx="45" cy="100" r="16.5" fill="#1d4ed8"/>
-      <polygon points="${star}" fill="#fff"/>
-      <path d="M10 82q10-28 38-32" stroke="#fff" stroke-opacity=".45" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <g class="df-shield">${capShield()}</g>
     </svg>`;
+  }
+
+  // Divide & Conquer: what a monster sends flying. attack: "shield" | "web" ("punch" sends nothing).
+  function foeShot(attack) {
+    if (attack === "shield") return `<span class="df-fly"><svg viewBox="2 57 86 86" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${capShield()}</svg></span>`;
+    if (attack === "web") return `<i class="df-strand"></i><span class="df-splat"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="${webPath()}" fill="none" stroke="#f8fafc" stroke-width="2.6" stroke-linecap="round"/></svg></span>`;
+    return "";
   }
 
   // Divide & Conquer: the scenery behind each monster.
   function arena(art) {
-    const scene = art === "mummy"
-      ? `<circle cx="312" cy="58" r="30" fill="#fff3c4"/>
-         <path d="M28 220 128 92l100 128z" fill="#d9974a"/><path d="M128 92l100 128h-64z" fill="#b8742f"/>
-         <path d="M210 220 280 132l70 88z" fill="#e0a55e"/><path d="M280 132l70 88h-44z" fill="#c2833d"/>`
-      : art === "brute"
+    const scene = art === "spider"
+      ? `<circle cx="74" cy="62" r="30" fill="#f1f5f9" opacity=".92"/>
+         <g transform="translate(250 -46) scale(1.5)" opacity=".2"><path d="${webPath()}" fill="none" stroke="#fff" stroke-width="1.4"/></g>
+         <path d="M0 220v-74h52v-26h44v44h42v-76h52v60h46v-30h58v48h48v-90h58v144z" fill="#0b1224"/>
+         <path d="M14 164h9v11h-9zM34 184h9v11h-9zM66 136h9v11h-9zM152 112h9v11h-9zM170 150h9v11h-9zM252 150h9v11h-9zM292 176h9v11h-9zM344 122h9v11h-9zM370 160h9v11h-9z" fill="#fbbf24"/>`      : art === "brute"
       ? `<circle cx="84" cy="62" r="26" fill="#fda4af" opacity=".8"/>
          <path d="M0 220v-92h44v-22l12 12 10-18v120h24v-76h40v-16l14 14 16-20v98h26v-104h48v30l12-16 10 18v72h22v-64h44v22l14-14 18 12v44z" fill="#312e81"/>
          <path d="M12 142h10v12H12zM58 134h8v12h-8zM102 160h10v12h-10zM176 138h10v12h-10zM196 170h10v12h-10zM288 170h10v12h-10z" fill="#fbbf24"/>`
@@ -291,7 +328,7 @@
   }
 
   // Badge medal (bronze / silver / gold / diamond). Icons: "target" (bullseye), "blaster"
-  // (ray gun), "burst" (a hit with a ×), "crown", "mummy", "fist", "shield", "comet",
+  // (ray gun), "burst" (a hit with a ×), "crown", "fist", "shield", "web", "comet",
   // "rocket", "planet" (ringed), anything else = a star. earned === false → greyed out.
   function badge(id, size, earned) {
     const b = (window.DATA && DATA.BADGES && DATA.BADGES[id]) || { tier: "silver", icon: "star" };
@@ -326,11 +363,6 @@
         <circle cx="15" cy="19.5" r="2" fill="#fff"/>
         <circle cx="32" cy="14" r="2" fill="#fff"/>
         <circle cx="49" cy="19.5" r="2" fill="#fff"/>`
-      : b.icon === "mummy"
-      ? `<rect x="19" y="14" width="26" height="32" rx="12" fill="#efe5cd" stroke="#8a7a5a" stroke-width="1.3"/>
-        <path d="M19.5 23 44 19M19.5 42 44 37M20 33 44 29" stroke="#b9a988" stroke-width="2"/>
-        <rect x="21.5" y="25.5" width="21" height="8.5" rx="3" fill="#2b2118"/>
-        <circle cx="27.5" cy="29.8" r="2.6" fill="#facc15"/><circle cx="36.5" cy="29.8" r="2.6" fill="#facc15"/>`
       : b.icon === "fist"
       ? `<path d="M19 31q0-9 7-9h15q6 0 6 7v6q0 11-12 11h-5q-11 0-11-10z" fill="#4ade80" stroke="#14532d" stroke-width="1.5"/>
         <path d="M28 22v9M34.5 22v9M41 22v9" stroke="#14532d" stroke-width="1.5" stroke-linecap="round"/>
@@ -341,6 +373,9 @@
         <circle cx="32" cy="30" r="8.4" fill="#dc2626"/>
         <circle cx="32" cy="30" r="5.9" fill="#1d4ed8"/>
         <polygon points="${starPoints(32, 30.3, 5.2, 2.2)}" fill="#fff"/>`
+      : b.icon === "web"
+      ? `<circle cx="32" cy="30" r="15.5" fill="#dc2626" stroke="#7f1d1d" stroke-width="1.2"/>
+        <path d="${webPath()}" transform="translate(16 14) scale(.32)" fill="none" stroke="#fff" stroke-width="4"/>`
       : b.icon === "comet"
       ? `<path d="M16.5 14.5C24 19.5 30 24 37 28.5L33 33.5C27.5 27 22 21.5 16.5 14.5z" fill="#fb923c" opacity=".85"/>
         <path d="M21 13C27.5 18.5 32.5 22.5 39 27L37 29.5C31 25 26 19.5 21 13z" fill="#fde68a"/>
@@ -433,7 +468,7 @@
   }
 
   window.ART = {
-    crest, student, owl, subject, stars, coin, badge, blaster, hero, monster, arena, clock, fraction,
+    crest, student, owl, subject, stars, coin, badge, blaster, hero, monster, foeShot, arena, clock, fraction,
     player: function (_pose, gender) { return student(gender); }
   };
 })();
