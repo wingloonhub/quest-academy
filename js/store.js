@@ -37,7 +37,7 @@
   "use strict";
   const LS_PREFIX = "qa_save_";
   const HISTORY_MAX = 120;     // finished sessions kept per player (all subjects)
-  const DETAIL_KEEP = 20;      // newest sessions that keep every question for "View details"
+  const DETAIL_KEEP = 20;      // newest sessions per subject that keep every question ("View details", AI reports)
   const MISTAKES_MAX = 8;      // mistakes kept per session for the Parent Report
   const DEFAULT_RATE = 1;      // points for each 1% improvement on a level's best score
   const GAMES_MAX = 100;       // game runs kept per player
@@ -83,6 +83,7 @@
       redemptions: [],         // shop requests { id, ts, item, myr, points, rate, status, decidedTs }
       bonuses: [],             // points a parent gave { id, ts, points, reason, removedTs }
       deductions: [],          // points a parent took off { id, ts, points, reason, removedTs }
+      aiReports: {},           // newest AI report per subject { ts, basedOn, lastTs, sections }
       replays: []             // replay bonus ledger { s, t, l, ts, pct, pts } (90%+ after a 100% best)
     };
   }
@@ -252,7 +253,11 @@
     });
     out.sort(function (a, b) { return (b.ts || 0) - (a.ts || 0); });
     const capped = out.slice(0, HISTORY_MAX);
-    capped.forEach(function (h, i) { if (i >= DETAIL_KEEP && h.answers) delete h.answers; });
+    const perSubject = {};
+    capped.forEach(function (h) {
+      perSubject[h.subjectId] = (perSubject[h.subjectId] || 0) + 1;
+      if (perSubject[h.subjectId] > DETAIL_KEEP && h.answers) delete h.answers;
+    });
     return capped;
   }
 
@@ -270,6 +275,13 @@
       if (to) { e[tk] = to[0]; e[lk] = to[1]; }
     });
     return list;
+  }
+
+  // AI reports: the newest one for each subject wins, whichever device made it.
+  function newestReports(a, b) {
+    const out = Object.assign({}, a);
+    Object.keys(b).forEach(function (s) { if (!out[s] || (b[s].ts || 0) >= (out[s].ts || 0)) out[s] = b[s]; });
+    return out;
   }
 
   // Bonus points and deductions: one per id; once removed on any device it stays removed.
@@ -305,6 +317,7 @@
     p.redemptions = tidyRedemptions(Array.isArray(p.redemptions) ? p.redemptions : []);
     p.bonuses = tidyParentPoints(Array.isArray(p.bonuses) ? p.bonuses : []);
     p.deductions = tidyParentPoints(Array.isArray(p.deductions) ? p.deductions : []);
+    p.aiReports = isObj(p.aiReports) ? p.aiReports : {};
     return p;
   }
 
@@ -351,6 +364,7 @@
       p.redemptions = tidyRedemptions(pb.redemptions.concat(pa.redemptions));
       p.bonuses = tidyParentPoints(pb.bonuses.concat(pa.bonuses));
       p.deductions = tidyParentPoints(pb.deductions.concat(pa.deductions));
+      p.aiReports = newestReports(pa.aiReports, pb.aiReports);
       out.profiles[id] = p;
     });
 
@@ -579,6 +593,18 @@
       return true;
     },
 
+    /* ---------------- AI reports (Parent Report) ---------------- */
+    aiReport(subjectId, profile) {
+      const p = profile || STORE.active();
+      return (p && p.aiReports && p.aiReports[subjectId]) || null;
+    },
+    saveAiReport(subjectId, report) {
+      const p = STORE.active(); if (!p) return;
+      p.aiReports = p.aiReports || {};
+      p.aiReports[subjectId] = report;
+      STORE.save({ immediate: true });
+    },
+
     /* ---------------- Quest Arena points ---------------- */
     // How many times a game round has been won (all devices). A badge earned
     // before arena points existed counts as one win, so it still gets its bonus.
@@ -636,7 +662,7 @@
     },
 
     /* ---------------- Quest Arena: games + badges ---------------- */
-    // entry: { game, subjectId, ts, cleared, reached, correct, answered, tooSlow, livesLeft, r1Ms, r2Ms, reason }
+    // entry: { game, subjectId, ts, cleared, reached, correct, answered, tooSlow, livesLeft, r1Ms, r2Ms, reason, missed: [{ q, a, c or slow }] }
     recordGame(entry) {
       const p = STORE.active(); if (!p || !entry || !entry.game) return null;
       const clean = JSON.parse(JSON.stringify(Object.assign({ ts: Date.now() }, entry)));

@@ -1,0 +1,8 @@
+{
+  "name": "quest-academy",
+  "private": true,
+  "description": "The app itself has no build step. This only installs what api/ai-report.js needs on Vercel.",
+  "dependencies": {
+    "@anthropic-ai/sdk": "1.3.0"
+  }
+}

@@ -52,6 +52,7 @@
     };
     AUTH.syncNow = function () { return Promise.resolve(false); };
     AUTH.verifyPassword = function () { return Promise.resolve(); };   // no account password on this device
+    AUTH.idToken = function () { return Promise.resolve(null); };
     window.AUTH = AUTH;
   }
 
@@ -129,6 +130,8 @@
     });
   };
   AUTH.signIn = (email, password) => fbAuth.signInWithEmailAndPassword(email, password);
+  // Proves who is signed in to the app's server function.
+  AUTH.idToken = () => (fbAuth.currentUser ? fbAuth.currentUser.getIdToken() : Promise.resolve(null));
   // Re-check the account password (used before creating / resetting the admin PIN).
   AUTH.verifyPassword = function (password) {
     const u = fbAuth.currentUser;

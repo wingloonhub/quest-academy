@@ -705,7 +705,7 @@
     }
     game = {
       def, subjectId, qs: qs, qi: 0, round: 0, inRound: 0,
-      lives: def.lives, correct: 0, answered: 0, tooSlow: 0, cleared: 0,
+      lives: def.lives, correct: 0, answered: 0, tooSlow: 0, cleared: 0, missed: [],
       times: [], roundMs: 0, newBadges: [], points: 0, roundPts: [], questBonus: 0, typed: "", busy: false, over: false,
       qStart: 0, qDeadline: 0, lastTick: 0
     };
@@ -891,6 +891,7 @@
       setTimeout(() => gameNext(g), blaster ? 350 : 250);
       return;
     }
+    g.missed.push({ q: q.text, a: q.answer, c: g.typed });
     if (blaster) $("#bcQ").classList.add("bad");
     if (battle) battleHit("foe");
     loseLife(g, `${esc(q.text)} = <b>${esc(q.answer)}</b>`);
@@ -962,6 +963,7 @@
       setTimeout(() => gameNext(g), 350);
       return;
     }
+    g.missed.push({ q: q.text, a: q.answer, c: pick });
     loseLife(g, `✗ ${oddEvenWhy(q)}`);
   }
 
@@ -973,6 +975,7 @@
     g.busy = true;
     g.answered++;
     g.tooSlow++;
+    g.missed.push({ q: q.text, a: q.answer, slow: 1 });
     g.roundMs += g.def.rounds[g.round].perQuestion * 1000;
     g.qDeadline = 0;
     $("#bcClock").textContent = "0s";
@@ -1056,7 +1059,7 @@
     const entry = {
       game: g.def.id, subjectId: g.subjectId, ts: Date.now(),
       cleared: g.cleared, reached: g.round + 1, correct: g.correct, answered: g.answered,
-      tooSlow: g.tooSlow, livesLeft: g.lives, points: g.points, reason: reason
+      tooSlow: g.tooSlow, livesLeft: g.lives, points: g.points, reason: reason, missed: g.missed
     };
     g.def.rounds.forEach((r, i) => { entry["r" + (i + 1) + "Ms"] = g.cleared > i ? g.times[i] : null; });   // r1Ms, r2Ms, r3Ms…
     const rec = STORE.recordGame(entry);
@@ -2140,6 +2143,7 @@
     const q = st.questions[st.idx];
     if (!q) return renderResults();
     current = null;
+    const shownAt = Date.now();
     const subj = DATA.subject(st.subjectId);
     const total = st.questions.length, num = st.idx + 1;
     const correctSoFar = st.answers.filter(a => a.correct).length;
@@ -2247,7 +2251,8 @@
       const stem = kind === "spell" ? "Spell the word: " + q.word : q.clock ? qText + " (clock showing " + q.clock + ")"
         : fracShape ? qText + " (" + fracShape + ": " + q[fracShape].replace("/", " of ") + " parts shaded)"
         : q.pic ? qText + " (gambar: " + q.options[q.answer] + ")" : (qText || "Question");
-      st.answers.push({ q, correct, stem, chosenText, answerText });
+      const sec = Math.min(300, Math.round((Date.now() - shownAt) / 1000));   // capped, in case the page was left open
+      st.answers.push({ q, correct, stem, chosenText, answerText, sec });
       const fb = $("#fbk");
       if (correct) {
         fb.innerHTML = `<div class="fb-ok">✅ ${PRAISE[Math.floor(Math.random() * PRAISE.length)]}</div>`;
@@ -2456,11 +2461,11 @@
     const pct = total ? Math.round(correct / total * 100) : 0;
     const before = REPORT.levelStats(st.subjectId, st.topicId, st.levelId);
 
-    const mistakes = st.answers.filter(a => !a.correct).map(a => ({ q: a.stem, chosen: a.chosenText, answer: a.answerText, cat: a.q.cat || "?" }));
+    const mistakes = st.answers.filter(a => !a.correct).map(a => ({ q: a.stem, chosen: a.chosenText, answer: a.answerText, cat: a.q.cat || "?", sec: a.sec }));
     const saved = STORE.recordSession({
       subjectId: st.subjectId, topicId: st.topicId, levelId: st.levelId,
       ts: Date.now(), total, correct, byCat: st.byCat, mistakes,
-      answers: st.answers.map(a => ({ q: a.stem, c: a.chosenText, a: a.answerText, ok: a.correct ? 1 : 0, cat: a.q.cat || "?" }))
+      answers: st.answers.map(a => ({ q: a.stem, c: a.chosenText, a: a.answerText, ok: a.correct ? 1 : 0, cat: a.q.cat || "?", s: a.sec }))
     });
     const after = REPORT.levelStats(st.subjectId, st.topicId, st.levelId);
     const nStars = starsFor(pct);
@@ -2715,6 +2720,7 @@
         ` : ""}
         <div class="sub" style="margin-top:8px">${ART.coin(13)} <b class="gold">${plural(STORE.points(null, s.subject.id), "point")}</b> · 1% = ${ratePhrase(STORE.rate(s.subject.id))}</div>
         <div class="sub">${!s.subject.topics.length ? "Modules coming soon." : !s.levelsTotal ? plural(s.subject.topics.length, "module") + " · topics coming soon." : `🏆 ${s.levelsMastered} / ${plural(s.levelsTotal, "level")} mastered`}</div>
+        ${s.sessions ? `<button class="btn sm ai-btn" data-aireport="${esc(s.subject.id)}" type="button">🤖 AI report${STORE.aiReport(s.subject.id) ? " · " + esc(REPORT.shortDate(STORE.aiReport(s.subject.id).ts)) : ""}</button>` : ""}
       </div>`).join("");
 
     // Mastery overview — every topic, every level, coloured by mastery.
@@ -2789,6 +2795,106 @@
     $("#backBtn").onclick = renderMenu;
     $("#toHist").onclick = () => renderHistory("all", self);
     $$("[data-level][data-subj]").forEach(b => { b.onclick = () => renderLevelReport(b.dataset.subj, b.dataset.topic, b.dataset.level, self); });
+    $$("[data-aireport]").forEach(b => { b.onclick = () => renderAiReport(b.dataset.aireport); });
+  }
+
+  /* ===================== AI report for one subject ===================== */
+  const AI_PARTS = [
+    { key: "strengths", title: "💪 Strength" },
+    { key: "weaknesses", title: "⚠️ Weakness" },
+    { key: "weakness_details", title: "🔍 Details on the weakness" },
+    { key: "how_to_improve", title: "🛠️ How to improve the weakness" },
+    { key: "strength_next_steps", title: "🌟 Other improvement on the strengths" },
+    { key: "overall", title: "📋 Overall assessment" }
+  ];
+  const aiWriting = {};   // subjects being written right now, so a second tap can't pay twice
+
+  function aiPartHtml(value) {
+    if (typeof value === "string") return `<p>${esc(value)}</p>`;
+    if (!Array.isArray(value) || !value.length) return `<p class="muted">Nothing to report here yet.</p>`;
+    return `<ul>${value.map(v => `<li>${typeof v === "string" ? esc(v) : `<b>${esc(v.area)}${v.how_often ? ` (${esc(v.how_often)})` : ""}:</b> ${esc(v.detail)}`}</li>`).join("")}</ul>`;
+  }
+
+  const loading = {};
+  function loadScript(src) {
+    return loading[src] = loading[src] || new Promise((resolve, reject) => {
+      const s = document.createElement("script");
+      s.src = src;
+      s.onload = resolve;
+      s.onerror = () => { delete loading[src]; reject(new Error("Couldn't load " + src)); };
+      document.head.appendChild(s);
+    });
+  }
+
+  async function downloadAiReport(subjectId) {
+    const rep = STORE.aiReport(subjectId), subj = DATA.subject(subjectId);
+    if (!rep) return;
+    try {
+      await loadScript("js/vendor/jspdf.umd.min.js");
+      await loadScript("js/report-pdf.js");
+      const doc = window.buildReportPdf(window.jspdf.jsPDF, {
+        subject: subj.fullLabel || subj.label,
+        student: (STORE.active() || {}).name || "",
+        date: REPORT.shortDate(rep.ts),
+        basedOn: plural(rep.basedOn, "assessment"),
+        parts: AI_PARTS.map(p => ({ title: p.title, value: rep.sections[p.key] })),
+        wrong: REPORT.wrongAnswers(subjectId, rep.lastTs)
+      });
+      doc.save(`Quest Academy ${subj.label} report ${new Date(rep.ts).toISOString().slice(0, 10)}.pdf`);
+    } catch (e) {
+      toast("The PDF couldn't be made. Check the internet and try again.", "bad");
+    }
+  }
+
+  async function makeAiReport(subjectId) {
+    if (aiWriting[subjectId]) return;
+    aiWriting[subjectId] = true;
+    renderAiReport(subjectId);
+    try {
+      const token = await AUTH.idToken();
+      if (!token) throw new Error("Sign in with your account to make a report.");
+      const history = STORE.history(subjectId);
+      const res = await fetch("/api/ai-report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+        body: JSON.stringify({ subject: DATA.subject(subjectId).fullLabel || DATA.subject(subjectId).label, evidence: REPORT.subjectEvidence(subjectId) })
+      }).catch(() => { throw new Error("Couldn't reach the server. Check the internet and try again."); });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.sections) throw new Error(data.error || "The report couldn't be made. Try again in a minute.");
+      STORE.saveAiReport(subjectId, { ts: Date.now(), basedOn: history.length, lastTs: history[0].ts, sections: data.sections });
+      toast("Report ready.", "good");
+    } catch (e) {
+      toast(e.message || "The report couldn't be made. Try again in a minute.", "bad");
+    }
+    aiWriting[subjectId] = false;
+    if (current && current.aiSubject === subjectId) renderAiReport(subjectId);
+  }
+
+  function renderAiReport(subjectId) {
+    const subj = DATA.subject(subjectId);
+    if (!subj) return renderReport();
+    current = () => renderAiReport(subjectId);
+    current.aiSubject = subjectId;
+    const rep = STORE.aiReport(subjectId), history = STORE.history(subjectId);
+    const newOnes = rep ? history.filter(h => h.ts > rep.lastTs).length : history.length;
+    const writing = !!aiWriting[subjectId];
+    const action = writing ? `<button class="btn primary" type="button" disabled>✍️ Writing the report…</button><span class="muted small">This can take a minute.</span>`
+      : !history.length ? `<span class="muted small">Finish an assessment first.</span>`
+      : !rep ? `<button class="btn primary" id="aiGo" type="button">🤖 Generate AI report</button>`
+      : newOnes ? `<button class="btn primary" id="aiGo" type="button">🔄 Update report</button><span class="muted small">${plural(newOnes, "new assessment")} since this report.</span>`
+      : `<span class="muted small">Up to date. You can update it after the next assessment.</span>`;
+    show(`
+      <div class="topbar"><span class="back" id="bk">← Parent Report</span><h2>🤖 ${esc(subj.label)} AI report</h2></div>
+      <div class="page narrow">
+        ${rep ? `<div class="summary-box">As of <b>${esc(REPORT.shortDate(rep.ts))}</b>, based on ${plural(rep.basedOn, "assessment")}.</div>` : ""}
+        <div class="ai-copy">${action}${rep && !writing ? `<button class="btn" id="aiPdf" type="button">⬇️ Download PDF</button>` : ""}</div>
+        ${rep ? AI_PARTS.map(p => `<section class="ai-part"><h3 class="section-h">${p.title}</h3>${aiPartHtml(rep.sections[p.key])}</section>`).join("") : ""}
+        <div class="row" style="margin-top:22px"><button class="btn ghost" id="backBtn" type="button">← Parent Report</button></div>
+      </div>`, subjectId);
+    $("#bk").onclick = renderReport;
+    $("#backBtn").onclick = renderReport;
+    if ($("#aiPdf")) $("#aiPdf").onclick = () => downloadAiReport(subjectId);
+    if ($("#aiGo")) $("#aiGo").onclick = () => showConfirm(`Make a ${subj.label} report?`, "This uses a little of your Anthropic credit, around 10 to 15 US cents.", "Make report", () => makeAiReport(subjectId));
   }
 
   /* ===================== points helpers ===================== */

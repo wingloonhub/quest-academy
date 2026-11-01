@@ -47,6 +47,7 @@ There is a progress report at every step, so you can see where he's weak:
 | Bahasa levels ready: Pembentukan kata → Kata dasar → Level 1: kata kerja dasar bergambar, 15 random picture questions (no picture twice in a test). Imbuhan awalan, Imbuhan akhiran, Imbuhan apitan, Kata ganda, Kata majmuk and Penjodoh bilangan are waiting for their worksheets | ✅ built |
 | More English and Maths topics, and Bahasa topics | ⏳ *coming soon* — same module → topic → level layout |
 | History & Analysis, Parent Report (mastery grid for every module and level) — assessment history can't be cleared | ✅ built |
+| Parent Report → 🤖 AI report for each subject, written by Claude: strength, weakness, details, how to improve, next steps and overall assessment, dated and saved | ✅ built (needs the setup below) |
 | Installable on phones (Add to Home Screen) | ✅ built |
 
 **Mastery status** for each level: *Not started → Needs practice → Developing →
@@ -206,6 +207,37 @@ redemption — on hold, redeemed (−points) or not approved (returned).
 Requests sync like everything else: if a request is approved on one device
 and still pending on another, the decision wins.
 
+### 🤖 AI reports (Parent Report)
+
+Each subject with results has a **🤖 AI report** button in the Parent Report. Claude
+reads that subject's saved results and writes the report under six headings. It's
+dated and saved to the account, so it shows on every device without paying again. A
+new one can only be made after a new assessment, which keeps the cost down. Each new
+report is compared with the last one.
+
+**⬇️ Download PDF** saves the report with a table of his actual wrong answers, by level.
+It's made on the device, so nothing is sent or charged, and it's the only place his name
+appears. The table comes straight from the saved answers, not from the AI.
+
+**What Claude sees:** the app keeps the latest 120 assessments. For the newest 20 in
+each subject it keeps every question, answer and the seconds each one took; for older
+ones, up to 8 wrong answers. Timing helps tell careless slips from real gaps. Timed games
+save their totals and the sums missed. The child's name, your email, points and admin
+notes are never sent.
+
+**Setup (once):**
+
+1. At console.anthropic.com create an account, add a small prepaid credit, and leave
+   auto-reload off so spending can't go past it. Create an API key.
+2. In Vercel → quest-academy → Settings → Environment Variables add
+   `ANTHROPIC_API_KEY` (the key) and `ALLOWED_EMAILS` (the email you sign in to the
+   app with). Anyone can create an account on the app, so only these emails can make
+   reports. Separate several with commas.
+3. Redeploy so the settings take effect.
+
+The code is in `api/ai-report.js`; `package.json` only installs what it needs. The key
+stays on Vercel. Never put it in the code, because the code is public.
+
 ### Admin page (parents only)
 
 **Menu → 🔒 Admin** (bottom of the menu). The first time, it asks for the
@@ -261,6 +293,8 @@ game/
   index.html  vercel.json  firestore.rules  manifest.webmanifest
   service-worker.js  favicon.svg  README.md
   css/style.css
+  api/...  (the AI report's server function)
+  package.json
   icons/...
   img/...  (pictures used in questions)
   js/...   (including js/questions/)
@@ -426,7 +460,9 @@ The `.claude/launch.json` one folder up starts a small local server on port
 | `js/questions/*.js` | Assessment questions, per subject → module → topic → level |
 | `js/store.js` | Players, saved results, points ledger, admin settings, merge logic (device + cloud) |
 | `js/firebase.js` | Email login + cloud sync |
-| `js/report.js` | Mastery, level progress reports, topic reports, module reports, Parent Report |
+| `js/report.js` | Mastery, level progress reports, topic reports, module reports, Parent Report, the results sent for AI reports |
+| `api/ai-report.js` | Server function that asks Claude for an AI report |
+| `js/report-pdf.js`, `js/vendor/` | Makes the AI report's PDF, with jsPDF. Loaded only when a parent downloads one |
 | `js/ui.js` (admin section) | PIN-protected admin page: points per 1% for each subject |
 | `js/ui.js` | Every screen |
 | `js/art.js` | Crest, student avatars, owl mascot, subject badges |

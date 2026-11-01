@@ -271,5 +271,92 @@
     };
   }
 
-  window.REPORT = { build, band, timeAgo, shortDate, mastery, nextStep, levelStats, topicSummary, moduleTopicSummary, topicReport, moduleReport, MASTERY, MASTERY_RULE };
+  /* ---------- the wrong answers behind a report, by level, most repeated first ---------- */
+  function wrongAnswers(subjectId, uptoTs) {
+    const levels = {};
+    const add = (rows, m) => {
+      const k = m.q + "|" + m.answer, row = rows[k] = rows[k] || { q: m.q, answer: m.answer, chosen: [], times: 0, secs: [] };
+      row.times++;
+      if (m.chosen && row.chosen.indexOf(m.chosen) < 0) row.chosen.push(m.chosen);
+      if (m.sec != null) row.secs.push(m.sec);
+    };
+    STORE.history(subjectId).filter(h => !uptoTs || h.ts <= uptoTs).forEach(h => {
+      const label = DATA.fullLabel(h.subjectId, h.topicId, h.levelId);
+      const rows = levels[label] = levels[label] || {};
+      const full = Array.isArray(h.answers) && h.answers.length > 0;
+      (full ? h.answers.filter(a => !a.ok).map(a => ({ q: a.q, chosen: a.c, answer: a.a, sec: a.s })) : h.mistakes || []).forEach(m => add(rows, m));
+    });
+    (DATA.GAMES || []).filter(g => g.subjectId === subjectId).forEach(def => STORE.gameLog(def.id).filter(e => !uptoTs || e.ts <= uptoTs).forEach(e => (e.missed || []).forEach(m => {
+      const rows = levels["Timed game · " + def.label] = levels["Timed game · " + def.label] || {};
+      add(rows, { q: m.q, chosen: m.slow ? "too slow" : m.c, answer: m.a });
+    })));
+    const average = (r) => (r.secs.length ? Math.round(r.secs.reduce((a, b) => a + b, 0) / r.secs.length) : null);
+    return Object.keys(levels).map(label => ({ label, rows: Object.keys(levels[label]).map(k => Object.assign(levels[label][k], { sec: average(levels[label][k]) })).sort((a, b) => b.times - a.times) }))
+      .filter(l => l.rows.length).sort((a, b) => b.rows.length - a.rows.length);
+  }
+
+  /* ---------- one subject's results as text, for its AI report ----------
+     Learning results only: no name, email, school year, points or admin notes. */
+  function subjectEvidence(subjectId) {
+    const s = DATA.subject(subjectId), history = STORE.history(subjectId);
+    const clean = (t) => String(t == null ? "" : t).replace(/\s+/g, " ").trim().slice(0, 300);
+    const count = (n, word) => n + " " + word + (n === 1 ? "" : "s");
+    const where = (h) => DATA.fullLabel(h.subjectId, h.topicId, h.levelId);
+    const groups = {};
+    history.forEach(h => { const k = h.topicId + "|" + h.levelId; (groups[k] = groups[k] || []).push(h); });
+    const stats = Object.keys(groups).map(k => levelStats(subjectId, groups[k][0].topicId, groups[k][0].levelId, groups[k])).sort((a, b) => a.avg - b.avg);
+    const totalQ = history.reduce((a, h) => a + (h.total || 0), 0), totalC = history.reduce((a, h) => a + (h.correct || 0), 0);
+    const lines = [
+      "REPORT DATE: " + shortDate(Date.now()),
+      "A primary school student's results in a quiz app. Scores are the % of questions correct. Each assessment is a random set of questions from that level.",
+      MASTERY_RULE,
+      "Times such as (12s) show how long an answer took. Older answers don't have them.",
+      "",
+      "OVERALL: " + count(history.length, "assessment") + ", " + totalC + " of " + totalQ + " questions correct" + (totalQ ? " (" + Math.round(totalC / totalQ * 100) + "%)" : "") + "."
+    ];
+    // The last report, so the new one can say what has changed.
+    const last = STORE.aiReport(subjectId);
+    if (last && last.sections) lines.push("", "LAST REPORT (" + shortDate(last.ts) + ")", "Overall then: " + clean(last.sections.overall), "Weaknesses then: " + (last.sections.weaknesses || []).map(clean).join("; "));
+    lines.push("", "LEVELS PRACTISED (weakest first)");
+    stats.forEach(l => {
+      const d = DATA.level(l.subjectId, l.topicId, l.levelId);
+      const trend = l.attempts < 2 ? "" : l.trend === "up" ? ", improving" : l.trend === "down" ? ", dropping" : ", steady";
+      const types = (l.areas || []).map(a => clean(a.label) + " " + a.pct + "% (" + a.correct + " of " + a.total + ")").join(", ");
+      const timed = [].concat.apply([], l.sessions.map(h => h.answers || [])).filter(a => a.s != null);
+      const pace = (ok) => { const t = timed.filter(a => !!a.ok === ok).map(a => a.s); return t.length ? Math.round(t.reduce((x, y) => x + y, 0) / t.length) + "s" : "no data"; };
+      lines.push("- " + l.label + (d && d.desc ? " (" + clean(d.desc) + ")" : "") + ": average " + l.avg + "%, latest " + l.latest + "%, best " + l.best + "%, " + count(l.attempts, "attempt") + trend + ", " + l.mastery.label + "." + (types ? " Recent question types: " + types + "." : "") + (timed.length ? " Average time: right answers " + pace(true) + ", wrong answers " + pace(false) + "." : ""));
+    });
+    // A level's best score is kept for good, so old work isn't mistaken for work never done.
+    const noRecent = [].concat.apply([], s.topics.map(m => topicSummary(subjectId, m.id).levels.filter(l => !l.attempts)));
+    const bestOf = (l) => STORE.bestScore(l.subjectId, l.topicId, l.levelId);
+    const earlier = noRecent.filter(l => bestOf(l) > 0), notStarted = noRecent.filter(l => !bestOf(l));
+    if (earlier.length) lines.push("", "PRACTISED LONG AGO (only the best score is kept)", ...earlier.map(l => "- " + l.label + ": best " + bestOf(l) + "%."));
+    if (notStarted.length) lines.push("", "LEVELS NOT STARTED YET", notStarted.map(l => l.label).join("; "));
+    const games = (DATA.GAMES || []).filter(g => g.subjectId === subjectId).map(def => ({ def, log: STORE.gameLog(def.id) })).filter(g => g.log.length);
+    if (games.length) {
+      lines.push("", "TIMED GAMES (each game ends after 3 misses; older games only have totals)");
+      games.forEach(g => {
+        const sum = (k) => g.log.reduce((a, e) => a + (e[k] || 0), 0);
+        lines.push("- " + clean(g.def.label) + " (" + clean(g.def.desc) + "): " + count(g.log.length, "game") + ", " + sum("correct") + " of " + sum("answered") + " correct, " + sum("tooSlow") + " too slow.");
+        const missed = {};
+        g.log.forEach(e => (e.missed || []).forEach(m => { const row = missed[m.q] = missed[m.q] || { q: m.q, a: m.a, said: [], times: 0 }; row.times++; const said = m.slow ? "too slow" : clean(m.c); if (row.said.indexOf(said) < 0) row.said.push(said); }));
+        const rows = Object.keys(missed).map(k => missed[k]).sort((a, b) => b.times - a.times).slice(0, 40);
+        if (rows.length) lines.push("  Missed: " + rows.map(r => clean(r.q) + " = " + clean(r.a) + " (" + r.said.join(" / ") + (r.times > 1 ? ", " + r.times + " times" : "") + ")").join("; "));
+      });
+    }
+    lines.push("", "SAVED ANSWERS (newest first)");
+    history.forEach(h => {
+      const full = Array.isArray(h.answers) && h.answers.length > 0;
+      lines.push("", "[" + shortDate(h.ts) + "] " + where(h) + ": " + h.pct + "% (" + h.correct + " of " + h.total + ")" + (full ? "" : ". Only wrong answers were saved"));
+      (full ? h.answers : (h.mistakes || []).map(m => ({ q: m.q, c: m.chosen, a: m.answer, ok: 0, s: m.sec }))).forEach(a => {
+        const took = a.s != null ? " (" + a.s + "s)" : "";
+        lines.push(a.ok ? "right: " + clean(a.q) + " = " + clean(a.a) + took : "WRONG: " + clean(a.q) + " | answered: " + (clean(a.c) || "nothing") + " | correct: " + clean(a.a) + took);
+      });
+    });
+    // A typed answer could hold the child's name.
+    const name = ((STORE.active() || {}).name || "").trim(), text = lines.join("\n");
+    return name ? text.replace(new RegExp("\\b" + name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "gi"), "the student") : text;
+  }
+
+  window.REPORT = { subjectEvidence, wrongAnswers, build, band, timeAgo, shortDate, mastery, nextStep, levelStats, topicSummary, moduleTopicSummary, topicReport, moduleReport, MASTERY, MASTERY_RULE };
 })();
