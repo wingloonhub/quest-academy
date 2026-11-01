@@ -296,7 +296,7 @@
             <span class="ph-label">My points</span>
             <span class="ph-num">${sum.available.toLocaleString("en-GB")}</span>
             ${myrRate ? `<span class="ph-value">💵 Worth <b>${MYR(sum.available * myrRate)}</b></span>` : ""}
-            <span class="ph-sub">${sum.onHold ? `<span class="ph-hold">🔒 ${sum.onHold.toLocaleString("en-GB")} on hold</span> · ` : ""}${sum.used ? sum.used.toLocaleString("en-GB") + " used · " : ""}${sum.earned.toLocaleString("en-GB")} earned · <u>see history</u></span>
+            <span class="ph-sub">${sum.onHold ? `<span class="ph-hold">🔒 ${sum.onHold.toLocaleString("en-GB")} on hold</span> · ` : ""}${sum.used ? sum.used.toLocaleString("en-GB") + " used · " : ""}${sum.deducted ? sum.deducted.toLocaleString("en-GB") + " deducted · " : ""}${sum.earned.toLocaleString("en-GB")} earned · <u>see history</u></span>
           </span>
           <span class="ph-extra">
             <span>⭐ <b>${stars}</b> ${stars === 1 ? "star" : "stars"}</span>
@@ -1144,7 +1144,7 @@
         <div class="ph-main">
           <div class="ph-label">${esc(label || "Points to spend")}</div>
           <div class="ph-num">${fmtPts(sum.available)}</div>
-          <div class="ph-sub">${sum.onHold ? `<span class="ph-hold">🔒 ${fmtPts(sum.onHold)} on hold</span> · ` : ""}${sum.used ? fmtPts(sum.used) + " used · " : ""}${fmtPts(sum.earned)} earned in total</div>
+          <div class="ph-sub">${sum.onHold ? `<span class="ph-hold">🔒 ${fmtPts(sum.onHold)} on hold</span> · ` : ""}${sum.used ? fmtPts(sum.used) + " used · " : ""}${sum.deducted ? fmtPts(sum.deducted) + " deducted · " : ""}${fmtPts(sum.earned)} earned in total</div>
         </div>
       </div>`;
   }
@@ -1401,6 +1401,10 @@
       ts: b.ts, kind: "earn", amount: b.points, icon: "⭐",
       title: "Bonus points from a parent", sub: "For: " + b.reason
     }));
+    STORE.deductions(p).forEach(d => out.push({
+      ts: d.ts, kind: "deduct", amount: d.points, icon: "🔻",
+      title: "Points deducted by a parent", sub: "Reason: " + d.reason
+    }));
     STORE.redemptions(p).forEach(r => out.push({
       ts: r.ts, kind: r.status, amount: r.points, icon: SHOP_ICONS[r.item] || "🛍️",
       title: redemptionText(r),
@@ -1419,7 +1423,7 @@
     const rows = pointsEntries(p).map(e => {
       const amt = e.kind === "earn" ? "+" + fmtPts(e.amount)
         : e.kind === "pending" ? "🔒 " + fmtPts(e.amount)
-        : e.kind === "approved" ? "−" + fmtPts(e.amount)
+        : e.kind === "approved" || e.kind === "deduct" ? "−" + fmtPts(e.amount)
         : fmtPts(e.amount);
       return `<div class="pl-row pl-${e.kind}">
           <span class="pl-icon">${e.icon}</span>
@@ -1430,13 +1434,14 @@
     show(`
       <div class="topbar"><span class="back" id="bk">← Back</span><h2>📜 Points history</h2></div>
       <div class="page narrow">
-        <div class="kpi-grid">
+        <div class="kpi-grid${sum.deducted ? " five" : ""}">
           <div class="kpi-box"><div class="kpi-label">Earned</div><div class="kpi">${fmtPts(sum.earned)}</div></div>
           <div class="kpi-box hold"><div class="kpi-label">On hold</div><div class="kpi">🔒 ${fmtPts(sum.onHold)}</div></div>
           <div class="kpi-box"><div class="kpi-label">Used</div><div class="kpi">${fmtPts(sum.used)}</div></div>
+          ${sum.deducted ? `<div class="kpi-box deducted"><div class="kpi-label">Deducted</div><div class="kpi">−${fmtPts(sum.deducted)}</div></div>` : ""}
           <div class="kpi-box avail"><div class="kpi-label">Available</div><div class="kpi">${fmtPts(sum.available)}</div></div>
         </div>
-        <div class="muted small" style="margin-top:8px">Available = earned − on hold − used.</div>
+        <div class="muted small" style="margin-top:8px">Available = earned − on hold − used${sum.deducted ? " − deducted" : ""}.</div>
         ${holdBox(sum)}
         <h3 class="section-h">Every change</h3>
         <div class="pl-list">${rows || `<div class="empty-note">No points yet — beat your best score on a level or win a Quest Arena round to earn some!</div>`}</div>
@@ -3007,7 +3012,7 @@
       const last = log[log.length - 1];
       return `<div class="rep-card">
         <div class="t"><span>${esc(p.name)}</span>${ptsChip(sum.available, 17)}</div>
-        <div class="sub">Available <b>${sum.available}</b> · on hold <b>${sum.onHold}</b> · used <b>${sum.used}</b> · earned <b>${sum.earned}</b></div>
+        <div class="sub">Available <b>${sum.available}</b> · on hold <b>${sum.onHold}</b> · used <b>${sum.used}</b>${sum.deducted ? ` · deducted <b>${sum.deducted}</b>` : ""} · earned <b>${sum.earned}</b></div>
         <div class="sub">${DATA.SUBJECTS.map(s => esc(s.label) + " " + STORE.points(p, s.id)).join(" · ")}${STORE.bonusPoints(p) ? " · ⭐ Bonus " + STORE.bonusPoints(p) : ""}</div>
         <div class="sub">${last ? "Last earned: +" + last.pts + " on " + esc(DATA.fullLabel(last.s, last.t, last.l)) + ", " + esc(REPORT.timeAgo(last.ts)) : "No assessment points yet."}</div>
         <div class="row" style="justify-content:flex-start;margin-top:8px"><button class="btn ghost sm" data-delplayer="${esc(p.id)}" type="button">🗑️ Delete player</button></div>
@@ -3018,6 +3023,9 @@
     const bonusList = [];
     profiles.forEach(p => STORE.bonuses(p).forEach(b => bonusList.push({ p, b })));
     bonusList.sort((x, y) => y.b.ts - x.b.ts);
+    const deductList = [];
+    profiles.forEach(p => STORE.deductions(p).forEach(d => deductList.push({ p, d })));
+    deductList.sort((x, y) => y.d.ts - x.d.ts);
     const reqs = [];
     profiles.forEach(p => STORE.redemptions(p).forEach(r => reqs.push({ p, r })));
     const pending = reqs.filter(x => x.r.status === "pending").sort((x, y) => x.r.ts - y.r.ts);
@@ -3075,6 +3083,27 @@
               <div class="req-main"><span><b>${esc(x.p.name)}</b> — ⭐ <b>+${plural(x.b.points, "point")}</b></span>
                 <small>For: ${esc(x.b.reason)} · ${esc(REPORT.shortDate(x.b.ts))} (${esc(REPORT.timeAgo(x.b.ts))})</small></div>
               <button class="btn ghost sm" data-unbonus="${esc(x.p.id)}|${esc(x.b.id)}" type="button">Remove</button>
+            </div>`).join("")}</div></details>` : ""}`
+          : `<div class="muted">Add a player first.</div>`}
+        </div>
+        <h3 class="section-h">🔻 Deduct points</h3>
+        <div class="card wide admin-card">
+          ${profiles.length ? `
+          <p class="muted small" style="line-height:1.6;margin-bottom:12px">Take points off a player's balance. A reason is required, and the player sees it in their points history. You can deduct up to what the player has available; points on hold can't be deducted.</p>
+          <div class="field"><label for="deductWho">Player</label>
+            <select id="deductWho">${profiles.map(p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join("")}</select></div>
+          <div class="field"><label for="deductPts">Points</label>
+            <input id="deductPts" type="number" inputmode="numeric" min="1" step="1" placeholder="e.g. 10" autocomplete="off"/>
+            <div class="muted small" id="deductLeft" style="margin-top:6px"></div></div>
+          <div class="field"><label for="deductWhy">Reason (required)</label>
+            <input id="deductWhy" type="text" maxlength="120" placeholder="e.g. Homework not done" autocomplete="off"/></div>
+          <div class="chips">${["Homework not done", "Bad behaviour", "Didn't listen", "Broke a house rule"].map(r => `<button class="chip" data-dwhy="${esc(r)}" type="button">${esc(r)}</button>`).join("")}</div>
+          <div class="err" id="deductErr"></div>
+          <div class="row" style="justify-content:flex-end;margin-top:8px"><button class="btn primary" id="takePoints" type="button" disabled>🔻 Deduct points</button></div>
+          ${deductList.length ? `<details class="past-reqs" open><summary>Points deducted (${deductList.length})</summary><div class="req-list">${deductList.slice(0, 30).map(x => `<div class="req-card deducted">
+              <div class="req-main"><span><b>${esc(x.p.name)}</b> — 🔻 <b>−${plural(x.d.points, "point")}</b></span>
+                <small>Reason: ${esc(x.d.reason)} · ${esc(REPORT.shortDate(x.d.ts))} (${esc(REPORT.timeAgo(x.d.ts))})</small></div>
+              <button class="btn ghost sm" data-undeduct="${esc(x.p.id)}|${esc(x.d.id)}" type="button">Undo</button>
             </div>`).join("")}</div></details>` : ""}`
           : `<div class="muted">Add a player first.</div>`}
         </div>
@@ -3165,7 +3194,50 @@
         });
       };
     });
-    const findReq = (key) => { const [pid, rid] = key.split("|"); const pl = STORE.state.profiles[pid]; return { pl, r: pl && STORE.redemptions(pl).filter(r => r.id === rid)[0], pid, rid }; };
+    // 🔻 Deductions: whole number, no more than the player has available, + a reason, then confirm.
+    if ($("#takePoints")) {
+      const whoIn = $("#deductWho"), ptsIn = $("#deductPts"), whyIn = $("#deductWhy"), take = $("#takePoints");
+      const readDeduct = () => {
+        const pl = STORE.state.profiles[whoIn.value]; if (!pl) return null;
+        const sum = STORE.pointsSummary(pl);
+        const raw = ptsIn.value.trim(), n = Number(raw), why = whyIn.value.replace(/\s+/g, " ").trim();
+        $("#deductLeft").innerHTML = `${esc(pl.name)} has <b>${plural(sum.available, "point")}</b> available.`;
+        let msg = "";
+        if (raw && (!isFinite(n) || n < 1 || Math.round(n) !== n)) msg = "Points must be a whole number, 1 or more.";
+        else if (n > sum.available) msg = `${pl.name} only has ${plural(sum.available, "point")} available.` + (sum.onHold ? ` ${plural(sum.onHold, "point")} on hold can't be deducted unless you reject that request first.` : "");
+        else if (raw && !why) msg = "Type a reason, e.g. “Homework not done”.";
+        $("#deductErr").textContent = msg;
+        const ok = !msg && raw && why;
+        take.disabled = !ok;
+        return ok ? { pl: pl, n: n, why: why } : null;
+      };
+      whoIn.onchange = readDeduct;
+      ptsIn.oninput = readDeduct;
+      whyIn.oninput = readDeduct;
+      $$("[data-dwhy]").forEach(c => { c.onclick = () => { whyIn.value = c.dataset.dwhy; readDeduct(); }; });
+      readDeduct();
+      take.onclick = () => {
+        const w = readDeduct(); if (!w) return;
+        showConfirm(`Deduct ${plural(w.n, "point")} from ${w.pl.name}?`, `Reason: “${w.why}”. The points come off ${w.pl.name}'s balance straight away, and ${w.pl.name} will see the reason in the points history.`, "Deduct points", () => {
+          if (!STORE.addDeduction(w.pl.id, w.n, w.why)) { toast("Couldn't deduct those points — check the number and the reason.", "bad"); return; }
+          toast(`−${plural(w.n, "point")} from ${w.pl.name} — ${w.why}`, "");
+          renderAdminPage();
+        });
+      };
+    }
+    $$("[data-undeduct]").forEach(btn => {
+      btn.onclick = () => {
+        const [pid, did] = btn.dataset.undeduct.split("|");
+        const pl = STORE.state.profiles[pid], d = pl && STORE.deductions(pl).filter(x => x.id === did)[0];
+        if (!d) return;
+        showConfirm(`Give ${plural(d.points, "point")} back to ${pl.name}?`, `“${d.reason}”, deducted ${REPORT.shortDate(d.ts)}. The points go back on ${pl.name}'s balance.`, "Give back", () => {
+          STORE.removeDeduction(pid, did);
+          toast("Undone — " + plural(d.points, "point") + " back to " + pl.name + ".", "good");
+          renderAdminPage();
+        });
+      };
+    });
+    const findReq =(key) => { const [pid, rid] = key.split("|"); const pl = STORE.state.profiles[pid]; return { pl, r: pl && STORE.redemptions(pl).filter(r => r.id === rid)[0], pid, rid }; };
     $$("[data-approve]").forEach(btn => {
       btn.onclick = () => {
         const x = findReq(btn.dataset.approve); if (!x.r) return;

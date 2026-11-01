@@ -188,15 +188,15 @@ and the app refuses the request even if it somehow got through.
 3. The points go **on hold** 🔒 until you **approve** (points used — let him
    play) or **reject** (points come back) on the admin page.
 
-**Points available = earned − on hold − used.** If the cash value is 0.00 (or
+**Points available = earned − on hold − used − deducted.** If the cash value is 0.00 (or
 the console points per hour is 0), that item is switched off and the Shop says
 "ask a parent".
 
 **📜 Points history** (tap the points panel on the menu, or the button in the
 Shop) lists every change, newest first: points earned on each assessment
 (old best → new best), Quest Arena wins, ⭐ bonus points from a parent (with
-the reason), and each redemption — on hold,
-redeemed (−points) or not approved (returned).
+the reason), 🔻 points deducted by a parent (with the reason), and each
+redemption — on hold, redeemed (−points) or not approved (returned).
 
 Requests sync like everything else: if a request is approved on one device
 and still pending on another, the decision wins.
@@ -217,6 +217,12 @@ unlocks it on every device. On the admin page you can:
   buttons for common ones), then confirm. The points go straight to his
   balance and show in his points history with the reason. Given one by
   mistake? Tap **Remove** on it in the list,
+- **🔻 deduct points** — pick the player, type the points and a **reason**
+  (required, with quick buttons for common ones), then confirm. The points come
+  off his available balance and he sees the reason in his points history. You
+  can't deduct more than he has available, and points on hold can't be deducted
+  unless you reject that request first. "Earned" doesn't change. Deducted by
+  mistake? Tap **Undo** on it in the list and the points come back,
 - set the **🎮 points per hour** of video game console time (e.g. 50 → 1 hour
   = 50 points, 2 hours = 100; 0 switches console time off),
 - **approve or reject redemption requests** (the menu's Admin link shows how

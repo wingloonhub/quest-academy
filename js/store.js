@@ -22,11 +22,14 @@
    - SHOP: spending points is a request ("redemptions") that a parent approves
      or rejects on the admin page. While pending, its points are ON HOLD
      (can't be used). Approved → the points are used up; rejected → they go
-     back. Available = earned − on hold − used.
+     back. Available = earned − on hold − used − deducted.
    - BONUS POINTS: a parent can give points on the admin page for something
      done outside the app (e.g. "Read a book"). Each one needs a reason and
      lives in "bonuses"; removing one marks it removed (so the removal syncs
      too). Bonus points count towards the total, not towards a subject.
+   - DEDUCTIONS: a parent can take points off on the admin page. Each one needs
+     a reason and lives in "deductions", removed the same way as a bonus. They
+     come off what's available, never more than that; "earned" doesn't change.
    - REPLAY BONUS: once a level's best is 100%, every replay scoring 90%+
      earns +5 (DATA.REPLAY_BONUS). Kept in a small ledger ("replays"), one
      entry per session, so it syncs and can never be paid twice. */
@@ -79,7 +82,8 @@
       arenaWins: {},           // { "gameId#round": { deviceId: wins } } — Quest Arena points
       redemptions: [],         // shop requests { id, ts, item, myr, points, rate, status, decidedTs }
       bonuses: [],             // points a parent gave { id, ts, points, reason, removedTs }
-      replays: []              // replay bonus ledger { s, t, l, ts, pct, pts } (90%+ after a 100% best)
+      deductions: [],          // points a parent took off { id, ts, points, reason, removedTs }
+      replays: []             // replay bonus ledger { s, t, l, ts, pct, pts } (90%+ after a 100% best)
     };
   }
 
@@ -268,9 +272,9 @@
     return list;
   }
 
-  // Bonus points: one per id; once removed on any device it stays removed.
+  // Bonus points and deductions: one per id; once removed on any device it stays removed.
   function cleanReason(v) { return String(v == null ? "" : v).replace(/\s+/g, " ").trim().slice(0, 120); }
-  function tidyBonuses(list) {
+  function tidyParentPoints(list) {
     const byId = {};
     (list || []).forEach(function (b) {
       if (!isObj(b) || !b.id || !(b.points > 0) || !cleanReason(b.reason)) return;
@@ -299,7 +303,8 @@
     p.badges = isObj(p.badges) ? p.badges : {};
     p.arenaWins = isObj(p.arenaWins) ? p.arenaWins : {};
     p.redemptions = tidyRedemptions(Array.isArray(p.redemptions) ? p.redemptions : []);
-    p.bonuses = tidyBonuses(Array.isArray(p.bonuses) ? p.bonuses : []);
+    p.bonuses = tidyParentPoints(Array.isArray(p.bonuses) ? p.bonuses : []);
+    p.deductions = tidyParentPoints(Array.isArray(p.deductions) ? p.deductions : []);
     return p;
   }
 
@@ -344,7 +349,8 @@
       p.badges = minMap(pa.badges, pb.badges);
       p.arenaWins = mergeCounters(pa.arenaWins, pb.arenaWins);
       p.redemptions = tidyRedemptions(pb.redemptions.concat(pa.redemptions));
-      p.bonuses = tidyBonuses(pb.bonuses.concat(pa.bonuses));
+      p.bonuses = tidyParentPoints(pb.bonuses.concat(pa.bonuses));
+      p.deductions = tidyParentPoints(pb.deductions.concat(pa.deductions));
       out.profiles[id] = p;
     });
 
@@ -528,7 +534,7 @@
       const n = Number(points), why = cleanReason(reason);
       if (!p || !isFinite(n) || n < 1 || n > 10000 || Math.round(n) !== n || !why) return null;
       const b = { id: "b_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), ts: Date.now(), points: n, reason: why, removedTs: null };
-      p.bonuses = tidyBonuses([b].concat(p.bonuses || []));
+      p.bonuses = tidyParentPoints([b].concat(p.bonuses || []));
       STORE.save({ immediate: true });
       return b;
     },
@@ -538,6 +544,37 @@
       const b = p && (p.bonuses || []).filter(function (x) { return x.id === id; })[0];
       if (!b || b.removedTs) return false;
       b.removedTs = Date.now();
+      STORE.save({ immediate: true });
+      return true;
+    },
+
+    /* ---------------- points a parent takes off (admin page) ---------------- */
+    // Newest first; removed ones are left out unless asked for.
+    deductions(profile, includeRemoved) {
+      const p = profile || STORE.active();
+      return ((p && p.deductions) || []).filter(function (d) { return includeRemoved || !d.removedTs; });
+    },
+    deductedPoints(profile) {
+      return STORE.deductions(profile).reduce(function (a, d) { return a + d.points; }, 0);
+    },
+    // Take points off a player. Returns the entry, or null if the reason is
+    // missing or the points aren't a whole number the player has available —
+    // EVERY deduction goes through here, so none can skip those checks.
+    addDeduction(profileId, points, reason) {
+      const p = STORE.state.profiles[profileId];
+      const n = Number(points), why = cleanReason(reason);
+      if (!p || !isFinite(n) || n < 1 || Math.round(n) !== n || !why || n > STORE.pointsSummary(p).available) return null;
+      const d = { id: "d_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), ts: Date.now(), points: n, reason: why, removedTs: null };
+      p.deductions = tidyParentPoints([d].concat(p.deductions || []));
+      STORE.save({ immediate: true });
+      return d;
+    },
+    // Undo a deduction made by mistake; the points come back.
+    removeDeduction(profileId, id) {
+      const p = STORE.state.profiles[profileId];
+      const d = p && (p.deductions || []).filter(function (x) { return x.id === id; })[0];
+      if (!d || d.removedTs) return false;
+      d.removedTs = Date.now();
       STORE.save({ immediate: true });
       return true;
     },
@@ -656,16 +693,16 @@
     },
 
     /* ---------------- Shop: balance + redemption requests ---------------- */
-    // earned (assessments + Quest Arena) − on hold (pending) − used (approved) = available
+    // earned (assessments + Quest Arena) − on hold (pending) − used (approved) − deducted = available
     pointsSummary(profile) {
       const p = profile || STORE.active();
-      const earned = STORE.points(p);
+      const earned = STORE.points(p), deducted = STORE.deductedPoints(p);
       let onHold = 0, used = 0;
       ((p && p.redemptions) || []).forEach(function (r) {
         if (r.status === "pending") onHold += r.points;
         else if (r.status === "approved") used += r.points;
       });
-      return { earned: earned, onHold: onHold, used: used, available: Math.max(0, earned - onHold - used) };
+      return { earned: earned, onHold: onHold, used: used, deducted: deducted, available: Math.max(0, earned - onHold - used - deducted) };
     },
     redemptions(profile) {
       const p = profile || STORE.active();
