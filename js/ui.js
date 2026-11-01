@@ -2799,20 +2799,67 @@
   }
 
   /* ===================== AI report for one subject ===================== */
-  const AI_PARTS = [
-    { key: "strengths", title: "💪 Strength" },
-    { key: "weaknesses", title: "⚠️ Weakness" },
-    { key: "weakness_details", title: "🔍 Details on the weakness" },
-    { key: "how_to_improve", title: "🛠️ How to improve the weakness" },
-    { key: "strength_next_steps", title: "🌟 Other improvement on the strengths" },
-    { key: "overall", title: "📋 Overall assessment" }
-  ];
   const aiWriting = {};   // subjects being written right now, so a second tap can't pay twice
+  const STATUS_CLASS = { "Doing Well": "st-good", "Needs Practice": "st-mid", "Needs Attention": "st-bad", "Insufficient Evidence": "st-none" };
+  const PRIORITY_CLASS = { "High priority": "p-high", "Practise": "p-mid", "Recheck": "p-check", "Low priority": "p-low" };
+  const aiLine = (label, text) => `<div class="ai-line"><b>${esc(label)}:</b> ${esc(text)}</div>`;
+  const aiList = (title, items) => `<div class="ai-sub">${esc(title)}</div><ul>${items.map(i => `<li>${esc(i)}</li>`).join("")}</ul>`;
 
-  function aiPartHtml(value) {
-    if (typeof value === "string") return `<p>${esc(value)}</p>`;
-    if (!Array.isArray(value) || !value.length) return `<p class="muted">Nothing to report here yet.</p>`;
-    return `<ul>${value.map(v => `<li>${typeof v === "string" ? esc(v) : `<b>${esc(v.area)}${v.how_often ? ` (${esc(v.how_often)})` : ""}:</b> ${esc(v.detail)}`}</li>`).join("")}</ul>`;
+  // Detail for anyone who wants it, from the saved answers rather than the AI.
+  function aiAppendixHtml(subjectId, rep) {
+    const types = REPORT.weakTypes(subjectId, rep.lastTs);
+    if (!types.length) return "";
+    return `<details class="past-reqs ai-appendix"><summary>Appendix: question types and every wrong answer</summary>
+      <p class="muted small">Weakest type first, copied from the saved answers.</p>
+      ${types.map(t => `<div class="ai-block"><b>${esc(t.name)}</b>: ${t.pct == null ? plural(t.rows.length, "wrong question") : `${t.right} of ${t.total} right (${t.pct}%)`}<div class="muted small">${esc(t.level)}</div>
+        ${t.rows.map(r => `<div class="ai-ex">${esc(r.q)}<span class="bad">Answered: ${esc(r.chosen.join(" / ") || "nothing")}</span><span class="good">Correct: ${esc(r.answer)}</span></div>`).join("")}</div>`).join("")}
+    </details>`;
+  }
+
+  function aiGapCard(w, n) {
+    return `<div class="ai-block ${PRIORITY_CLASS[w.priority] || ""}">
+      <div class="ai-card-top"><b>${String(n).padStart(2, "0")}. ${esc(w.topic)}</b><div>${w.score ? `<span>${w.score.correct}/${w.score.total} correct</span>` : ""}<i>${esc(w.priority.toUpperCase())}</i></div></div>
+      ${aiLine("Problem", w.problem)}
+      ${w.examples.map(e => `${aiLine("Actual question", e.question)}
+        <div class="ai-pair"><div class="no"><span>Child's answer</span>${esc(e.answer || "nothing")}</div><div class="yes"><span>Correct answer</span>${esc(e.correct)}</div></div>`).join("")}
+      ${aiLine("Possible reason", w.possible_reason)}${aiLine("How to teach", w.how_to_teach)}${aiLine("Improvement target", w.improvement_target)}
+    </div>`;
+  }
+
+  function aiReportHtml(subjectId, rep) {
+    const s = rep.sections, st = rep.stats, gaps = REPORT.splitGaps(s);
+    return `
+      <div class="ai-kpis">
+        <div><b>${st.pct}%</b><span>Overall accuracy</span></div>
+        <div><b>${gaps.top.length}</b><span>${gaps.top.length === 1 ? "Top priority" : "Top priorities"}</span></div>
+        <div><b>${st.assessments}</b><span>Assessments reviewed</span></div>
+      </div>
+      <section class="ai-part"><h3 class="section-h">1. Overall Performance</h3>
+        <p>${esc(s.summary)}</p>
+        <div class="ai-two">
+          <div class="ai-box good">${aiList("Top strengths", s.strengths)}</div>
+          <div class="ai-box bad">${aiList("Areas needing attention", s.attention)}</div>
+        </div>
+        <div class="ai-note"><div class="ai-line"><b>Is there enough evidence?</b> ${esc(s.evidence_note)}</div></div>
+      </section>
+      <section class="ai-part"><h3 class="section-h">2. Performance by Topic</h3>
+        <div class="ai-scroll"><table class="ai-table topics"><thead><tr><th>Topic and level</th><th>Result</th><th>Status</th><th>What it tells us</th></tr></thead>
+        <tbody>${s.levels.map(l => `<tr><td>${esc(l.label)}</td><td>${l.correct}/${l.total} (${l.pct}%)</td><td class="${STATUS_CLASS[l.status] || ""}">${esc(l.status)}</td><td>${esc(l.note)}</td></tr>`).join("")}</tbody></table></div>
+      </section>
+      <section class="ai-part"><h3 class="section-h">3. Weakness Analysis</h3>
+        ${!s.weaknesses.length ? `<p class="muted">${esc(REPORT.AI_NOTES.none)}</p>` : ""}
+        ${gaps.top.length ? `<div class="ai-sub">${esc(gaps.heading)}</div>${gaps.top.map((w, i) => aiGapCard(w, i + 1)).join("")}` : ""}
+        ${gaps.others.length ? `<div class="ai-sub ai-gap">Other mistakes &amp; what to practise</div><p class="muted small">${esc(REPORT.AI_NOTES.others)}</p>
+          ${gaps.others.map((w, i) => aiGapCard(w, gaps.top.length + i + 1)).join("")}` : ""}
+      </section>
+      ${s.plan.length ? `<section class="ai-part"><h3 class="section-h">4. Recommended Practice Plan</h3>
+        <div class="ai-scroll"><table class="ai-table plan"><thead><tr><th>First</th><th>What to do</th><th>How often</th><th>Reassess</th></tr></thead>
+        <tbody>${s.plan.map((p, i) => `<tr><td>${i + 1}. ${esc(p.area)}</td><td>${esc(p.what_to_do)}</td><td data-label="How often">${esc(p.frequency)}</td><td data-label="Reassess">${esc(p.reassess)}</td></tr>`).join("")}</tbody></table></div>
+      </section>` : ""}
+      ${s.since_last.length ? `<section class="ai-part"><div class="ai-sub">Since the last report</div><div class="ai-scroll"><table class="ai-table"><thead><tr><th>Weakness</th><th>Now</th></tr></thead>
+        <tbody>${s.since_last.map(p => `<tr><td>${esc(p.topic)}</td><td>${esc(p.progress)}</td></tr>`).join("")}</tbody></table></div></section>` : ""}
+      <div class="ai-note ai-gap">${aiLine("On the next report", REPORT.AI_NOTES.next)}</div>
+      ${aiAppendixHtml(subjectId, rep)}`;
   }
 
   const loading = {};
@@ -2835,10 +2882,10 @@
       const doc = window.buildReportPdf(window.jspdf.jsPDF, {
         subject: subj.fullLabel || subj.label,
         student: (STORE.active() || {}).name || "",
-        date: REPORT.shortDate(rep.ts),
-        basedOn: plural(rep.basedOn, "assessment"),
-        parts: AI_PARTS.map(p => ({ title: p.title, value: rep.sections[p.key] })),
-        wrong: REPORT.wrongAnswers(subjectId, rep.lastTs)
+        date: new Date(rep.ts).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }),
+        stats: rep.stats,
+        sections: rep.sections,
+        types: REPORT.weakTypes(subjectId, rep.lastTs)
       });
       doc.save(`Quest Academy ${subj.label} report ${new Date(rep.ts).toISOString().slice(0, 10)}.pdf`);
     } catch (e) {
@@ -2853,7 +2900,7 @@
     try {
       const token = await AUTH.idToken();
       if (!token) throw new Error("Sign in with your account to make a report.");
-      const history = STORE.history(subjectId);
+      const history = STORE.history(subjectId), facts = REPORT.reportFacts(subjectId);
       const res = await fetch("/api/ai-report", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
@@ -2861,7 +2908,7 @@
       }).catch(() => { throw new Error("Couldn't reach the server. Check the internet and try again."); });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.sections) throw new Error(data.error || "The report couldn't be made. Try again in a minute.");
-      STORE.saveAiReport(subjectId, { ts: Date.now(), basedOn: history.length, lastTs: history[0].ts, sections: data.sections });
+      STORE.saveAiReport(subjectId, { format: 3, ts: Date.now(), basedOn: history.length, lastTs: history[0].ts, stats: facts.stats, sections: REPORT.finishReport(data.sections, facts) });
       toast("Report ready.", "good");
     } catch (e) {
       toast(e.message || "The report couldn't be made. Try again in a minute.", "bad");
@@ -2877,18 +2924,19 @@
     current.aiSubject = subjectId;
     const rep = STORE.aiReport(subjectId), history = STORE.history(subjectId);
     const newOnes = rep ? history.filter(h => h.ts > rep.lastTs).length : history.length;
+    const oldLayout = rep && rep.format !== 3;
     const writing = !!aiWriting[subjectId];
     const action = writing ? `<button class="btn primary" type="button" disabled>✍️ Writing the report…</button><span class="muted small">This can take a minute.</span>`
       : !history.length ? `<span class="muted small">Finish an assessment first.</span>`
       : !rep ? `<button class="btn primary" id="aiGo" type="button">🤖 Generate AI report</button>`
-      : newOnes ? `<button class="btn primary" id="aiGo" type="button">🔄 Update report</button><span class="muted small">${plural(newOnes, "new assessment")} since this report.</span>`
+      : newOnes || oldLayout ? `<button class="btn primary" id="aiGo" type="button">🔄 Update report</button><span class="muted small">${oldLayout ? "This report uses the old layout. Update it to get the new one." : plural(newOnes, "new assessment") + " since this report."}</span>`
       : `<span class="muted small">Up to date. You can update it after the next assessment.</span>`;
     show(`
       <div class="topbar"><span class="back" id="bk">← Parent Report</span><h2>🤖 ${esc(subj.label)} AI report</h2></div>
       <div class="page narrow">
         ${rep ? `<div class="summary-box">As of <b>${esc(REPORT.shortDate(rep.ts))}</b>, based on ${plural(rep.basedOn, "assessment")}.</div>` : ""}
-        <div class="ai-copy">${action}${rep && !writing ? `<button class="btn" id="aiPdf" type="button">⬇️ Download PDF</button>` : ""}</div>
-        ${rep ? AI_PARTS.map(p => `<section class="ai-part"><h3 class="section-h">${p.title}</h3>${aiPartHtml(rep.sections[p.key])}</section>`).join("") : ""}
+        <div class="ai-copy">${action}${rep && !oldLayout && !writing ? `<button class="btn" id="aiPdf" type="button">⬇️ Download PDF</button>` : ""}</div>
+        ${rep && !oldLayout ? aiReportHtml(subjectId, rep) : ""}
         <div class="row" style="margin-top:22px"><button class="btn ghost" id="backBtn" type="button">← Parent Report</button></div>
       </div>`, subjectId);
     $("#bk").onclick = renderReport;

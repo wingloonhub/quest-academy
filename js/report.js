@@ -271,60 +271,136 @@
     };
   }
 
-  /* ---------- the wrong answers behind a report, by level, most repeated first ---------- */
-  function wrongAnswers(subjectId, uptoTs) {
-    const levels = {};
-    const add = (rows, m) => {
-      const k = m.q + "|" + m.answer, row = rows[k] = rows[k] || { q: m.q, answer: m.answer, chosen: [], times: 0, secs: [] };
+  /* ---------- the facts an AI report is built on ----------
+     Worked out here, so no number or question in a report comes from the AI. */
+  const REPORT_STATUSES = ["Doing Well", "Needs Practice", "Needs Attention", "Insufficient Evidence"];
+  function startingStatus(total, pct) {
+    return total < 10 ? "Insufficient Evidence" : pct >= 85 ? "Doing Well" : pct >= 70 ? "Needs Practice" : "Needs Attention";
+  }
+  const savedAnswers = (h) => (Array.isArray(h.answers) && h.answers.length ? h.answers : (h.mistakes || []).map(m => ({ q: m.q, c: m.chosen, a: m.answer, ok: 0, s: m.sec, cat: m.cat })));
+  function reportFacts(subjectId) {
+    const history = STORE.history(subjectId), groups = {};
+    history.forEach(h => { const k = h.topicId + "|" + h.levelId; (groups[k] = groups[k] || []).push(h); });
+    const levels = Object.keys(groups).map(k => {
+      const stats = levelStats(subjectId, groups[k][0].topicId, groups[k][0].levelId, groups[k]);
+      const pct = stats.totalQ ? Math.round(stats.totalC / stats.totalQ * 100) : 0;
+      return { stats, label: stats.label.split(" · ").slice(-2).join(" · "), correct: stats.totalC, total: stats.totalQ, pct, status: startingStatus(stats.totalQ, pct) };
+    }).sort((a, b) => a.pct - b.pct).map((l, i) => Object.assign(l, { id: i + 1 }));
+    const wrong = [].concat.apply([], history.map(h => savedAnswers(h).filter(a => !a.ok).map(a => ({ question: a.q, answer: a.c, correct: a.a }))));
+    const correct = history.reduce((a, h) => a + (h.correct || 0), 0), total = history.reduce((a, h) => a + (h.total || 0), 0);
+    return { levels, wrong, stats: { assessments: history.length, correct, total, pct: total ? Math.round(correct / total * 100) : 0 } };
+  }
+  // Join Claude's writing to the facts. It picks wrong answers and levels by number,
+  // so every question and score shown is one that was really saved.
+  const GAP_PRIORITIES = ["High priority", "Practise", "Recheck", "Low priority"];
+  function finishReport(raw, facts) {
+    const list = (v, n) => (Array.isArray(v) ? v : []).slice(0, n);
+    const status = {}, notes = {};
+    list(raw.levels).forEach(l => {
+      if (REPORT_STATUSES.indexOf(l.status) > -1) status[l.id] = l.status;
+      notes[l.id] = l.note;
+    });
+    const scoreOf = (ids) => {
+      const levels = facts.levels.filter(l => list(ids).indexOf(l.id) > -1);
+      return levels.length ? { correct: levels.reduce((a, l) => a + l.correct, 0), total: levels.reduce((a, l) => a + l.total, 0) } : null;
+    };
+    return {
+      summary: raw.summary || "",
+      strengths: list(raw.strengths, 2),
+      attention: list(raw.attention, 2),
+      evidence_note: raw.evidence_note || "",
+      levels: facts.levels.map(l => ({ label: l.label, correct: l.correct, total: l.total, pct: l.pct, status: status[l.id] || l.status, note: notes[l.id] || "" })),
+      weaknesses: list(raw.weaknesses).map(w => ({
+        topic: w.topic, problem: w.problem, possible_reason: w.possible_reason, how_to_teach: w.how_to_teach, improvement_target: w.improvement_target,
+        priority: GAP_PRIORITIES.indexOf(w.priority) > -1 ? w.priority : "Practise",
+        score: scoreOf(w.level_ids),
+        examples: list(w.example_ids).map(id => facts.wrong[id - 1]).filter(Boolean).slice(0, 2)
+      })),
+      plan: list(raw.plan, 3),
+      since_last: list(raw.since_last)
+    };
+  }
+  // High priority gaps come first. Everything else goes under "Other mistakes".
+  function splitGaps(sections) {
+    const top = sections.weaknesses.filter(w => w.priority === GAP_PRIORITIES[0]);
+    const others = sections.weaknesses.filter(w => w.priority !== GAP_PRIORITIES[0]);
+    const n = top.length, word = ["two", "three", "four", "five", "six"][n - 2] || n;
+    return { top, others, heading: n === 1 ? "The most important learning gap" : "The " + word + " most important learning gaps" };
+  }
+  const AI_NOTES = {
+    none: "No consistent weakness shows up in these results yet.",
+    others: "These deserve practice, but the evidence is not yet enough to conclude they are persistent weaknesses.",
+    next: "You'll see whether each weakness is improving, still needs practice, resolved, or not yet reassessed. Similar questions are compared, and progress isn't judged from a single small attempt."
+  };
+
+  /* ---------- question types with wrong answers, weakest first ----------
+     Worked out from the saved answers, not by AI, up to a report's date. */
+  function weakTypes(subjectId, uptoTs) {
+    const types = {};
+    const typeOf = (level, name) => (types[level + "|" + name] = types[level + "|" + name] || { level, name, right: 0, total: 0, rows: {} });
+    const add = (type, m) => {
+      const k = m.q + "|" + m.answer, row = type.rows[k] = type.rows[k] || { q: m.q, answer: m.answer, chosen: [], times: 0, secs: [] };
       row.times++;
       if (m.chosen && row.chosen.indexOf(m.chosen) < 0) row.chosen.push(m.chosen);
       if (m.sec != null) row.secs.push(m.sec);
     };
     STORE.history(subjectId).filter(h => !uptoTs || h.ts <= uptoTs).forEach(h => {
-      const label = DATA.fullLabel(h.subjectId, h.topicId, h.levelId);
-      const rows = levels[label] = levels[label] || {};
+      const level = DATA.fullLabel(h.subjectId, h.topicId, h.levelId);
+      const name = (cat) => (cat && cat !== "?" ? DATA.catLabel(h.subjectId, h.topicId, h.levelId, cat) : "Other questions");
+      Object.keys(h.byCat || {}).forEach(cat => {
+        const type = typeOf(level, name(cat));
+        type.right += h.byCat[cat].correct || 0;
+        type.total += h.byCat[cat].total || 0;
+      });
       const full = Array.isArray(h.answers) && h.answers.length > 0;
-      (full ? h.answers.filter(a => !a.ok).map(a => ({ q: a.q, chosen: a.c, answer: a.a, sec: a.s })) : h.mistakes || []).forEach(m => add(rows, m));
+      (full ? h.answers.filter(a => !a.ok).map(a => ({ q: a.q, chosen: a.c, answer: a.a, sec: a.s, cat: a.cat })) : h.mistakes || []).forEach(m => add(typeOf(level, name(m.cat)), m));
     });
-    (DATA.GAMES || []).filter(g => g.subjectId === subjectId).forEach(def => STORE.gameLog(def.id).filter(e => !uptoTs || e.ts <= uptoTs).forEach(e => (e.missed || []).forEach(m => {
-      const rows = levels["Timed game · " + def.label] = levels["Timed game · " + def.label] || {};
-      add(rows, { q: m.q, chosen: m.slow ? "too slow" : m.c, answer: m.a });
-    })));
+    (DATA.GAMES || []).filter(g => g.subjectId === subjectId).forEach(def => {
+      const log = STORE.gameLog(def.id).filter(e => !uptoTs || e.ts <= uptoTs);
+      if (!log.some(e => (e.missed || []).length)) return;
+      const type = typeOf("Timed game", def.label);
+      log.forEach(e => {
+        type.right += e.correct || 0;
+        type.total += e.answered || 0;
+        (e.missed || []).forEach(m => add(type, { q: m.q, chosen: m.slow ? "too slow" : m.c, answer: m.a }));
+      });
+    });
     const average = (r) => (r.secs.length ? Math.round(r.secs.reduce((a, b) => a + b, 0) / r.secs.length) : null);
-    return Object.keys(levels).map(label => ({ label, rows: Object.keys(levels[label]).map(k => Object.assign(levels[label][k], { sec: average(levels[label][k]) })).sort((a, b) => b.times - a.times) }))
-      .filter(l => l.rows.length).sort((a, b) => b.rows.length - a.rows.length);
+    return Object.keys(types).map(k => types[k]).filter(t => Object.keys(t.rows).length).map(t => {
+      const rows = Object.keys(t.rows).map(k => Object.assign(t.rows[k], { sec: average(t.rows[k]) })).sort((a, b) => b.times - a.times);
+      return Object.assign(t, { rows, pct: t.total ? Math.round(t.right / t.total * 100) : null });
+    }).sort((a, b) => (a.pct == null ? 101 : a.pct) - (b.pct == null ? 101 : b.pct) || b.rows.length - a.rows.length);
   }
 
   /* ---------- one subject's results as text, for its AI report ----------
      Learning results only: no name, email, school year, points or admin notes. */
   function subjectEvidence(subjectId) {
-    const s = DATA.subject(subjectId), history = STORE.history(subjectId);
+    const s = DATA.subject(subjectId), history = STORE.history(subjectId), facts = reportFacts(subjectId);
     const clean = (t) => String(t == null ? "" : t).replace(/\s+/g, " ").trim().slice(0, 300);
     const count = (n, word) => n + " " + word + (n === 1 ? "" : "s");
     const where = (h) => DATA.fullLabel(h.subjectId, h.topicId, h.levelId);
-    const groups = {};
-    history.forEach(h => { const k = h.topicId + "|" + h.levelId; (groups[k] = groups[k] || []).push(h); });
-    const stats = Object.keys(groups).map(k => levelStats(subjectId, groups[k][0].topicId, groups[k][0].levelId, groups[k])).sort((a, b) => a.avg - b.avg);
-    const totalQ = history.reduce((a, h) => a + (h.total || 0), 0), totalC = history.reduce((a, h) => a + (h.correct || 0), 0);
     const lines = [
       "REPORT DATE: " + shortDate(Date.now()),
       "A primary school student's results in a quiz app. Scores are the % of questions correct. Each assessment is a random set of questions from that level.",
       MASTERY_RULE,
-      "Times such as (12s) show how long an answer took. Older answers don't have them.",
+      "Times such as (12s) show how long an answer took. Older answers don't have them. WRONG lines show the question's type in brackets.",
       "",
-      "OVERALL: " + count(history.length, "assessment") + ", " + totalC + " of " + totalQ + " questions correct" + (totalQ ? " (" + Math.round(totalC / totalQ * 100) + "%)" : "") + "."
+      "OVERALL: " + count(facts.stats.assessments, "assessment") + ", " + facts.stats.correct + " of " + facts.stats.total + " questions correct" + (facts.stats.total ? " (" + facts.stats.pct + "%)" : "") + "."
     ];
     // The last report, so the new one can say what has changed.
     const last = STORE.aiReport(subjectId);
-    if (last && last.sections) lines.push("", "LAST REPORT (" + shortDate(last.ts) + ")", "Overall then: " + clean(last.sections.overall), "Weaknesses then: " + (last.sections.weaknesses || []).map(clean).join("; "));
+    if (last && last.sections) {
+      const then = (last.sections.weaknesses || []).map(w => clean(w.topic || w) + (w.priority ? " (" + w.priority + ")" : ""));
+      lines.push("", "LAST REPORT (" + shortDate(last.ts) + ")", "Summary then: " + clean(last.sections.summary || last.sections.overall), "Weaknesses then: " + then.join("; "));
+    }
     lines.push("", "LEVELS PRACTISED (weakest first)");
-    stats.forEach(l => {
-      const d = DATA.level(l.subjectId, l.topicId, l.levelId);
+    facts.levels.forEach(row => {
+      const l = row.stats, d = DATA.level(l.subjectId, l.topicId, l.levelId);
       const trend = l.attempts < 2 ? "" : l.trend === "up" ? ", improving" : l.trend === "down" ? ", dropping" : ", steady";
       const types = (l.areas || []).map(a => clean(a.label) + " " + a.pct + "% (" + a.correct + " of " + a.total + ")").join(", ");
       const timed = [].concat.apply([], l.sessions.map(h => h.answers || [])).filter(a => a.s != null);
       const pace = (ok) => { const t = timed.filter(a => !!a.ok === ok).map(a => a.s); return t.length ? Math.round(t.reduce((x, y) => x + y, 0) / t.length) + "s" : "no data"; };
-      lines.push("- " + l.label + (d && d.desc ? " (" + clean(d.desc) + ")" : "") + ": average " + l.avg + "%, latest " + l.latest + "%, best " + l.best + "%, " + count(l.attempts, "attempt") + trend + ", " + l.mastery.label + "." + (types ? " Recent question types: " + types + "." : "") + (timed.length ? " Average time: right answers " + pace(true) + ", wrong answers " + pace(false) + "." : ""));
+      lines.push("- [L" + row.id + "] " + l.label + (d && d.desc ? " (" + clean(d.desc) + ")" : "") + ": " + row.correct + " of " + row.total + " right (" + row.pct + "%), average " + l.avg + "%, latest " + l.latest + "%, best " + l.best + "%, " + count(l.attempts, "attempt") + trend + ", " + l.mastery.label + "." + (types ? " Recent question types: " + types + "." : "") + (timed.length ? " Average time: right answers " + pace(true) + ", wrong answers " + pace(false) + "." : ""));
     });
     // A level's best score is kept for good, so old work isn't mistaken for work never done.
     const noRecent = [].concat.apply([], s.topics.map(m => topicSummary(subjectId, m.id).levels.filter(l => !l.attempts)));
@@ -345,12 +421,14 @@
       });
     }
     lines.push("", "SAVED ANSWERS (newest first)");
+    let wrongNo = 0;   // the same order as reportFacts(), so a WRONG number finds its question again
     history.forEach(h => {
       const full = Array.isArray(h.answers) && h.answers.length > 0;
       lines.push("", "[" + shortDate(h.ts) + "] " + where(h) + ": " + h.pct + "% (" + h.correct + " of " + h.total + ")" + (full ? "" : ". Only wrong answers were saved"));
-      (full ? h.answers : (h.mistakes || []).map(m => ({ q: m.q, c: m.chosen, a: m.answer, ok: 0, s: m.sec }))).forEach(a => {
+      savedAnswers(h).forEach(a => {
         const took = a.s != null ? " (" + a.s + "s)" : "";
-        lines.push(a.ok ? "right: " + clean(a.q) + " = " + clean(a.a) + took : "WRONG: " + clean(a.q) + " | answered: " + (clean(a.c) || "nothing") + " | correct: " + clean(a.a) + took);
+        const type = a.cat && a.cat !== "?" ? " (" + clean(DATA.catLabel(h.subjectId, h.topicId, h.levelId, a.cat)) + ")" : "";
+        lines.push(a.ok ? "right: " + clean(a.q) + " = " + clean(a.a) + took : "WRONG #" + (++wrongNo) + type + ": " + clean(a.q) + " | answered: " + (clean(a.c) || "nothing") + " | correct: " + clean(a.a) + took);
       });
     });
     // A typed answer could hold the child's name.
@@ -358,5 +436,5 @@
     return name ? text.replace(new RegExp("\\b" + name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "gi"), "the student") : text;
   }
 
-  window.REPORT = { subjectEvidence, wrongAnswers, build, band, timeAgo, shortDate, mastery, nextStep, levelStats, topicSummary, moduleTopicSummary, topicReport, moduleReport, MASTERY, MASTERY_RULE };
+  window.REPORT = { subjectEvidence, reportFacts, finishReport, splitGaps, AI_NOTES, weakTypes, build, band, timeAgo, shortDate, mastery, nextStep, levelStats, topicSummary, moduleTopicSummary, topicReport, moduleReport, MASTERY, MASTERY_RULE };
 })();

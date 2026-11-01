@@ -210,14 +210,24 @@ and still pending on another, the decision wins.
 ### 🤖 AI reports (Parent Report)
 
 Each subject with results has a **🤖 AI report** button in the Parent Report. Claude
-reads that subject's saved results and writes the report under six headings. It's
-dated and saved to the account, so it shows on every device without paying again. A
-new one can only be made after a new assessment, which keeps the cost down. Each new
-report is compared with the last one.
+reads that subject's saved results and writes a short report for parents. It opens with
+**overall accuracy, top priorities and assessments reviewed**, then **1. Overall
+Performance, 2. Performance by Topic** (result, status, what it tells us), **3. Weakness
+Analysis** (each card shows the score and priority, the problem, the actual question,
+the child's answer beside the correct answer, possible reason, how to teach and
+improvement target) and **4. Recommended Practice Plan**, then how each weakness has
+moved since the last report. It's dated and saved to the account, so it
+shows on every device without paying again. A new one can only be made after a new
+assessment, which keeps the cost down. Each new report is compared with the last one.
 
-**⬇️ Download PDF** saves the report with a table of his actual wrong answers, by level.
-It's made on the device, so nothing is sent or charged, and it's the only place his name
-appears. The table comes straight from the saved answers, not from the AI.
+**Nothing in it is invented.** Accuracy and the topic table are worked out by the app.
+Claude only judges each topic's status. It picks wrong answers by their number, and the
+app fills in the exact question and answer, so a made-up example can't appear.
+
+**⬇️ Download PDF** runs to as many pages as a complete analysis needs. After the main
+report comes an optional appendix: question types, weakest first, and every wrong answer
+by type, straight from the saved answers. It's made on the device, so nothing is sent or
+charged, and it's the only place his name appears.
 
 **What Claude sees:** the app keeps the latest 120 assessments. For the newest 20 in
 each subject it keeps every question, answer and the seconds each one took; for older
