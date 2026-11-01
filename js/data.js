@@ -154,7 +154,14 @@
                   catLabels: { D2: "Dividing by 2", D3: "Dividing by 3", D4: "Dividing by 4", D5: "Dividing by 5",
                                D6: "Dividing by 6", D7: "Dividing by 7", D8: "Dividing by 8", D9: "Dividing by 9" } }
               ] },
-            { id: "missing_numbers", label: "Missing numbers", icon: "❓", desc: "Find the number that makes the sum right", levels: [] },
+            { id: "missing_numbers", label: "Missing numbers", icon: "❓", desc: "Find the number that makes the sum right", levels: [
+                { id: "level1a", label: "Level 1a", desc: "3-digit addition & subtraction", sessionSize: 15, hideCat: true,
+                  catLabels: { ADD_1: "Addition · first number missing", ADD_2: "Addition · second number missing", ADD_R: "Addition · answer missing",
+                               SUB_1: "Subtraction · first number missing", SUB_2: "Subtraction · second number missing", SUB_R: "Subtraction · answer missing" } },
+                { id: "level2a", label: "Level 2a", desc: "Multiplication & division (1 to 11 times tables)", sessionSize: 15, hideCat: true,
+                  catLabels: { MUL_1: "Multiplication · first number missing", MUL_2: "Multiplication · second number missing", MUL_R: "Multiplication · answer missing",
+                               DIV_1: "Division · first number missing", DIV_2: "Division · second number missing", DIV_R: "Division · answer missing" } }
+              ] },
             { id: "mixed_operations", label: "Mixed operations", icon: "🔀", desc: "Choosing and combining +, −, × and ÷", levels: [] }
           ] },
         { id: "fdp", label: "Fractions, Decimals & Percentages", icon: "🍕", desc: "Parts of a whole, decimals and percentages", topics: [] },
