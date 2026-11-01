@@ -44,6 +44,7 @@ There is a progress report at every step, so you can see where he's weak:
 | English levels ready: Grammar → Conjunctions → Level 1: basics — and, but, or · Level 2: reason & result — because, so, since, as · Level 3: time & conditions — before, after, when, while, until, if, unless · Level 4: advanced & paired — although, though, even though, yet, either … or, neither … nor, both … and (80 typed questions each, 15 per test; the key’s “also acceptable” answers are accepted; Level 4’s paired questions have two boxes) · Grammar → Pronouns → Level 1: write the right pronoun — I, you, he, she, it, we, they (80 typed one-word answers, 15 per test) · Punctuation & capitalisation → Punctuation → Level 1: mixed full stops, questions & exclamation marks (80 multiple-choice questions, one sentence each, 15 per test — ending marks and marks inside speech; the marks are shown big with their names. Replaced the two-sentence version on 24 Oct 2026; any results from that one show as “Old Level 1 (removed)”) · Punctuation → Levels 2–6 (100 multiple-choice questions each, 15 per test, mixing the worksheet’s 4 themes): Level 2 Commas · Level 3 Apostrophes · Level 4 Quotation marks · Level 5 Colons & semicolons · Level 6 Hyphens, dashes & parentheses · Punctuation & capitalisation → Capital letters → Level 1: find the ONE word that needs a capital and type it correctly (80 sentences, 10 per test; the capital itself is checked — the keyboard gets a ⇧ key) — not linked to a school year yet. The first Conjunctions Level 1 (removed 23 Oct 2026) still shows in History & Analysis as “Old Level 1 (removed)”, and its points are kept | ✅ loaded |
 | Module page → Topics + 📊 Module report (weakest topic first) · Topic page → Levels + 📊 Topic report (weakest level and question type first) · Level page → Assessment · Progress report | ✅ built — fills in as levels are added |
 | Bahasa → 8 modules (Kata nama & kata ganti nama, Kata kerja & adjektif, Kata tugas, Pembentukan kata, Ayat & tatabahasa, Ejaan & Tanda baca, Pemahaman & Kosa kata, Penulisan) | ✅ built — topics and levels to come |
+| Bahasa levels ready: Pembentukan kata → Kata dasar → Level 1: kata kerja dasar bergambar, 15 random picture questions (no picture twice in a test). Imbuhan awalan, Imbuhan akhiran, Imbuhan apitan, Kata ganda, Kata majmuk and Penjodoh bilangan are waiting for their worksheets | ✅ built |
 | More English and Maths topics, and Bahasa topics | ⏳ *coming soon* — same module → topic → level layout |
 | History & Analysis, Parent Report (mastery grid for every module and level) — assessment history can't be cleared | ✅ built |
 | Installable on phones (Add to Home Screen) | ✅ built |
@@ -261,6 +262,7 @@ game/
   service-worker.js  favicon.svg  README.md
   css/style.css
   icons/...
+  img/...  (pictures used in questions)
   js/...   (including js/questions/)
 ```
 
@@ -386,6 +388,7 @@ Re-upload the changed files to GitHub — Vercel redeploys automatically.
 | Listen and spell (British English voice for English, Malay voice for Bahasa) | `{ spelling: true, word: "because", hint: "…" }` |
 | Reading passage — same `pid` + `passage` on each question, and `passageMode: true` on the level | `{ pid: "fox1", passage: "…", q, options, answer }` |
 | Picture above any question (shapes, clocks, scales…) | `visual: "<svg …>…</svg>"` |
+| Picture file above a question, from `img/`. Give every version of the same picture one `same:` key so it can't come up twice in a test | `{ q, pic: "img/kata_dasar/01.png", options, answer, same: "gambar01" }` |
 | Several answer boxes (e.g. *Number of groups* + *Items in each group*) — tap a box, type, “Next box”; correct only if every box is right | `{ q: "story…", fields: [{ label: "Number of groups", word: "4" }, { label: "Items in each group", word: "6" }] }` |
 
 **No repeats in a test:** an assessment or game never shows the same question

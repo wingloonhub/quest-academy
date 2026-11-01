@@ -104,7 +104,18 @@
         { id: "kata_nama",           label: "Kata nama & kata ganti nama", icon: "🏷️", desc: "Kata nama am, kata nama khas dan kata ganti nama diri", topics: [] },
         { id: "kata_kerja_adjektif", label: "Kata kerja & adjektif",       icon: "🏃", desc: "Kata kerja aktif dan pasif, serta kata adjektif",         topics: [] },
         { id: "kata_tugas",          label: "Kata tugas",                  icon: "🔗", desc: "Kata hubung, kata sendi nama, kata tanya, kata seru…",   topics: [] },
-        { id: "pembentukan_kata",    label: "Pembentukan kata",            icon: "🧱", desc: "Imbuhan, kata majmuk dan kata ganda",                     topics: [] },
+        { id: "pembentukan_kata",    label: "Pembentukan kata",            icon: "🧱", desc: "Imbuhan, kata majmuk dan kata ganda",                     topics: [
+            { id: "kata_dasar", label: "Kata dasar", icon: "🌱", desc: "Kata asal tanpa imbuhan", levels: [
+                { id: "level1", label: "Level 1", desc: "Kata kerja dasar bergambar", sessionSize: 15, hideCat: true,
+                  catLabels: { RUTIN: "Rutin harian", RUMAH: "Kerja rumah", GERAK: "Sukan & permainan", BELAJAR: "Belajar & lain-lain" } }
+            ] },
+            { id: "imbuhan_awalan", label: "Imbuhan awalan", icon: "⏮️", desc: "Imbuhan di depan kata dasar", levels: [] },
+            { id: "imbuhan_akhiran", label: "Imbuhan akhiran", icon: "⏭️", desc: "Imbuhan di belakang kata dasar", levels: [] },
+            { id: "imbuhan_apitan", label: "Imbuhan apitan", icon: "↔️", desc: "Imbuhan di depan dan di belakang kata dasar", levels: [] },
+            { id: "kata_ganda", label: "Kata ganda", icon: "👯", desc: "Kata yang diulang", levels: [] },
+            { id: "kata_majmuk", label: "Kata majmuk", icon: "🧩", desc: "Dua kata yang membawa satu makna", levels: [] },
+            { id: "penjodoh_bilangan", label: "Penjodoh bilangan", icon: "🔢", desc: "Kata untuk membilang benda", levels: [] }
+          ] },
         { id: "ayat_tatabahasa",     label: "Ayat & tatabahasa",           icon: "📝", desc: "Jenis ayat, susunan ayat dan tatabahasa",                 topics: [] },
         { id: "ejaan_tanda_baca",    label: "Ejaan & Tanda baca",          icon: "✏️", desc: "Ejaan yang betul, huruf besar dan tanda baca",            topics: [] },
         { id: "pemahaman_kosa_kata", label: "Pemahaman & Kosa kata",       icon: "📖", desc: "Baca petikan, jawab soalan dan tambah kosa kata",         topics: [] },

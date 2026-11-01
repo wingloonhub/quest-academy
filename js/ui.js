@@ -2045,6 +2045,7 @@
     if (!lvl || !bank) { toast("This level's questions haven't been added yet.", "bad"); return; }
     const questions = lvl.passageMode ? samplePassages(bank, lvl.passageCount || 3) : sampleBalanced(bank, sessionSizeFor(lvl, bank));
     if (!questions.length) { toast("No questions found for this level.", "bad"); return; }
+    questions.forEach(q => { if (q.pic) new Image().src = q.pic; });   // ready before their turn comes
     exam = { subjectId, topicId, levelId, questions, idx: 0, answers: [], byCat: {}, maxPts: maxPoints(subjectId, topicId, levelId) };
     renderQuestion();
   }
@@ -2154,9 +2155,11 @@
     const passage = q.passage ? `<div class="passage">${fmt(q.passage)}</div>` : "";
     // q.clock: "h:mm" — a clock face is drawn for the question
     // q.bar or q.circle: "shaded/parts" — a fraction picture is drawn for the question
+    // q.pic: a picture file shown above the question
     const fracShape = q.bar ? "bar" : q.circle ? "circle" : "";
     const visual = q.clock ? `<div class="q-visual">${ART.clock(q.clock)}</div>`
       : fracShape ? `<div class="q-visual">${ART.fraction(fracShape, q[fracShape])}</div>`
+      : q.pic ? `<div class="q-visual q-pic"><img src="${esc(q.pic)}" alt="Gambar"/></div>`
       : q.visual ? `<div class="q-visual">${q.visual}</div>` : "";
     const qText = String(q.q || "");
     const inlineBlank = kind === "typed" && qText.indexOf("___") > -1;
@@ -2212,7 +2215,7 @@
 
     show(`
       <div class="topbar"><span class="back" id="bk">✕ Quit</span><h2>📝 ${esc(DATA.fullLabel(st.subjectId, st.topicId, st.levelId))}</h2></div>
-      <div class="qwrap${q.clock || fracShape ? " clock-q" : ""}">
+      <div class="qwrap${q.clock || fracShape || q.pic ? " clock-q" : ""}">
         <div class="progress-label"><span>Question ${num} of ${total}</span><span>${st.maxPts && st.maxPts.rate > 0 && st.maxPts.max > 0 ? `<span class="max-chip">${ART.coin(13)} up to <b>${st.maxPts.max}</b> pts</span> · `
           : st.maxPts && st.maxPts.replay ? `<span class="max-chip">${ART.coin(13)} replay: <b>+${st.maxPts.replay}</b> at ${st.maxPts.replayMin}%+</span> · ` : ""}✓ ${correctSoFar} correct</span></div>
         <div class="progress"><i style="width:${Math.round((st.idx / total) * 100)}%"></i></div>
@@ -2242,7 +2245,8 @@
       st.byCat[c].total++;
       if (correct) st.byCat[c].correct++;
       const stem = kind === "spell" ? "Spell the word: " + q.word : q.clock ? qText + " (clock showing " + q.clock + ")"
-        : fracShape ? qText + " (" + fracShape + ": " + q[fracShape].replace("/", " of ") + " parts shaded)" : (qText || "Question");
+        : fracShape ? qText + " (" + fracShape + ": " + q[fracShape].replace("/", " of ") + " parts shaded)"
+        : q.pic ? qText + " (gambar: " + q.options[q.answer] + ")" : (qText || "Question");
       st.answers.push({ q, correct, stem, chosenText, answerText });
       const fb = $("#fbk");
       if (correct) {
