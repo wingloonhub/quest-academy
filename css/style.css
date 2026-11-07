@@ -132,6 +132,8 @@ button:focus-visible,.profile-card:focus-visible{outline:2px solid var(--gold);o
 .topbar h2{font-family:var(--display);font-size:18px;font-weight:800;letter-spacing:.3px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .topbar .back{color:var(--accent);font-weight:800;font-size:14px;cursor:pointer;padding:5px 9px;border-radius:8px;white-space:nowrap;flex-shrink:0}
 .topbar .back:hover{background:rgba(255,255,255,.07)}
+.topbar .menu-home{margin-left:auto;flex-shrink:0;padding:6px 11px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.06);color:var(--ink-strong);font:800 13px var(--font);white-space:nowrap;cursor:pointer}
+.topbar .menu-home:hover{background:rgba(255,255,255,.13)}
 .section-h{font-family:var(--display);font-size:19px;margin:24px 0 10px;color:var(--ink-strong)}
 .big-emoji{font-size:50px;line-height:1}
 .summary-box{background:var(--panel);border:1px solid var(--border);border-left:4px solid var(--gold);border-radius:12px;padding:13px 16px;line-height:1.65;font-size:14.5px}

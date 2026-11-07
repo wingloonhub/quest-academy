@@ -25,8 +25,17 @@
     const el = screen();
     el.dataset.subject = subjectId || "";
     el.innerHTML = html;
+    addMenuButton(el);
     keyHandler = null;
     window.scrollTo(0, 0);
+  }
+  // A 🏠 Menu button at the end of the top bar, straight back to the menu. Not during an assessment
+  // or a game (their ✕ Quit asks first), and not where "back" already goes to the menu.
+  function addMenuButton(el) {
+    const bar = el.querySelector(".topbar"), back = bar && bar.querySelector(".back");
+    if (!back || !STORE.active() || /Quit|Menu/.test(back.textContent)) return;
+    bar.insertAdjacentHTML("beforeend", `<button class="menu-home" type="button">🏠 Menu</button>`);
+    bar.querySelector(".menu-home").onclick = () => renderMenu();
   }
 
   // Typing on a real keyboard works too (desktop / tablet with keyboard).
@@ -1994,22 +2003,10 @@
             </div>
             <button class="btn primary" id="goAssess" type="button"${bank ? "" : " disabled"}>${bank ? (st.attempts ? "Try again →" : "Start →") : "Coming soon"}</button>
           </div>
-          <div class="sec-card">
-            <div class="sec-icon">📊</div>
-            <div class="sec-body">
-              <div class="sec-title">Progress report</div>
-              <div class="sec-text">${st.attempts
-                ? `${plural(st.attempts, "attempt")} · average ${st.avg}% · last practised ${esc(REPORT.shortDate(st.lastTs))} (${esc(REPORT.timeAgo(st.lastTs))})${st.weakAreas && st.weakAreas.length ? ` · weak area: <b class="bad">${esc(st.weakAreas[0].label)}</b>` : ""}`
-                : "Score history, attempts, weak areas, last practice date and mastery status — it fills in after the first assessment."}</div>
-            </div>
-            <button class="btn" id="goReport" type="button">View report →</button>
-          </div>
         </div>
       </div>`, subjectId);
-    const self = () => renderLevel(subjectId, topicId, levelId);
     $("#bk").onclick = back.go;
     $("#goAssess").onclick = () => startSession(subjectId, topicId, levelId);
-    $("#goReport").onclick = () => renderLevelReport(subjectId, topicId, levelId, self);
   }
 
   /* ===================== Progress report for one level ===================== */

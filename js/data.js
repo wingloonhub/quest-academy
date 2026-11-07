@@ -124,7 +124,14 @@
           ] },
         { id: "ayat_tatabahasa",     label: "Ayat & tatabahasa",           icon: "📝", desc: "Jenis ayat, susunan ayat dan tatabahasa",                 topics: [] },
         { id: "ejaan_tanda_baca",    label: "Ejaan & Tanda baca",          icon: "✏️", desc: "Ejaan yang betul, huruf besar dan tanda baca",            topics: [] },
-        { id: "pemahaman_kosa_kata", label: "Pemahaman & Kosa kata",       icon: "📖", desc: "Baca petikan, jawab soalan dan tambah kosa kata",         topics: [] },
+        { id: "pemahaman_kosa_kata", label: "Pemahaman & Kosa kata",       icon: "📖", desc: "Baca petikan, jawab soalan dan tambah kosa kata",
+          // Kosa kata is one card on the module page that opens its sub-topics.
+          groups: [{ id: "kosa_kata_group", label: "Kosa kata", icon: "🔤", desc: "Perkataan baharu mengikut tema" }],
+          topics: [
+            { id: "anggota_badan", group: "kosa_kata_group", label: "Anggota badan", icon: "🧍", desc: "Nama bahagian badan kita", levels: [
+                { id: "level1", label: "Level 1", desc: "Muka & Kepala", sessionSize: 15, hideCat: true }
+              ] }
+          ] },
         { id: "penulisan",           label: "Penulisan",                   icon: "✍️", desc: "Membina ayat, karangan pendek dan surat",                 topics: [] }
       ]
     },
