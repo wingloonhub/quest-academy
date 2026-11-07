@@ -477,7 +477,9 @@
      Kind "battle" (Divide & Conquer): each level is a fight with a monster that
      has rounds[].questions lives, so wrong answers don't move the level on:
      it ends when the monster's lives are gone. A wrong answer, or the clock,
-     and the monster hits the player, which costs one of the player's lives. */
+     and the monster hits the player, which costs one of the player's lives.
+     Kind "picture" (Kilat Kata): a picture and 4 words; tap the right one before
+     the clock runs out. */
   let game = null;          // the run in progress
   let gameTimer = null;
   function stopGameTimer() { if (gameTimer) { clearInterval(gameTimer); gameTimer = null; } }
@@ -487,6 +489,7 @@
   const isOddEven = (def) => !!def && def.kind === "odd_even";
   const isBlaster = (def) => !!def && def.kind === "blaster";
   const isBattle = (def) => !!def && def.kind === "battle";
+  const isPicture = (def) => !!def && def.kind === "picture";
   const isFalling = (def) => isOddEven(def) || isBlaster(def);
   // These games have no ✓ key: the answer goes in by itself once it's typed.
   const autoAnswers = (def) => isBlaster(def) || isBattle(def);
@@ -558,6 +561,23 @@
       .map(f => ({ text: (f.table * f.times) + " ÷ " + f.table, answer: String(f.times) }));
   }
   const battleSize = (def, r) => r.questions + def.lives - 1;
+
+  // Kilat Kata: picture questions from the game's banks, in a random order. A word is
+  // asked once a game at most, and so is a picture that shares a `same` key.
+  function pictureQuestions(def) {
+    const need = def.rounds.reduce((n, r) => n + r.questions, 0);
+    const pool = shuffle([].concat.apply([], (def.banks || []).map(b => DATA.bank(def.subjectId, b.topicId, b.levelId) || []))
+      .filter(q => q.pic && Array.isArray(q.options) && q.options[q.answer] != null));
+    const words = new Set(), pics = new Set(), out = [];
+    pool.forEach(q => {
+      const word = String(q.options[q.answer]), key = q.same || q.pic;
+      if (out.length >= need || words.has(word.toLowerCase()) || pics.has(key)) return;
+      words.add(word.toLowerCase());
+      pics.add(key);
+      out.push({ pic: q.pic, options: shuffle(q.options.slice()), answer: word, text: (q.q || "Gambar") + " (gambar: " + word + ")" });
+    });
+    return out.length === need ? out : null;
+  }
 
   function badgeChip(badgeId, earnedTs, isNew) {
     const b = DATA.BADGES[badgeId] || { label: badgeId };
@@ -696,6 +716,11 @@
     if (isOddEven(def)) qs = oddEvenNumbers(need);
     else if (isBlaster(def)) qs = blasterSums(def);
     else if (isBattle(def)) qs = battleSums(def);
+    else if (isPicture(def)) {
+      qs = pictureQuestions(def);
+      if (!qs) { toast("This game's questions aren't ready yet.", "bad"); return; }
+      qs.forEach(q => { new Image().src = q.pic; });   // every picture ready before its turn
+    }
     else {
       const pool = gamePool(def);
       if (!pool.length) { toast("This game's questions aren't ready yet.", "bad"); return; }
@@ -716,7 +741,7 @@
     const g = game;
     if (!g) return;
     const r = g.def.rounds[g.round];
-    const fall = isFalling(g.def), blaster = isBlaster(g.def), battle = isBattle(g.def), auto = autoAnswers(g.def);
+    const fall = isFalling(g.def), blaster = isBlaster(g.def), battle = isBattle(g.def), picture = isPicture(g.def), auto = autoAnswers(g.def);
     current = null;
     const flash = `<div class="bc-flash" id="bcFlash"></div>`;
     const pad = `<div class="keyboard numeric bc-pad">
@@ -751,6 +776,11 @@
         <div class="bc-timebar"><i id="bcTime"></i></div>
         <div class="bc-ans" id="bcAns"></div>
         ${pad}`
+      : picture
+      ? `<div class="kk-pic" id="bcQ"><img id="kkImg" alt="Gambar"/></div>
+        <div class="bc-timebar"><i id="bcTime"></i></div>
+        ${flash}
+        <div class="kk-opts">${[0, 1, 2, 3].map(i => `<button type="button" class="kk-opt" data-opt="${i}"></button>`).join("")}</div>`
       : fall
       ? `<div class="oe-sky" id="oeSky"><div class="oe-num" id="bcQ"></div><div class="oe-ground"></div></div>
         <div class="bc-timebar"><i id="bcTime"></i></div>
@@ -766,7 +796,7 @@
         ${pad}`;
     show(`
       <div class="topbar"><span class="back" id="bk">✕ Quit</span><h2>${g.def.icon || "🎮"} ${esc(g.def.label)}</h2></div>
-      <div class="qwrap bc-wrap${auto ? " mb-wrap" : fall ? " oe-wrap" : ""}${battle ? " df-wrap" : ""}">
+      <div class="qwrap bc-wrap${auto ? " mb-wrap" : fall ? " oe-wrap" : ""}${battle ? " df-wrap" : ""}${picture ? " kk-wrap" : ""}">
         <div class="bc-hud">
           <span class="bc-lives" id="bcLives"></span>
           <span class="bc-round">${roundWord(g.def)} ${g.round + 1}${battle ? "" : ` · <b id="bcNum">1</b>/${r.questions}`}</span>
@@ -786,7 +816,13 @@
     };
     $$(".bc-pad .kb-key").forEach(b => { b.onclick = () => gamePress(b.dataset.key); });
     $$(".oe-btn").forEach(b => { b.onclick = () => gamePick(b.dataset.pick); });
-    keyHandler = isOddEven(g.def)
+    $$(".kk-opt").forEach(b => { b.onclick = () => picturePick(+b.dataset.opt); });
+    keyHandler = picture
+      ? (e) => {
+          const i = "1234".indexOf(e.key) > -1 ? +e.key - 1 : "abcd".indexOf(String(e.key).toLowerCase());
+          if (i > -1 && e.key.length === 1) { picturePick(i); return true; }
+        }
+      : isOddEven(g.def)
       ? (e) => {
           if (e.key === "o" || e.key === "O" || e.key === "ArrowLeft") { gamePick("Odd"); return true; }
           if (e.key === "e" || e.key === "E" || e.key === "ArrowRight") { gamePick("Even"); return true; }
@@ -830,8 +866,12 @@
       el.style.animation = "none";
       void el.offsetWidth;                      // restart the fall from the top
       el.style.animation = `${blaster ? "mb-fall" : "oe-fall"} ${r.perQuestion}s linear forwards`;
+    } else if (isPicture(g.def)) {
+      $("#bcQ").className = "kk-pic";
+      $("#kkImg").src = q.pic;
+      $$(".kk-opt").forEach((b, i) => { b.textContent = q.options[i]; b.className = "kk-opt"; });
     } else $("#bcQ").textContent = q.text + " = ?";
-    if (!isOddEven(g.def)) {
+    if (!isOddEven(g.def) && !isPicture(g.def)) {
       const ans = $("#bcAns");
       ans.textContent = g.typed || "?";
       ans.className = "bc-ans" + (g.typed ? "" : " empty");
@@ -967,6 +1007,28 @@
     loseLife(g, `✗ ${oddEvenWhy(q)}`);
   }
 
+  // Kilat Kata: one of the 4 words tapped.
+  function picturePick(i) {
+    const g = game;
+    if (!g || g.busy || g.over || !g.qDeadline) return;
+    const q = g.qs[g.qi], pick = q.options[i], btns = $$(".kk-opt");
+    if (pick == null) return;
+    g.busy = true;
+    g.answered++;
+    g.roundMs += Math.max(0, Date.now() - g.qStart);
+    g.qDeadline = 0;
+    btns[q.options.indexOf(q.answer)].classList.add("ok");
+    if (pick === q.answer) {
+      g.correct++;
+      SOUND.play("correct");
+      setTimeout(() => gameNext(g), 450);
+      return;
+    }
+    btns[i].classList.add("bad");
+    g.missed.push({ q: q.text, a: q.answer, c: pick });
+    loseLife(g, `✗ It's <b>${esc(q.answer)}</b>`);
+  }
+
   // The question's clock ran out — counts like a wrong answer.
   function gameTimeout() {
     const g = game;
@@ -983,6 +1045,9 @@
     if (isFalling(g.def)) {
       $("#bcQ").classList.add("landed");
       loseLife(g, `💥 It landed! ${isBlaster(g.def) ? `${esc(q.text)} = <b>${esc(q.answer)}</b>` : oddEvenWhy(q)}`);
+    } else if (isPicture(g.def)) {
+      $$(".kk-opt")[q.options.indexOf(q.answer)].classList.add("ok");
+      loseLife(g, `⏰ Too slow! It's <b>${esc(q.answer)}</b>`);
     } else {
       if (isBattle(g.def)) battleHit("foe");
       loseLife(g, `⏰ Too slow! ${esc(q.text)} = <b>${esc(q.answer)}</b>`);
@@ -1507,7 +1572,7 @@
     const cards = subj.topics.map(t => {
       const sum = REPORT.topicSummary(subjectId, t.id);
       let foot;
-      const nTopics = DATA.moduleTopics(subjectId, t.id).length;
+      const nTopics = DATA.moduleEntries(subjectId, t.id).length;
       if (!nTopics) foot = `<span class="soon-pill sm">Topics coming soon</span>`;
       else foot = `<span class="topic-hint">${plural(nTopics, "topic")} · ${plural(sum.total, "level")}${sum.mastered ? ` · 🏆 ${sum.mastered}/${sum.total} mastered` : ""}</span>${sum.attempts ? `<span class="topic-best">average ${sum.avg}%</span>` : ""}`;
       return `<button class="topic-card${sum.total ? "" : " pending"}" data-topic="${esc(t.id)}" type="button">
@@ -1641,15 +1706,12 @@
     if (!subj || !m) return renderTopicList(subjectId);
     current = () => renderTopic(subjectId, topicId);
     studyCtx = { subjectId, mode: "topic", year: null };
-    const rep = REPORT.moduleReport(subjectId, topicId);
-    const cards = rep.inOrder.map(ts => {
-      const foot = !ts.total ? `<span class="soon-pill sm">Levels coming soon</span>`
-        : `<span class="topic-hint">${plural(ts.total, "level")}${ts.mastered ? ` · 🏆 ${ts.mastered}/${ts.total} mastered` : ""}</span>${ts.attempts ? `<span class="topic-best">average ${ts.avg}%</span>` : ""}`;
-      return `<button class="topic-card${ts.total ? "" : " pending"}" data-mtopic="${esc(ts.topic.id)}" type="button">
-          <span class="topic-top"><span class="topic-icon">${esc(ts.topic.icon || "📘")}</span><span class="topic-name">${esc(ts.topic.label)}</span></span>
-          ${ts.topic.desc ? `<span class="topic-desc">${esc(ts.topic.desc)}</span>` : ""}
-          <span class="topic-foot">${foot}</span>
-        </button>`;
+    const rep = REPORT.moduleReport(subjectId, topicId), entries = DATA.moduleEntries(subjectId, topicId);
+    const cards = entries.map(e => {
+      if (!e.group) return subTopicCard(rep.inOrder.filter(ts => ts.topic.id === e.topic.id)[0]);
+      const gr = REPORT.moduleReport(subjectId, topicId, e.group.id);
+      const foot = `<span class="topic-hint">${plural(e.topics.length, "sub-topic")}${gr.totalLevels ? ` · ${plural(gr.totalLevels, "level")}${gr.mastered ? ` · 🏆 ${gr.mastered}/${gr.totalLevels} mastered` : ""}` : ""}</span>${gr.attempts ? `<span class="topic-best">average ${gr.avg}%</span>` : ""}`;
+      return topicCard(`data-group="${esc(e.group.id)}"`, e.group, gr.totalLevels, foot);
     }).join("");
     show(`
       <div class="topbar"><span class="back" id="bk">← Modules</span><h2>${esc(m.label)}</h2></div>
@@ -1659,7 +1721,7 @@
           <div>
             <div class="subject-hero-name">${esc(m.label)}</div>
             <div class="muted">${esc(m.desc || "")}</div>
-            ${rep.totalLevels ? `<div class="subject-hero-stats">${plural(rep.inOrder.length, "topic")} · 🏆 ${rep.mastered}/${rep.totalLevels} levels mastered${rep.attempts ? ` · ${plural(rep.attempts, "assessment")} · last practised ${esc(REPORT.timeAgo(rep.lastTs))}` : ""}</div>` : ""}
+            ${rep.totalLevels ? `<div class="subject-hero-stats">${plural(entries.length, "topic")} · 🏆 ${rep.mastered}/${rep.totalLevels} levels mastered${rep.attempts ? ` · ${plural(rep.attempts, "assessment")} · last practised ${esc(REPORT.timeAgo(rep.lastTs))}` : ""}</div>` : ""}
           </div>
         </div>
         ${rep.inOrder.length
@@ -1671,7 +1733,49 @@
       </div>`, subjectId);
     $("#bk").onclick = () => renderTopicList(subjectId);
     $$("[data-mtopic]").forEach(c => { c.onclick = () => renderModuleTopic(subjectId, topicId, c.dataset.mtopic); });
+    $$("[data-group]").forEach(c => { c.onclick = () => renderTopicGroup(subjectId, topicId, c.dataset.group); });
     if ($("#fullRep")) $("#fullRep").onclick = () => renderModuleReport(subjectId, topicId, () => renderTopic(subjectId, topicId));
+  }
+
+  // A card on a module or group page: a topic (or a group of sub-topics) and how it's going.
+  function topicCard(attrs, t, live, foot) {
+    return `<button class="topic-card${live ? "" : " pending"}" ${attrs} type="button">
+          <span class="topic-top"><span class="topic-icon">${esc(t.icon || "📘")}</span><span class="topic-name">${esc(t.label)}</span></span>
+          ${t.desc ? `<span class="topic-desc">${esc(t.desc)}</span>` : ""}
+          <span class="topic-foot">${foot}</span>
+        </button>`;
+  }
+  function subTopicCard(ts) {
+    const foot = !ts.total ? `<span class="soon-pill sm">Levels coming soon</span>`
+      : `<span class="topic-hint">${plural(ts.total, "level")}${ts.mastered ? ` · 🏆 ${ts.mastered}/${ts.total} mastered` : ""}</span>${ts.attempts ? `<span class="topic-best">average ${ts.avg}%</span>` : ""}`;
+    return topicCard(`data-mtopic="${esc(ts.topic.id)}"`, ts.topic, ts.total, foot);
+  }
+
+  /* ---------- a group of sub-topics in a module (e.g. Fractions) → its sub-topics ---------- */
+  function renderTopicGroup(subjectId, moduleId, groupId) {
+    const m = DATA.topic(subjectId, moduleId), gp = DATA.topicGroup(subjectId, moduleId, groupId);
+    if (!m || !gp) return renderTopic(subjectId, moduleId);
+    current = () => renderTopicGroup(subjectId, moduleId, groupId);
+    studyCtx = { subjectId, mode: "topic", year: null };
+    const self = () => renderTopicGroup(subjectId, moduleId, groupId);
+    const rep = REPORT.moduleReport(subjectId, moduleId, groupId);
+    show(`
+      <div class="topbar"><span class="back" id="bk">← ${esc(m.label)}</span><h2>${esc(gp.label)}</h2></div>
+      <div class="page narrow">
+        <div class="subject-hero">
+          <div class="topic-hero-icon">${esc(gp.icon || m.icon || "📘")}</div>
+          <div>
+            <div class="subject-hero-name">${esc(gp.label)}</div>
+            <div class="muted">${esc(m.label)}${gp.desc ? " · " + esc(gp.desc) : ""}</div>
+            ${rep.totalLevels ? `<div class="subject-hero-stats">${plural(rep.inOrder.length, "sub-topic")} · 🏆 ${rep.mastered}/${rep.totalLevels} levels mastered${rep.attempts ? ` · ${plural(rep.attempts, "assessment")} · last practised ${esc(REPORT.timeAgo(rep.lastTs))}` : ""}</div>` : ""}
+          </div>
+        </div>
+        <h3 class="section-h">Sub-topics</h3><div class="topic-grid">${rep.inOrder.map(subTopicCard).join("")}</div>
+        ${reportCard("groupRep", gp.label + " report", "Not a test — a report showing which sub-topics are weakest, each sub-topic's scores and weak areas, and recent mistakes.")}
+      </div>`, subjectId);
+    $("#bk").onclick = () => renderTopic(subjectId, moduleId);
+    $$("[data-mtopic]").forEach(c => { c.onclick = () => renderModuleTopic(subjectId, moduleId, c.dataset.mtopic); });
+    $("#groupRep").onclick = () => renderModuleReport(subjectId, moduleId, self, groupId);
   }
 
   /* ---------- a topic inside a module → its levels ---------- */
@@ -1682,14 +1786,15 @@
     studyCtx = { subjectId, mode: "topic", year: null };
     const ts = REPORT.topicReport(subjectId, moduleId, topicId);
     const self = () => renderModuleTopic(subjectId, moduleId, topicId);
+    const gp = t.group ? DATA.topicGroup(subjectId, moduleId, t.group) : null, up = gp ? gp.label : m.label;   // a sub-topic sits in its group
     show(`
-      <div class="topbar"><span class="back" id="bk">← ${esc(m.label)}</span><h2>${esc(t.label)}</h2></div>
+      <div class="topbar"><span class="back" id="bk">← ${esc(up)}</span><h2>${esc(t.label)}</h2></div>
       <div class="page narrow">
         <div class="subject-hero">
           <div class="topic-hero-icon">${esc(t.icon || m.icon || "📘")}</div>
           <div>
             <div class="subject-hero-name">${esc(t.label)}</div>
-            <div class="muted">${esc(m.label)}${t.desc ? " · " + esc(t.desc) : ""}</div>
+            <div class="muted">${esc(up)}${t.desc ? " · " + esc(t.desc) : ""}</div>
             ${ts.total ? `<div class="subject-hero-stats">🏆 ${ts.mastered}/${ts.total} levels mastered${ts.attempts ? ` · ${plural(ts.attempts, "assessment")} · average ${ts.avg}% · last practised ${esc(REPORT.timeAgo(ts.lastTs))}` : ""}</div>` : ""}
           </div>
         </div>
@@ -1700,7 +1805,7 @@
               `The <b>${esc(t.label)}</b> levels will appear here once they're added. Every level will have:` +
               `<span class="soon-parts"><span>📝 <b>Assessment</b></span><span>📊 <b>Progress report</b></span></span>`)}
       </div>`, subjectId);
-    $("#bk").onclick = () => renderTopic(subjectId, moduleId);
+    $("#bk").onclick = () => (gp ? renderTopicGroup(subjectId, moduleId, gp.id) : renderTopic(subjectId, moduleId));
     $$(".level-card").forEach(c => { c.onclick = () => renderLevel(subjectId, moduleId, c.dataset.level); });
     if ($("#fullTopicRep")) $("#fullTopicRep").onclick = () => renderTopicReport(subjectId, moduleId, topicId, self);
   }
@@ -1765,13 +1870,15 @@
   }
 
   /* ---------- the full module report: every topic, weakest first ---------- */
-  function renderModuleReport(subjectId, moduleId, onBack) {
-    const m = DATA.topic(subjectId, moduleId);
+  function renderModuleReport(subjectId, moduleId, onBack, groupId) {
+    const m = DATA.topic(subjectId, moduleId), gp = groupId ? DATA.topicGroup(subjectId, moduleId, groupId) : null;
     if (!m) return renderTopicList(subjectId);
     onBack = onBack || (() => renderTopic(subjectId, moduleId));
-    current = () => renderModuleReport(subjectId, moduleId, onBack);
-    const self = () => renderModuleReport(subjectId, moduleId, onBack);
-    const rep = REPORT.moduleReport(subjectId, moduleId);
+    current = () => renderModuleReport(subjectId, moduleId, onBack, groupId);
+    const self = () => renderModuleReport(subjectId, moduleId, onBack, groupId);
+    const rep = REPORT.moduleReport(subjectId, moduleId, groupId);
+    // In the whole module's report, a sub-topic says which group it's in.
+    const nameOf = (t) => (!gp && t.group ? (DATA.topicGroup(subjectId, moduleId, t.group) || {}).label + " · " : "") + t.label;
     const kpis = rep.attempts ? `<div class="kpi-grid">
         <div class="kpi-box"><div class="kpi-label">Assessments</div><div class="kpi">${rep.attempts}</div></div>
         <div class="kpi-box"><div class="kpi-label">Average</div><div class="kpi">${rep.avg}%</div></div>
@@ -1785,7 +1892,7 @@
         return `<button class="ov-chip ${ls.mastery.cls}" data-rlevel="${esc(ls.levelId)}" title="${esc(l.label + " — " + ls.mastery.label)}" type="button">${esc(l.label.replace(/Level\s*/i, "L"))}${ls.attempts ? " · " + ls.latest + "%" : ""}</button>`;
       }).join("");
       return `<div class="mr-row ${b.cls}">
-          <span class="mr-top"><span class="mr-name">${esc(ts.topic.icon || "📘")} ${esc(ts.topic.label)}</span><span class="mr-tag">${esc(b.txt)}</span></span>
+          <span class="mr-top"><span class="mr-name">${esc(ts.topic.icon || "📘")} ${esc(nameOf(ts.topic))}</span><span class="mr-tag">${esc(b.txt)}</span></span>
           ${ts.attempts
             ? `<span class="mr-bar"><i style="width:${ts.avg}%"></i></span>
                <span class="mr-meta">average <b>${ts.avg}%</b> · best ${ts.best}% · ${plural(ts.attempts, "assessment")} · last practised ${esc(REPORT.timeAgo(ts.lastTs))}</span>`
@@ -1803,16 +1910,16 @@
         <div class="sub good">Correct: <b>${esc(x.m.answer)}</b></div>
       </div>`).join("");
     show(`
-      <div class="topbar"><span class="back" id="bk">← Back</span><h2>📊 Module report</h2></div>
+      <div class="topbar"><span class="back" id="bk">← Back</span><h2>📊 ${gp ? esc(gp.label) + " report" : "Module report"}</h2></div>
       <div class="page narrow">
         <div class="card wide">
-          <div class="hist-head"><div class="hist-name">${esc(m.icon || "")} ${esc(m.label)} ${subjectPill(subjectId)}</div></div>
+          <div class="hist-head"><div class="hist-name">${esc((gp || m).icon || "")} ${esc(m.label)}${gp ? " · " + esc(gp.label) : ""} ${subjectPill(subjectId)}</div></div>
           <div class="summary-box" style="margin-top:10px">${rep.summary}</div>
         </div>
         ${kpis}
-        <h3 class="section-h">Topics — weakest first</h3>
+        <h3 class="section-h">${gp ? "Sub-topics" : "Topics"} — weakest first</h3>
         <div class="mr-list">${topicCards || `<div class="muted">Topics coming soon.</div>`}</div>
-        ${areaCards ? `<h3 class="section-h">Weak areas across ${esc(m.label)} <span class="muted small">· weakest first</span></h3><div class="rep-grid">${areaCards}</div>` : ""}
+        ${areaCards ? `<h3 class="section-h">Weak areas across ${esc((gp || m).label)} <span class="muted small">· weakest first</span></h3><div class="rep-grid">${areaCards}</div>` : ""}
         ${mistakeCards ? `<h3 class="section-h">Recent mistakes</h3><div class="rep-grid">${mistakeCards}</div>` : ""}
         <div class="row" style="margin-top:22px"><button class="btn primary" id="backBtn" type="button">← Back</button></div>
       </div>`, subjectId);
@@ -2147,8 +2254,8 @@
     const subj = DATA.subject(st.subjectId);
     const total = st.questions.length, num = st.idx + 1;
     const correctSoFar = st.answers.filter(a => a.correct).length;
-    const kind = q.spelling ? "spell" : Array.isArray(q.fields) ? "multi" : q.order ? "order" : q.typed ? "typed" : "mcq";
-    const accepts = kind === "mcq" || kind === "multi" || kind === "order" ? [] : acceptedAnswers(q);
+    const kind = q.spelling ? "spell" : Array.isArray(q.fields) ? "multi" : q.order ? "order" : q.shade ? "shade" : q.typed ? "typed" : "mcq";
+    const accepts = kind === "mcq" || kind === "multi" || kind === "order" || kind === "shade" ? [] : acceptedAnswers(q);
     const numeric = kind === "typed" && isNumericAnswers(accepts);
     const lvlDef = DATA.level(st.subjectId, st.topicId, st.levelId) || {};
     // hideCat: don't show the question-type tag during the test (it would give the answer away)
@@ -2199,6 +2306,13 @@
         <div class="ord-tray">${q.items.map((v, i) => `<button class="ord-chip" data-c="${i}" type="button">${esc(v)}</button>`).join("")}</div>
         <p class="spell-instr">${esc(q.instr || "Tap the numbers in order. Tap one in the row to send it back.")}</p>
         ${actions}`;
+    } else if (kind === "shade") {
+      // Represent a fraction: tap parts of the shape to colour them in (tap again to clear one).
+      body = `${passage}
+        <div class="qtext">${fmt(qText)}</div>
+        <div class="q-visual" id="shadeBox">${ART.shadeShape(q)}</div>
+        <p class="spell-instr">${esc(q.instr || "Tap the parts to colour them in.")}</p>
+        ${actions}`;
     } else if (kind === "typed") {
       const parts = qText.split("___");
       body = `${passage}${visual}
@@ -2219,7 +2333,7 @@
 
     show(`
       <div class="topbar"><span class="back" id="bk">✕ Quit</span><h2>📝 ${esc(DATA.fullLabel(st.subjectId, st.topicId, st.levelId))}</h2></div>
-      <div class="qwrap${q.clock || fracShape || q.pic ? " clock-q" : ""}">
+      <div class="qwrap${q.clock || fracShape || q.pic ? " clock-q" : ""}${q.shade ? " shade-q" : ""}">
         <div class="progress-label"><span>Question ${num} of ${total}</span><span>${st.maxPts && st.maxPts.rate > 0 && st.maxPts.max > 0 ? `<span class="max-chip">${ART.coin(13)} up to <b>${st.maxPts.max}</b> pts</span> · `
           : st.maxPts && st.maxPts.replay ? `<span class="max-chip">${ART.coin(13)} replay: <b>+${st.maxPts.replay}</b> at ${st.maxPts.replayMin}%+</span> · ` : ""}✓ ${correctSoFar} correct</span></div>
         <div class="progress"><i style="width:${Math.round((st.idx / total) * 100)}%"></i></div>
@@ -2250,6 +2364,7 @@
       if (correct) st.byCat[c].correct++;
       const stem = kind === "spell" ? "Spell the word: " + q.word : q.clock ? qText + " (clock showing " + q.clock + ")"
         : fracShape ? qText + " (" + fracShape + ": " + q[fracShape].replace("/", " of ") + " parts shaded)"
+        : q.shade ? qText + " (" + q.shade + " of " + (q.shade === "grid" ? q.rows * q.cols : q.parts) + " parts)"
         : q.pic ? qText + " (gambar: " + q.options[q.answer] + ")" : (qText || "Question");
       const sec = Math.min(300, Math.round((Date.now() - shownAt) / 1000));   // capped, in case the page was left open
       st.answers.push({ q, correct, stem, chosenText, answerText, sec });
@@ -2341,6 +2456,34 @@
         if (e.key === "Backspace") { press("back"); return true; }
         const k = String(e.key || "").length === 1 ? e.key.toLowerCase() : "";
         if (k && (multiNumeric ? /[0-9.\/-]/.test(k) : /[a-z' -]/.test(k))) { press(k); return true; }
+      };
+      paint();
+      return;
+    }
+
+    // Shade a fraction: any parts will do — what counts is how many.
+    if (kind === "shade") {
+      const parts = q.shade === "grid" ? q.rows * q.cols : q.parts, want = Number(String(q.word).split("/")[0]);
+      const cells = $$("#shadeBox .shade-part"), clearBtn = $("#clearBtn"), submitBtn = $("#submitBtn"), lit = new Set();
+      const paint = () => {
+        cells.forEach(c => c.classList.toggle("on", lit.has(Number(c.dataset.part))));
+        clearBtn.disabled = busy || !lit.size;
+        submitBtn.disabled = busy || !lit.size;
+      };
+      const submit = () => {
+        if (busy || !lit.size) return;
+        const ok = lit.size === want;
+        $("#shadeBox").classList.add("shade-done", ok ? "ok" : "bad");
+        clearBtn.disabled = true; submitBtn.disabled = true;
+        finish(ok, lit.size + "/" + parts, q.word,
+          `❌ You coloured <b>${lit.size}</b> of the ${parts} parts. ${esc(q.word)} is <b>${want}</b> of them, like this:<div class="shade-eg">${ART.shadeShape(q, Array.from({ length: want }, (_, i) => i))}</div>`);
+      };
+      cells.forEach(c => { c.onclick = () => { if (busy) return; const i = Number(c.dataset.part); if (lit.has(i)) lit.delete(i); else lit.add(i); paint(); }; });
+      clearBtn.onclick = () => { if (!busy) { lit.clear(); paint(); } };
+      submitBtn.onclick = submit;
+      keyHandler = (e) => {
+        if (busy) return;
+        if (e.key === "Enter") { submit(); return true; }
       };
       paint();
       return;

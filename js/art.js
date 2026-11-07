@@ -398,6 +398,38 @@
         <path d="M16 30A16 5.2 0 0 0 48 30" fill="none" stroke="#a78bfa" stroke-width="2.6" stroke-linecap="round" transform="rotate(-20 32 30)"/>
         <polygon points="${starPoints(45, 17.5, 3.2, 1.3)}" fill="#fff"/>
         <polygon points="${starPoints(19.5, 41, 2.5, 1)}" fill="#fff"/>`
+      : b.icon === "kancil"
+      ? `<path d="M22.5 22 17 12.5q-1.5 7 3.5 12.5z" fill="#b45309" stroke="#78350f" stroke-width="1.2" stroke-linejoin="round"/>
+        <path d="M41.5 22 47 12.5q1.5 7-3.5 12.5z" fill="#b45309" stroke="#78350f" stroke-width="1.2" stroke-linejoin="round"/>
+        <path d="M21 17.5q1 4.5 2.6 6M43 17.5q-1 4.5-2.6 6" stroke="#fcd9b6" stroke-width="1.6" stroke-linecap="round" fill="none"/>
+        <path d="M32 18c-8.5 0-12 6-11 12.5 1 6 5 11.5 11 14.5 6-3 10-8.5 11-14.5C44 24 40.5 18 32 18z" fill="#d97706" stroke="#78350f" stroke-width="1.4"/>
+        <path d="M27 35q5 9 10 0q-1.5-4.5-5-4.5T27 35z" fill="#fde7c7"/>
+        <ellipse cx="32" cy="38.6" rx="3.2" ry="2.3" fill="#1f2937"/>
+        <circle cx="26.8" cy="28.4" r="2.7" fill="#1f2937"/><circle cx="37.2" cy="28.4" r="2.7" fill="#1f2937"/>
+        <circle cx="27.6" cy="27.5" r=".9" fill="#fff"/><circle cx="38" cy="27.5" r=".9" fill="#fff"/>`
+      : b.icon === "eagle"
+      ? `<path d="M15.5 37q2-15 12-19l8 4q-8 6-8 17z" fill="#92400e" stroke="#451a03" stroke-width="1.3" stroke-linejoin="round"/>
+        <path d="M24.5 38q-1-14 9-18.5 9-2 13.5 5.5 2 4-1 6.5l-7 1.5q-5 1-7 6.5z" fill="#f8fafc" stroke="#475569" stroke-width="1.3" stroke-linejoin="round"/>
+        <path d="M43.5 25.5q6 .5 6.5 6.5-2.6-2.4-6-1.8z" fill="#facc15" stroke="#a16207" stroke-width="1.2" stroke-linejoin="round"/>
+        <path d="M40.5 30.5q4.5-.2 7.2 1.2" stroke="#a16207" stroke-width="1" fill="none"/>
+        <circle cx="38.4" cy="24.6" r="2.3" fill="#1f2937"/><circle cx="39.1" cy="23.9" r=".8" fill="#fff"/>
+        <path d="M34.5 21.5q3.5-1.6 6.6.4" stroke="#475569" stroke-width="1.4" stroke-linecap="round" fill="none"/>`
+      : b.icon === "tiger"
+      ? `<circle cx="20.5" cy="18.5" r="4.6" fill="#f97316" stroke="#7c2d12" stroke-width="1.3"/>
+        <circle cx="43.5" cy="18.5" r="4.6" fill="#f97316" stroke="#7c2d12" stroke-width="1.3"/>
+        <circle cx="20.5" cy="18.5" r="2" fill="#fde7c7"/><circle cx="43.5" cy="18.5" r="2" fill="#fde7c7"/>
+        <ellipse cx="32" cy="30.5" rx="14" ry="12.8" fill="#f97316" stroke="#7c2d12" stroke-width="1.4"/>
+        <path d="M32 17.8v4.4M28 18.6l1.2 3.6M36 18.6l-1.2 3.6M18.6 27.5h4.6M18.4 32.4l4.3-.8M45.4 27.5h-4.6M45.6 32.4l-4.3-.8" stroke="#1f2937" stroke-width="1.8" stroke-linecap="round"/>
+        <path d="M24.5 37q0-6 7.5-6t7.5 6q-1 5.6-7.5 5.6T24.5 37z" fill="#fff7ed"/>
+        <path d="M29.2 33.2h5.6L32 36.4z" fill="#1f2937"/>
+        <path d="M32 36.4v2.3M32 38.7q-2 1.7-3.6.3M32 38.7q2 1.7 3.6.3" stroke="#1f2937" stroke-width="1.1" stroke-linecap="round" fill="none"/>
+        <circle cx="26.4" cy="27.4" r="2.2" fill="#1f2937"/><circle cx="37.6" cy="27.4" r="2.2" fill="#1f2937"/>
+        <circle cx="27.1" cy="26.7" r=".8" fill="#fff"/><circle cx="38.3" cy="26.7" r=".8" fill="#fff"/>`
+      : b.icon === "bolt"
+      ? `<polygon points="35.5,11.5 19.5,33 30,33 26.5,48.5 44.5,25.5 33.5,25.5" fill="#facc15" stroke="#a16207" stroke-width="1.6" stroke-linejoin="round"/>
+        <polygon points="33,16 24.5,29.5 31,29.5" fill="#fef9c3" opacity=".9"/>
+        <polygon points="${starPoints(46.5, 15.5, 3, 1.25)}" fill="#fff"/>
+        <polygon points="${starPoints(17.5, 42, 2.4, 1)}" fill="#fff"/>`
       : `<polygon points="${starPoints(32, 30.5, 11, 4.8)}" fill="${rim}"/>`;
     const gid = gold ? "qaBadgeGold" : bronze ? "qaBadgeBronze" : diamond ? "qaBadgeDiamond" : "qaBadgeSilver";
     return `<svg class="badge-medal${earned === false ? " locked" : ""}" width="${s}" height="${s}" viewBox="0 0 64 64" aria-hidden="true">
@@ -432,6 +464,26 @@
 
   // Clock face showing "h:mm". The short hand moves on between the hours, like a
   // real clock, and the long hand stops just short of the minute marks so they can be counted.
+  // Represent a fraction: a bar, circle or grid in equal parts that the child taps to shade.
+  // q: { shade: "bar" | "circle" | "grid", parts, rows, cols }; on: the parts already shaded.
+  function shadeShape(q, on) {
+    const lit = new Set(on || []), cls = (i) => `class="shade-part${lit.has(i) ? " on" : ""}" data-part="${i}"`;
+    let cells = "", box;
+    if (q.shade === "bar") {
+      const w = 636 / q.parts;
+      for (let i = 0; i < q.parts; i++) cells += `<rect ${cls(i)} x="${(12 + i * w).toFixed(2)}" y="12" width="${w.toFixed(2)}" height="88"/>`;
+      box = "0 0 660 112";
+    } else if (q.shade === "grid") {
+      for (let r = 0; r < q.rows; r++) for (let c = 0; c < q.cols; c++) cells += `<rect ${cls(r * q.cols + c)} x="${12 + c * 100}" y="${12 + r * 68}" width="100" height="68"/>`;
+      box = `0 0 ${q.cols * 100 + 24} ${q.rows * 68 + 24}`;
+    } else {
+      const at = (i) => { const a = i / q.parts * 2 * Math.PI; return (120 + 106 * Math.sin(a)).toFixed(2) + " " + (120 - 106 * Math.cos(a)).toFixed(2); };
+      for (let i = 0; i < q.parts; i++) cells += `<path ${cls(i)} d="M120 120L${at(i)}A106 106 0 0 1 ${at(i + 1)}Z"/>`;
+      box = "0 0 240 240";
+    }
+    return `<svg class="shade-shape shade-${q.shade}" viewBox="${box}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Shape to shade">${cells}</svg>`;
+  }
+
   function clock(time, size) {
     const parts = String(time).split(":").map(Number), h = parts[0], m = parts[1];
     const s = size || 230;
@@ -468,7 +520,7 @@
   }
 
   window.ART = {
-    crest, student, owl, subject, stars, coin, badge, blaster, hero, monster, foeShot, arena, clock, fraction,
+    crest, student, owl, subject, stars, coin, badge, blaster, hero, monster, foeShot, arena, clock, fraction, shadeShape,
     player: function (_pose, gender) { return student(gender); }
   };
 })();

@@ -169,10 +169,10 @@
     return Object.assign({}, ts, { name, levelsWeakFirst: practised.concat(notStarted), practised, notStarted, mistakes, summary });
   }
 
-  /* ---------- a whole module: how each topic is doing, weakest first ---------- */
-  function moduleReport(subjectId, moduleId) {
-    const m = DATA.topic(subjectId, moduleId);
-    const inOrder = DATA.moduleTopics(subjectId, moduleId).map(t => moduleTopicSummary(subjectId, moduleId, t.id));
+  /* ---------- a whole module (or one group of sub-topics in it): how each topic is doing, weakest first ---------- */
+  function moduleReport(subjectId, moduleId, groupId) {
+    const m = DATA.topic(subjectId, moduleId), group = groupId ? DATA.topicGroup(subjectId, moduleId, groupId) : null;
+    const inOrder = DATA.moduleTopics(subjectId, moduleId).filter(t => !groupId || t.group === groupId).map(t => moduleTopicSummary(subjectId, moduleId, t.id));
     const practised = inOrder.filter(t => t.attempts).sort((a, b) => a.avg - b.avg);
     const notStarted = inOrder.filter(t => !t.attempts);
     const sessions = [].concat.apply([], inOrder.map(t => t.sessions)).sort((a, b) => (b.ts || 0) - (a.ts || 0));
@@ -185,7 +185,7 @@
       const l = DATA.level(subjectId, moduleId, s.levelId);
       mistakes.push({ m: x, topicLabel: l ? l.topicLabel : "", when: timeAgo(s.ts) });
     }));
-    const name = (m && m.label) || "this module";
+    const name = (group && group.label) || (m && m.label) || "this module";
     let summary;
     if (!inOrder.length) summary = "Topics for <b>" + name + "</b> are coming soon.";
     else if (!practised.length) summary = "No assessments in <b>" + name + "</b> yet — pick a topic and start with Level 1.";
@@ -199,7 +199,7 @@
       if (notStarted.length) summary += " Not started yet: " + notStarted.map(t => t.topic.label).join(", ") + ".";
     }
     return {
-      module: m, inOrder, topics: practised.concat(notStarted), practised, notStarted, weakTopics,
+      module: m, group, inOrder, topics: practised.concat(notStarted), practised, notStarted, weakTopics,
       attempts: sessions.length,
       avg: sessions.length ? Math.round(sessions.reduce((a, s) => a + s.pct, 0) / sessions.length) : null,
       lastTs: sessions.length ? sessions[0].ts : 0,

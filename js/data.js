@@ -181,11 +181,23 @@
               ] },
             { id: "mixed_operations", label: "Mixed operations", icon: "🔀", desc: "Choosing and combining +, −, × and ÷", levels: [] }
           ] },
-        { id: "fdp", label: "Fractions, Decimals & Percentages", icon: "🍕", desc: "Parts of a whole, decimals and percentages", topics: [
-            { id: "fractions", label: "Fractions", icon: "🍕", desc: "Parts of a whole — reading, comparing and using fractions", levels: [
-                { id: "level1", label: "Level 1", desc: "Understanding fractions", sessionSize: 15, hideCat: true,
-                  catLabels: { BAR: "Shaded fraction bars", CIRCLE: "Shaded fraction circles", UNSHADED: "Unshaded fraction bars", NUMDEN: "Numerators & denominators" } }
-              ] }
+        { id: "fdp", label: "Fractions, Decimals & Percentages", icon: "🍕", desc: "Parts of a whole, decimals and percentages",
+          // Fractions is one card on the module page that opens its sub-topics.
+          groups: [{ id: "fractions_group", label: "Fractions", icon: "🍕", desc: "Parts of a whole — reading, comparing and using fractions" }],
+          topics: [
+            // Keeps the id "fractions" from when it was the whole Fractions topic, so saved results stay.
+            { id: "fractions", group: "fractions_group", label: "Understanding fractions", icon: "🍕", desc: "Parts of a whole — shaded parts, numerators and denominators", levels: [
+                { id: "level1", label: "Level 1", desc: "Shaded parts, numerators & denominators", sessionSize: 15, hideCat: true,
+                  catLabels: { BAR: "Shaded fraction bars", CIRCLE: "Shaded fraction circles", UNSHADED: "Unshaded fraction bars", NUMDEN: "Numerators & denominators" } },
+                { id: "level2", label: "Level 2", desc: "Represent fractions — shade the parts", sessionSize: 15, hideCat: true,
+                  catLabels: { BAR: "Shading fraction bars", CIRCLE: "Shading fraction circles", GRID: "Shading fraction grids" } }
+              ] },
+            { id: "fractions_of_quantities", group: "fractions_group", label: "Fractions of quantities", icon: "🍬", desc: "Finding a fraction of an amount, like ½ of 12", levels: [] },
+            { id: "equivalent_fractions", group: "fractions_group", label: "Equivalent fractions", icon: "⚖️", desc: "Different fractions worth the same, like ½ and 2/4", levels: [] },
+            { id: "comparing_fractions", group: "fractions_group", label: "Comparing fractions", icon: "🆚", desc: "Which fraction is bigger or smaller", levels: [] },
+            { id: "fraction_calculations", group: "fractions_group", label: "Fraction calculations", icon: "➕", desc: "Adding and subtracting fractions", levels: [] },
+            { id: "decimals", label: "Decimals", icon: "🔢", desc: "Tenths, hundredths and the decimal point", levels: [] },
+            { id: "percentages", label: "Percentages", icon: "💯", desc: "Parts out of 100", levels: [] }
           ] },
         { id: "measurement", label: "Measurement", icon: "📏", desc: "Length, mass, capacity, time and money", topics: [
             { id: "time", label: "Time", icon: "🕒", desc: "Reading clocks — exact times, quarters, minutes past and to", levels: [
@@ -239,6 +251,9 @@
      kind: "battle"       → a monster for each level (rounds[].monster) with rounds[].questions lives;
                             a right answer hits it, a wrong one (or the clock) and it hits you
                             with its attack ("punch", "shield" or "web");
+     kind: "picture"      → a picture from the banks the game names (banks: [{ topicId, levelId }]);
+                            tap the right word of 4 before the clock runs out. A word comes up
+                            once a game at most;
      roundName            → what the game calls a round on screen ("Level"; default "Round");
      rounds[].perQuestion → seconds allowed for EACH question — for falling games, the
                             seconds a number takes to fall (running out of time costs
@@ -300,6 +315,31 @@
         { questions: 12, perQuestion: 10, monster: { art: "zombie", name: "Zombie Captain America", attack: "shield" }, badge: "titan_conqueror",  points: { first: 50, repeat: 5 } },
         { questions: 12, perQuestion: 5,  monster: { art: "spider", name: "Zombie Spiderman",       attack: "web" },    badge: "undead_conqueror", points: { first: 50, repeat: 5 } }
       ]
+    },
+    {
+      id: "kilat_kata",
+      subjectId: "bahasa",
+      kind: "picture",
+      label: "Kilat Kata",
+      desc: "Lihat gambar, pilih jawapan!",
+      icon: "⚡",
+      roundName: "Level",
+      winText: "You're a Juara Kilat!",
+      // The Kata dasar pictures, until the game's own questions arrive.
+      banks: [
+        { topicId: "pembentukan_kata", levelId: "kata_dasar.gambar1" },
+        { topicId: "pembentukan_kata", levelId: "kata_dasar.gambar2" },
+        { topicId: "pembentukan_kata", levelId: "kata_dasar.gambar3" },
+        { topicId: "pembentukan_kata", levelId: "kata_dasar.gambar4" }
+      ],
+      source: { topicId: "pembentukan_kata", levelId: "kata_dasar.gambar1" },   // where to practise if the lives run out
+      lives: 3,                                                                 // for the whole game
+      rounds: [
+        { questions: 15, perQuestion: 12, badge: "kancil_cerdik",  points: { first: 50, repeat: 5 } },
+        { questions: 15, perQuestion: 10, badge: "helang_tangkas", points: { first: 50, repeat: 5 } },
+        { questions: 15, perQuestion: 8,  badge: "harimau_pantas", points: { first: 50, repeat: 5 } },
+        { questions: 15, perQuestion: 5,  badge: "juara_kilat",    points: { first: 50, repeat: 5 } }
+      ]
     }
   ];
   const BADGES = {
@@ -323,7 +363,15 @@
     titan_conqueror:       { label: "Shield Conqueror",      tier: "silver", icon: "shield",
                              desc: "Cleared Level 2 of Divide & Conquer — beat Zombie Captain America with just 10 seconds an answer! 🛡️" },
     undead_conqueror:      { label: "Web Conqueror",         tier: "gold",   icon: "web",
-                             desc: "Cleared Level 3 of Divide & Conquer — beat Zombie Spiderman with only 5 seconds an answer! 🕸️" }
+                             desc: "Cleared Level 3 of Divide & Conquer — beat Zombie Spiderman with only 5 seconds an answer! 🕸️" },
+    kancil_cerdik:         { label: "Kancil Cerdik",         tier: "bronze",  icon: "kancil",
+                             desc: "Cleared Level 1 of Kilat Kata — named 15 pictures with 12 seconds each, as clever as Sang Kancil! 🦌" },
+    helang_tangkas:        { label: "Helang Tangkas",        tier: "silver",  icon: "eagle",
+                             desc: "Cleared Level 2 of Kilat Kata — 15 more pictures in just 10 seconds each, swift as an eagle! 🦅" },
+    harimau_pantas:        { label: "Harimau Pantas",        tier: "gold",    icon: "tiger",
+                             desc: "Cleared Level 3 of Kilat Kata — 15 pictures in only 8 seconds each, fast as a tiger! 🐅" },
+    juara_kilat:           { label: "Juara Kilat",           tier: "diamond", icon: "bolt",
+                             desc: "Cleared Level 4 of Kilat Kata — 15 pictures in just 5 seconds each. Lightning champion! ⚡" }
   };
 
   /* Quest bonus — for EVERY game, now and in future: extra points, paid once, for
@@ -386,6 +434,19 @@
   // The TOPICS inside a module, and the levels of one topic.
   function moduleTopics(subjectId, moduleId) { const m = topic(subjectId, moduleId); return (m && m.topics) || []; }
   function moduleTopic(subjectId, moduleId, topicId) { return byId(moduleTopics(subjectId, moduleId), topicId); }
+  // A module's topics as its page shows them: a topic on its own, or a group of sub-topics in
+  // one card (Fractions → Understanding fractions, Equivalent fractions…).  [{ topic } | { group, topics }]
+  function moduleEntries(subjectId, moduleId) {
+    const m = topic(subjectId, moduleId), out = [];
+    ((m && m.topics) || []).forEach(t => {
+      if (!t.group) return out.push({ topic: t });
+      let e = out.filter(x => x.group && x.group.id === t.group)[0];
+      if (!e) out.push(e = { group: byId(m.groups, t.group) || { id: t.group, label: tidyId(t.group) }, topics: [] });
+      e.topics.push(t);
+    });
+    return out;
+  }
+  function topicGroup(subjectId, moduleId, groupId) { const m = topic(subjectId, moduleId); return m ? byId(m.groups, groupId) : null; }
   function topicLevels(subjectId, moduleId, topicId) {
     const m = topic(subjectId, moduleId);
     return ((m && m.levels) || []).filter(l => l.topicId === topicId);
@@ -449,7 +510,7 @@
 
   window.DATA = {
     DEFAULT_SESSION_SIZE, SCHOOL_YEARS, SUBJECTS, GAMES, RETIRED_GAMES, BADGES, MOVED, REPLAY_BONUS, QUEST_BONUS, games, game, anyGame,
-    subject, topic, level, moduleTopics, moduleTopic, topicLevels, bank, levelCount, topicCount,
+    subject, topic, level, moduleTopics, moduleTopic, moduleEntries, topicGroup, topicLevels, bank, levelCount, topicCount,
     levelYears, yearTopics, topicLabel, levelLabel, fullLabel, catLabel
   };
 })();
