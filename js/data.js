@@ -191,9 +191,8 @@
             { id: "time", label: "Time", icon: "🕒", desc: "Reading clocks — exact times, quarters, minutes past and to", levels: [
                 { id: "level1", label: "Level 1", desc: "Reading exact time", sessionSize: 15, hideCat: true,
                   catLabels: { ON5: "Long hand on a number", BETWEEN: "Long hand between the numbers" } },
-                { id: "level2", label: "Level 2", desc: "Quarter past, half past & quarter to", sessionSize: 15, hideCat: true,
-                  catLabels: { QP_D: "Quarter past · digital time", HP_D: "Half past · digital time", QT_D: "Quarter to · digital time",
-                               QP_W: "Quarter past · in words", HP_W: "Half past · in words", QT_W: "Quarter to · in words" } },
+                { id: "quarters_words", label: "Level 2", desc: "Quarter past, half past & quarter to — in words", sessionSize: 15, hideCat: true,
+                  catLabels: { QP: "Quarter past", HP: "Half past", QT: "Quarter to" } },
                 { id: "level3_1", label: "Level 3.1", desc: "Minutes past & to — recognition", sessionSize: 15, hideCat: true,
                   catLabels: { PAST: "Minutes past", TO: "Minutes to" } },
                 { id: "level3_2", label: "Level 3.2", desc: "Minutes past & to — application", sessionSize: 15, hideCat: true,
@@ -369,6 +368,7 @@
   const RETIRED = {
     "english|grammar|conjunctions.level1": "Conjunctions · Old Level 1 (removed)",
     "english|punctuation|punctuation_marks.level1": "Punctuation · Old Level 1 (removed)",
+    "maths|measurement|time.level2": "Time · Old Level 2 (removed)",
     "bahasa|pembentukan_kata|kata_dasar.level1": "Kata dasar · Old Level 1 (removed)",
     "bahasa|pembentukan_kata|kata_dasar.bergambar": "Kata dasar · Old Level 1, 74 pictures (removed)"
   };
