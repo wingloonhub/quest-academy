@@ -313,6 +313,17 @@ button:focus-visible,.profile-card:focus-visible{outline:2px solid var(--gold);o
 .q-pic img{display:block;margin:0 auto;height:clamp(130px,24vh,200px);width:auto}
 .clock-q .q-visual svg.frac-bar{width:100%;max-width:420px}
 .shade-q .q-visual{padding:10px}
+.tap-q b{font-size:1.25em;color:var(--gold-bright)}
+.tap-en{display:inline-block;margin-right:6px;padding:3px 9px;border-radius:99px;background:var(--panel);border:1px solid var(--border);font-size:11.5px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);vertical-align:middle}
+.tap-pic{padding:8px;background:#fff}
+.tap-photo{position:relative;margin:0 auto;width:min(100%, 340px, calc(52vh * 640 / 784));cursor:pointer;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.tap-write .tap-photo{width:min(100%, 340px, calc(40vh * 640 / 784))}
+.tap-photo img{display:block;width:100%;height:auto;pointer-events:none}
+.tap-hl{position:absolute;inset:0;pointer-events:none;-webkit-mask-size:100% 100%;mask-size:100% 100%;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}
+.tap-hl.on{background:#ffc400}
+.tap-hl.right{background:#16a34a}
+.tap-hl.wrong{background:#dc2626}
+.tap-done .tap-photo{cursor:default}
 .shade-q .q-visual svg{display:block;margin:0 auto;width:100%;max-width:440px;max-height:none}
 .shade-q .q-visual svg.shade-circle{max-width:250px}
 .shade-part{fill:#f7f9fc;stroke:#445164;stroke-width:4;stroke-linejoin:round;cursor:pointer;transition:fill .12s;-webkit-tap-highlight-color:transparent}

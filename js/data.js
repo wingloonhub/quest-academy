@@ -129,7 +129,10 @@
           groups: [{ id: "kosa_kata_group", label: "Kosa kata", icon: "🔤", desc: "Perkataan baharu mengikut tema" }],
           topics: [
             { id: "anggota_badan", group: "kosa_kata_group", label: "Anggota badan", icon: "🧍", desc: "Nama bahagian badan kita", levels: [
-                { id: "level1", label: "Level 1", desc: "Muka & Kepala", sessionSize: 15, hideCat: true }
+                { id: "level1", label: "Level 1", desc: "Muka & Kepala", sessionSize: 15, hideCat: true,
+                  catLabels: { KEPALA: "Kepala, rambut, dahi & telinga", MATA: "Mata, kening & bulu mata", MUKA: "Pipi, hidung, dagu & leher", MULUT: "Mulut, bibir, gigi & lidah" } },
+                { id: "level2", label: "Level 2", desc: "Muka & Kepala — English to Bahasa Melayu", sessionSize: 15, hideCat: true,
+                  catLabels: { KEPALA: "Kepala, rambut, dahi & telinga", MATA: "Mata, kening & bulu mata", MUKA: "Pipi, hidung, dagu & leher", MULUT: "Mulut, bibir, gigi & lidah" } }
               ] }
           ] },
         { id: "penulisan",           label: "Penulisan",                   icon: "✍️", desc: "Membina ayat, karangan pendek dan surat",                 topics: [] }

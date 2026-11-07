@@ -2239,6 +2239,23 @@
     });
   }
 
+  // A tap picture's map, read once: which part each spot of the picture belongs to.
+  const tapMaps = {};
+  function tapMap(url) {
+    return tapMaps[url] = tapMaps[url] || new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const c = document.createElement("canvas");
+        c.width = img.naturalWidth; c.height = img.naturalHeight;
+        const g = c.getContext("2d", { willReadFrequently: true });
+        g.drawImage(img, 0, 0);
+        resolve(g.getImageData(0, 0, c.width, c.height));
+      };
+      img.onerror = () => { delete tapMaps[url]; resolve(null); };
+      img.src = url;
+    });
+  }
+
   const PRAISE = ["Correct!", "Brilliant!", "Well done!", "Spot on!", "Great job!", "Nailed it!", "Super!"];
 
   function renderQuestion() {
@@ -2251,8 +2268,8 @@
     const subj = DATA.subject(st.subjectId);
     const total = st.questions.length, num = st.idx + 1;
     const correctSoFar = st.answers.filter(a => a.correct).length;
-    const kind = q.spelling ? "spell" : Array.isArray(q.fields) ? "multi" : q.order ? "order" : q.shade ? "shade" : q.typed ? "typed" : "mcq";
-    const accepts = kind === "mcq" || kind === "multi" || kind === "order" || kind === "shade" ? [] : acceptedAnswers(q);
+    const kind = q.spelling ? "spell" : Array.isArray(q.fields) ? "multi" : q.order ? "order" : q.shade ? "shade" : q.tap ? "tap" : q.typed ? "typed" : "mcq";
+    const accepts = kind === "mcq" || kind === "multi" || kind === "order" || kind === "shade" || (kind === "tap" && !q.write) ? [] : acceptedAnswers(q);
     const numeric = kind === "typed" && isNumericAnswers(accepts);
     const lvlDef = DATA.level(st.subjectId, st.topicId, st.levelId) || {};
     // hideCat: don't show the question-type tag during the test (it would give the answer away)
@@ -2310,6 +2327,16 @@
         <div class="q-visual" id="shadeBox">${ART.shadeShape(q)}</div>
         <p class="spell-instr">${esc(q.instr || "Tap the parts to colour them in.")}</p>
         ${actions}`;
+    } else if (kind === "tap") {
+      // Tap a part of the picture (it lights up); with `write`, also type its name in Bahasa.
+      // The keyboard always has a space key, so it doesn't hint that the answer is two words.
+      body = `${passage}
+        <div class="qtext tap-q">${q.write ? `<span class="tap-en">English</span> <b>${esc(qText)}</b>` : `Di manakah <b>${esc(q.word)}</b>?`}</div>
+        <div class="q-visual tap-pic" id="tapPic">${ART.tapPicture(q.tap)}</div>
+        ${q.write ? `<div class="answer-box" id="ansBox"></div>` : ""}
+        <p class="spell-instr">${esc(q.instr || (q.write ? "Tap it on the picture, then type the word in Bahasa Melayu." : "Tap it on the picture, then check."))}</p>
+        ${q.write ? `<div class="keyboard" id="kb">${keyboardHtml(accepts.concat("a b"), false)}</div>` : ""}
+        ${actions}`;
     } else if (kind === "typed") {
       const parts = qText.split("___");
       body = `${passage}${visual}
@@ -2330,7 +2357,7 @@
 
     show(`
       <div class="topbar"><span class="back" id="bk">✕ Quit</span><h2>📝 ${esc(DATA.fullLabel(st.subjectId, st.topicId, st.levelId))}</h2></div>
-      <div class="qwrap${q.clock || fracShape || q.pic ? " clock-q" : ""}${q.shade ? " shade-q" : ""}">
+      <div class="qwrap${q.clock || fracShape || q.pic ? " clock-q" : ""}${q.shade ? " shade-q" : ""}${q.tap ? " tap-wrap" + (q.write ? " tap-write" : "") : ""}">
         <div class="progress-label"><span>Question ${num} of ${total}</span><span>${st.maxPts && st.maxPts.rate > 0 && st.maxPts.max > 0 ? `<span class="max-chip">${ART.coin(13)} up to <b>${st.maxPts.max}</b> pts</span> · `
           : st.maxPts && st.maxPts.replay ? `<span class="max-chip">${ART.coin(13)} replay: <b>+${st.maxPts.replay}</b> at ${st.maxPts.replayMin}%+</span> · ` : ""}✓ ${correctSoFar} correct</span></div>
         <div class="progress"><i style="width:${Math.round((st.idx / total) * 100)}%"></i></div>
@@ -2361,6 +2388,7 @@
       if (correct) st.byCat[c].correct++;
       const stem = kind === "spell" ? "Spell the word: " + q.word : q.clock ? qText + " (clock showing " + q.clock + ")"
         : fracShape ? qText + " (" + fracShape + ": " + q[fracShape].replace("/", " of ") + " parts shaded)"
+        : q.tap ? (q.write ? qText + " — tap it and write it in Bahasa Melayu" : qText + " (tap it on the picture)")
         : q.shade ? qText + " (" + q.shade + " of " + (q.shade === "grid" ? q.rows * q.cols : q.parts) + " parts)"
         : q.pic ? qText + " (gambar: " + q.options[q.answer] + ")" : (qText || "Question");
       const sec = Math.min(300, Math.round((Date.now() - shownAt) / 1000));   // capped, in case the page was left open
@@ -2453,6 +2481,75 @@
         if (e.key === "Backspace") { press("back"); return true; }
         const k = String(e.key || "").length === 1 ? e.key.toLowerCase() : "";
         if (k && (multiNumeric ? /[0-9.\/-]/.test(k) : /[a-z' -]/.test(k))) { press(k); return true; }
+      };
+      paint();
+      return;
+    }
+
+    // Tap a part of the picture. A tap counts at the level asked: asked for the mouth, the teeth
+    // are part of it, so they light up the whole mouth.
+    if (kind === "tap") {
+      const pic = $("#tapPic"), info = ART.tapParts(q.tap) || { names: {}, parents: {} }, name = (p) => info.names[p] || p;
+      const box = $("#ansBox"), kb = $("#kb"), clearBtn = $("#clearBtn"), submitBtn = $("#submitBtn");
+      let picked = "", typed = "";
+      const light = (part, cls) => pic.querySelectorAll('.tap-hl[data-part="' + part + '"]').forEach(h => h.classList.add(cls));
+      const paint = () => {
+        pic.querySelectorAll(".tap-hl.on").forEach(h => h.classList.remove("on"));
+        if (picked) light(picked, "on");
+        if (box) { box.innerHTML = typed ? esc(typed) : `<span class="placeholder">?</span>`; box.classList.toggle("empty", !typed); }
+        clearBtn.disabled = busy || (!picked && !typed);
+        submitBtn.disabled = busy || !picked || (q.write && !typed.trim());
+      };
+      const tapPart = (part) => {
+        if (busy) return;
+        const chosen = (info.parents[part] || []).indexOf(q.part) > -1 ? q.part : part;
+        if (!info.names[chosen] || chosen === "muka") return;   // plain skin isn't a part to pick
+        picked = chosen;
+        paint();
+      };
+      const press = (k) => {
+        if (busy) return;
+        if (k === "back") typed = typed.slice(0, -1);
+        else if (typed.length < 16 && !(k === " " && (!typed || / $/.test(typed)))) typed += k;
+        paint();
+      };
+      const submit = () => {
+        if (busy || submitBtn.disabled) return;
+        const placeOk = picked === q.part, wordOk = !q.write || sameAnswer(typed, accepts, false);
+        pic.querySelectorAll(".tap-hl.on").forEach(h => h.classList.remove("on"));
+        pic.classList.add("tap-done");
+        if (!placeOk) light(picked, "wrong");
+        light(q.part, "right");
+        if (kb) kb.querySelectorAll(".kb-key").forEach(b => { b.disabled = true; });
+        if (box) box.classList.add(wordOk ? "ok" : "bad");
+        clearBtn.disabled = true; submitBtn.disabled = true;
+        const word = `<b>${esc(q.word)}</b>`;
+        finish(placeOk && wordOk, q.write ? (typed.trim() + " (tapped " + name(picked) + ")") : name(picked), q.word,
+          !placeOk && !wordOk ? `❌ That's the <b>${esc(name(picked))}</b>. ${esc(qText)} is ${word} — the part in green.`
+          : !placeOk ? `❌ That's the <b>${esc(name(picked))}</b>. ${word} is the part in green.`
+          : `❌ Right place! In Bahasa Melayu, ${esc(qText)} is ${word}.`);
+      };
+      // Which part was tapped: read from the picture's map at that spot.
+      const photo = pic.querySelector(".tap-photo");
+      let map = null;
+      tapMap(info.map).then(m => { map = m; });
+      photo.addEventListener("click", (e) => {
+        if (!map) return;
+        const r = photo.getBoundingClientRect();
+        const x = Math.min(map.width - 1, Math.floor((e.clientX - r.left) / r.width * map.width)), y = Math.min(map.height - 1, Math.floor((e.clientY - r.top) / r.height * map.height));
+        const n = Math.round(map.data[(y * map.width + x) * 4] / 16);
+        if (n > 0 && info.order[n - 1]) tapPart(info.order[n - 1]);
+      });
+      if (kb) kb.querySelectorAll(".kb-key").forEach(b => { b.onclick = () => press(b.dataset.key); });
+      clearBtn.onclick = () => { if (!busy) { picked = ""; typed = ""; paint(); } };
+      submitBtn.onclick = submit;
+      keyHandler = (e) => {
+        if (busy) return;
+        if (e.key === "Enter") { submit(); return true; }
+        if (!q.write) return;
+        if (e.key === "Backspace") { press("back"); return true; }
+        const k = String(e.key || "").length === 1 ? e.key.toLowerCase() : "";
+        if (k && /[a-z ]/.test(k)) { press(k); return true; }
       };
       paint();
       return;

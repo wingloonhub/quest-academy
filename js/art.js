@@ -484,6 +484,36 @@
     return `<svg class="shade-shape shade-${q.shade}" viewBox="${box}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Shape to shade">${cells}</svg>`;
   }
 
+  /* ---------- tap-the-picture questions ----------
+     A picture with parts the child taps; the part tapped lights up. The face is Wing's own
+     picture, the version of "Bahagian-Bahagian Muka dan Kepala" without its labels.
+     Its map says which part each spot is (red = the part's number in `order` × 16), and each
+     part in `lit` has a highlight mask, muka-01.png … in that order. */
+  const TAP_PICTURES = {
+    face: {
+      src: "img/anggota/muka.webp", map: "img/anggota/muka-map.png", ratio: "640 / 784",
+      order: ["leher", "muka", "telinga", "dahi", "pipi", "rambut", "kening", "mata", "bulu_mata", "hidung", "dagu", "mulut", "bibir", "lidah", "gigi"],
+      lit: ["kepala", "rambut", "dahi", "telinga", "kening", "bulu_mata", "mata", "pipi", "hidung", "dagu", "leher", "bibir", "gigi", "mulut", "lidah"],
+      names: { kepala: "kepala", rambut: "rambut", dahi: "dahi", kening: "kening", bulu_mata: "bulu mata", mata: "mata", telinga: "telinga",
+        pipi: "pipi", hidung: "hidung", bibir: "bibir", gigi: "gigi", mulut: "mulut", lidah: "lidah", dagu: "dagu", leher: "leher", muka: "muka" },
+      // A part inside another: asked for the outer one, a tap on the inner one counts as it.
+      // "muka" is plain skin: it only counts for the whole head.
+      parents: { rambut: ["kepala"], dahi: ["kepala"], kening: ["kepala"], bulu_mata: ["kepala"], mata: ["kepala"], telinga: ["kepala"], pipi: ["kepala"],
+        hidung: ["kepala"], dagu: ["kepala"], muka: ["kepala"], mulut: ["kepala"], bibir: ["mulut", "kepala"], gigi: ["mulut", "kepala"], lidah: ["mulut", "kepala"] }
+    }
+  };
+  function tapPicture(name) {
+    const p = TAP_PICTURES[name];
+    if (!p) return "";
+    const base = p.src.replace(/\.\w+$/, "");
+    return `<div class="tap-photo" style="aspect-ratio:${p.ratio}"><img src="${p.src}" alt="Gambar" draggable="false"/>${p.lit.map((part, i) => {
+      const url = base + "-" + String(i + 1).padStart(2, "0") + ".png";
+      return `<i class="tap-hl" data-part="${part}" style="-webkit-mask-image:url(${url});mask-image:url(${url})"></i>`;
+    }).join("")}</div>`;
+  }
+  // The part names, which part sits inside which, and the map, for marking a tap.
+  const tapParts = (name) => TAP_PICTURES[name] || null;
+
   function clock(time, size) {
     const parts = String(time).split(":").map(Number), h = parts[0], m = parts[1];
     const s = size || 230;
@@ -520,7 +550,7 @@
   }
 
   window.ART = {
-    crest, student, owl, subject, stars, coin, badge, blaster, hero, monster, foeShot, arena, clock, fraction, shadeShape,
+    crest, student, owl, subject, stars, coin, badge, blaster, hero, monster, foeShot, arena, clock, fraction, shadeShape, tapPicture, tapParts,
     player: function (_pose, gender) { return student(gender); }
   };
 })();

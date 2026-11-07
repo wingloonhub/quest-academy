@@ -118,5 +118,51 @@ window.QUESTIONS.bahasa = {
           { q: "Apakah perbuatan dalam gambar?", pic: "img/kata_kerja/80.png", options: ["Buka", "Marah", "Cari", "Ketuk"], answer: 3, cat: "RUMAH", same: "gambar80" }
       ]
     }
+  },
+
+  pemahaman_kosa_kata: {
+
+    anggota_badan: {
+
+      // Muka & Kepala, from Wing's labelled picture "Bahagian-Bahagian Muka dan Kepala": 15 parts, all asked
+      // every test. The face is drawn by ART.tapPicture("face") without its labels; `part` is the shape to tap.
+      // Level 1: the word in Bahasa, tap the part.
+      level1: [
+          { tap: "face", part: "kepala", q: "Di manakah kepala?", word: "kepala", same: "kepala", cat: "KEPALA" },
+          { tap: "face", part: "rambut", q: "Di manakah rambut?", word: "rambut", same: "rambut", cat: "KEPALA" },
+          { tap: "face", part: "dahi", q: "Di manakah dahi?", word: "dahi", same: "dahi", cat: "KEPALA" },
+          { tap: "face", part: "telinga", q: "Di manakah telinga?", word: "telinga", same: "telinga", cat: "KEPALA" },
+          { tap: "face", part: "kening", q: "Di manakah kening?", word: "kening", same: "kening", cat: "MATA" },
+          { tap: "face", part: "bulu_mata", q: "Di manakah bulu mata?", word: "bulu mata", same: "bulu_mata", cat: "MATA" },
+          { tap: "face", part: "mata", q: "Di manakah mata?", word: "mata", same: "mata", cat: "MATA" },
+          { tap: "face", part: "pipi", q: "Di manakah pipi?", word: "pipi", same: "pipi", cat: "MUKA" },
+          { tap: "face", part: "hidung", q: "Di manakah hidung?", word: "hidung", same: "hidung", cat: "MUKA" },
+          { tap: "face", part: "dagu", q: "Di manakah dagu?", word: "dagu", same: "dagu", cat: "MUKA" },
+          { tap: "face", part: "leher", q: "Di manakah leher?", word: "leher", same: "leher", cat: "MUKA" },
+          { tap: "face", part: "bibir", q: "Di manakah bibir?", word: "bibir", same: "bibir", cat: "MULUT" },
+          { tap: "face", part: "gigi", q: "Di manakah gigi?", word: "gigi", same: "gigi", cat: "MULUT" },
+          { tap: "face", part: "mulut", q: "Di manakah mulut?", word: "mulut", same: "mulut", cat: "MULUT" },
+          { tap: "face", part: "lidah", q: "Di manakah lidah?", word: "lidah", same: "lidah", cat: "MULUT" }
+      ],
+
+      // Level 2: the word in English, tap the part and write it in Bahasa.
+      level2: [
+          { tap: "face", write: true, part: "kepala", q: "head", word: "kepala", same: "kepala", cat: "KEPALA" },
+          { tap: "face", write: true, part: "rambut", q: "hair", word: "rambut", same: "rambut", cat: "KEPALA" },
+          { tap: "face", write: true, part: "dahi", q: "forehead", word: "dahi", same: "dahi", cat: "KEPALA" },
+          { tap: "face", write: true, part: "telinga", q: "ear", word: "telinga", same: "telinga", cat: "KEPALA" },
+          { tap: "face", write: true, part: "kening", q: "eyebrow", word: "kening", same: "kening", cat: "MATA" },
+          { tap: "face", write: true, part: "bulu_mata", q: "eyelashes", word: "bulu mata", same: "bulu_mata", cat: "MATA" },
+          { tap: "face", write: true, part: "mata", q: "eye", word: "mata", same: "mata", cat: "MATA" },
+          { tap: "face", write: true, part: "pipi", q: "cheek", word: "pipi", same: "pipi", cat: "MUKA" },
+          { tap: "face", write: true, part: "hidung", q: "nose", word: "hidung", same: "hidung", cat: "MUKA" },
+          { tap: "face", write: true, part: "dagu", q: "chin", word: "dagu", same: "dagu", cat: "MUKA" },
+          { tap: "face", write: true, part: "leher", q: "neck", word: "leher", same: "leher", cat: "MUKA" },
+          { tap: "face", write: true, part: "bibir", q: "lips", word: "bibir", same: "bibir", cat: "MULUT" },
+          { tap: "face", write: true, part: "gigi", q: "teeth", word: "gigi", same: "gigi", cat: "MULUT" },
+          { tap: "face", write: true, part: "mulut", q: "mouth", word: "mulut", same: "mulut", cat: "MULUT" },
+          { tap: "face", write: true, part: "lidah", q: "tongue", word: "lidah", same: "lidah", cat: "MULUT" }
+      ]
+    }
   }
 };
