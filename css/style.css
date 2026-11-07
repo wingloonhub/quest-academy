@@ -698,6 +698,9 @@ button:focus-visible,.profile-card:focus-visible{outline:2px solid var(--gold);o
 .game-tile{display:flex;flex-direction:column;align-items:center;gap:8px;min-width:0;padding:16px 10px 14px;text-align:center;color:var(--ink);font-family:var(--font);background:var(--panel-solid);border:1px solid var(--border);border-top:3px solid var(--accent);border-radius:16px;cursor:pointer;transition:transform .15s,box-shadow .2s,border-color .2s}
 .game-tile:hover{transform:translateY(-3px);border-color:var(--accent);box-shadow:0 12px 26px rgba(0,0,0,.4),0 0 0 1px var(--accent-glow)}
 .game-tile.done{border-color:var(--gold)}
+.game-tile.soon{cursor:default;opacity:.75;border-style:dashed;border-top-color:var(--border)}
+.game-tile.soon:hover{transform:none;box-shadow:none;border-color:var(--border)}
+.game-tile .soon-pill{align-self:center}
 .gt-icon{font-size:44px;line-height:1.1}
 .gt-name{font-family:var(--display);font-size:17px;font-weight:800;line-height:1.2;color:var(--ink-strong)}
 .gt-stats{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 12px;margin-top:auto;font-size:14px;font-weight:800}

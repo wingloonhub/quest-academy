@@ -265,6 +265,8 @@
                             tap the right word of 4 before the clock runs out. A word comes up
                             once a game at most;
      roundName            → what the game calls a round on screen ("Level"; default "Round");
+     soon: true           → shown in the arena as "Coming soon" and can't be played yet (its badges
+                            don't count until then; anything already won is kept);
      rounds[].perQuestion → seconds allowed for EACH question — for falling games, the
                             seconds a number takes to fall (running out of time costs
                             a life, like a wrong answer);
@@ -335,6 +337,7 @@
       icon: "⚡",
       roundName: "Level",
       winText: "You're a Juara Kilat!",
+      soon: true,   // Wing, 2026-11-07: "Coming soon" until its own questions arrive
       // The Kata dasar pictures, until the game's own questions arrive.
       banks: [
         { topicId: "pembentukan_kata", levelId: "kata_dasar.gambar1" },

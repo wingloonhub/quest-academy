@@ -427,8 +427,8 @@
     const names = subj.topics.map(t => t.label);
     const topicLine = names.length ? esc(names.slice(0, 3).join(", ")) + (names.length > 3 ? "…" : "") : "Coming soon";
     const readyYears = DATA.SCHOOL_YEARS.filter(y => DATA.yearTopics(subjectId, y).length);
-    const arenaGames = DATA.games(subjectId);
-    const arenaBadges = [].concat.apply([], arenaGames.map(gm => gm.rounds.map(r => r.badge).filter(Boolean)));
+    const arenaGames = DATA.games(subjectId), arenaReady = arenaGames.filter(gm => !gm.soon);
+    const arenaBadges = [].concat.apply([], arenaReady.map(gm => gm.rounds.map(r => r.badge).filter(Boolean)));
     show(`
       <div class="topbar"><span class="back" id="bk">← Menu</span><h2>${esc(subj.label)}</h2></div>
       <div class="page narrow">
@@ -456,10 +456,10 @@
               <span class="study-icon">${ICON_GAME}</span>
               <span class="study-title">Quest Arena</span>
               <span class="study-desc">Play games and battles that use what you've learned.</span>
-              ${arenaGames.length
-                ? `<span class="study-eg">${esc(arenaGames.map(gm => gm.label).join(", "))}</span>
+              ${arenaReady.length
+                ? `<span class="study-eg">${esc(arenaReady.map(gm => gm.label).join(", "))}</span>
                    <span class="study-ready">🏅 ${arenaBadges.filter(b => STORE.badges()[b]).length}/${arenaBadges.length} badges</span>`
-                : `<span class="study-eg">Battles · Races · Puzzles</span>
+                : `<span class="study-eg">${arenaGames.length ? esc(arenaGames.map(gm => gm.label).join(", ")) : "Battles · Races · Puzzles"}</span>
                    <span class="soon-pill sm">Coming soon</span>`}
             </button>
           </div>
@@ -647,6 +647,11 @@
     }
     const earned = STORE.badges();
     const tiles = list.map(def => {
+      if (def.soon) return `<div class="game-tile soon" aria-disabled="true">
+          <span class="gt-icon">${def.icon || "🎮"}</span>
+          <span class="gt-name">${esc(def.label)}</span>
+          <span class="soon-pill sm">Coming soon</span>
+        </div>`;
       const ids = def.rounds.map(r => r.badge).filter(Boolean), got = ids.filter(id => earned[id]).length;
       return `<button class="game-tile${ids.length && got === ids.length ? " done" : ""}" data-game="${esc(def.id)}" type="button">
           <span class="gt-icon">${def.icon || "🎮"}</span>
@@ -694,7 +699,7 @@
 
   function renderGameIntro(subjectId, gameId) {
     const def = DATA.game(gameId);
-    if (!def) return renderArena(subjectId);
+    if (!def || def.soon) return renderArena(subjectId);
     current = () => renderGameIntro(subjectId, gameId);
     const log = STORE.gameLog(def.id);
     show(`
@@ -719,7 +724,7 @@
 
   function startGame(subjectId, gameId) {
     const def = DATA.game(gameId);
-    if (!def) return;
+    if (!def || def.soon) return;
     const need = def.rounds.reduce((n, r) => n + r.questions, 0);
     let qs;
     if (isOddEven(def)) qs = oddEvenNumbers(need);
@@ -1524,8 +1529,9 @@
 
   /* ===================== Trophy Room — every badge ===================== */
   function badgeGroups() {
+    const earned = STORE.badges();
     return DATA.GAMES.map(def => ({ def, ids: def.rounds.map(r => r.badge).filter(id => id && DATA.BADGES[id]) }))
-      .filter(gr => gr.ids.length);
+      .filter(gr => gr.ids.length && (!gr.def.soon || gr.ids.some(id => earned[id])));
   }
   function badgeTotals() {
     const earned = STORE.badges();
@@ -1549,7 +1555,7 @@
             <div class="trophy-desc">${esc(b.desc)}</div>
             ${ts ? `<div class="trophy-date">🎉 Earned ${esc(REPORT.shortDate(ts))}</div>`
                  : `<div class="trophy-date locked">🔒 Not earned yet</div>
-                    <button class="btn sm" data-play="${esc(gr.def.id)}" type="button">Play ${esc(gr.def.label)} →</button>`}
+                    ${gr.def.soon ? `<span class="soon-pill sm">Coming soon</span>` : `<button class="btn sm" data-play="${esc(gr.def.id)}" type="button">Play ${esc(gr.def.label)} →</button>`}`}
           </div>`;
         }).join("")}</div>
       </section>`).join("");
@@ -2979,8 +2985,9 @@
         ${l.weakAreas[0] ? `<div class="sub">🎯 Weak area: <b class="bad">${esc(l.weakAreas[0].label)}</b> (${l.weakAreas[0].pct}%)</div>` : ""}
       </button>`).join("");
     const myBadges = STORE.badges();
-    const badgeSection = DATA.GAMES.length ? `<h3 class="section-h">Quest Arena badges</h3>
-      <div class="rep-grid">${DATA.GAMES.map(def => `<div class="rep-card">
+    const shownGames = DATA.GAMES.filter(def => !def.soon || STORE.gameLog(def.id).length);
+    const badgeSection = shownGames.length ? `<h3 class="section-h">Quest Arena badges</h3>
+      <div class="rep-grid">${shownGames.map(def => `<div class="rep-card">
           <div class="t"><span>${def.icon || "🎮"} ${esc(def.label)} ${subjectPill(def.subjectId)}</span></div>
           <div class="sub">${esc(gameBest(def, STORE.gameLog(def.id)))}</div>
           <div class="sub">${ART.coin(13)} <b class="gold">${plural(STORE.arenaPoints(null, null, def.id), "point")}</b> from this game</div>
