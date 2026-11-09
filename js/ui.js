@@ -2200,13 +2200,15 @@
   function isNumericAnswers(list) {
     return list.length > 0 && list.every(a => /\d/.test(a) && /^[\d.,:\/\s-]+$/.test(a.trim()));
   }
-  // Punctuation options: "!" → big ! + "exclamation mark"; "x / y" → "① x … ② y …" (two sentences).
-  // Comparison signs work the same way: ">" → big > + "greater than".
+  // Punctuation options: "!" → a big !; "x / y" → "① x ② y" (two sentences). Comparison signs
+  // work the same way. The answer buttons show the marks only — their names ("greater than",
+  // "question mark") would give the answer away (Wing, 2026-11-09); the names come back in the
+  // feedback after answering, and in the reports.
   const MARK_NAMES = { ".": "full stop", "?": "question mark", "!": "exclamation mark", ",": "comma",
                        ">": "greater than", "<": "less than", "=": "equal to" };
-  function markHtml(o) {
+  function markHtml(o, named) {
     const parts = String(o).split(" / ");
-    return parts.map((m, i) => `<span class="mark-opt">${parts.length > 1 ? "①②"[i] + " " : ""}<b class="opt-mark">${esc(m)}</b><small>${esc(MARK_NAMES[m] || "")}</small></span>`).join("");
+    return parts.map((m, i) => `<span class="mark-opt">${parts.length > 1 ? "①②"[i] + " " : ""}<b class="opt-mark">${esc(m)}</b>${named ? `<small>${esc(MARK_NAMES[m] || "")}</small>` : ""}</span>`).join("");
   }
   function markWords(o) {
     const parts = String(o).split(" / ");
@@ -2427,7 +2429,7 @@
         }
         const right = q.options[q.answer];
         finish(ok, q.marks ? markWords(q.options[i]) : q.options[i], q.marks ? markWords(right) : right,
-          `❌ The correct answer is ${q.marks ? markHtml(right) : `<b>${esc(right)}</b>`}`);
+          `❌ The correct answer is ${q.marks ? markHtml(right, true) : `<b>${esc(right)}</b>`}`);
       };
       $$(".opt").forEach(b => { b.onclick = () => choose(parseInt(b.dataset.i, 10)); });
       keyHandler = (e) => {
