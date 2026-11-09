@@ -53,7 +53,12 @@ body{
   overscroll-behavior:none;
   -webkit-tap-highlight-color:transparent;
 }
-#app{min-height:100vh;display:flex;flex-direction:column}
+#app{min-height:100vh;display:flex;flex-direction:column;padding-top:var(--safe-top);padding-bottom:var(--safe-bottom)}
+/* On an iPhone the app is drawn under the status bar (viewport-fit=cover with a see-through
+   status bar), so everything starts below it, and a solid strip sits behind the time and
+   battery so nothing scrolls under them. Both are 0 on Android and computers. */
+:root{--safe-top:env(safe-area-inset-top, 0px);--safe-bottom:env(safe-area-inset-bottom, 0px);--safe-y:calc(var(--safe-top) + var(--safe-bottom))}
+body::before{content:"";position:fixed;top:0;left:0;right:0;height:var(--safe-top);background:var(--bg);z-index:60;pointer-events:none}
 .screen{flex:1;display:flex;flex-direction:column;animation:fade .3s ease}
 @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .muted{color:var(--muted)}
@@ -128,7 +133,7 @@ button:focus-visible,.profile-card:focus-visible{outline:2px solid var(--gold);o
 .page.narrow{max-width:780px}
 .page .lead{color:var(--muted);margin-bottom:18px;font-size:14px;line-height:1.6}
 .prose p{line-height:1.75;margin-bottom:12px;font-size:15px}
-.topbar{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border);background:rgba(7,11,26,.78);position:sticky;top:0;z-index:20;backdrop-filter:blur(8px)}
+.topbar{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border);background:rgba(7,11,26,.78);position:sticky;top:var(--safe-top);z-index:20;backdrop-filter:blur(8px)}
 .topbar h2{font-family:var(--display);font-size:18px;font-weight:800;letter-spacing:.3px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .topbar .back{color:var(--accent);font-weight:800;font-size:14px;cursor:pointer;padding:5px 9px;border-radius:8px;white-space:nowrap;flex-shrink:0}
 .topbar .back:hover{background:rgba(255,255,255,.07)}
@@ -499,7 +504,7 @@ button:focus-visible,.profile-card:focus-visible{outline:2px solid var(--gold);o
 .char-label{font-weight:800;font-size:13px;margin-top:4px}
 
 /* ---------- Modal + toast ---------- */
-.overlay{position:fixed;inset:0;background:rgba(3,5,14,.84);display:flex;align-items:center;justify-content:center;z-index:80;padding:18px;backdrop-filter:blur(4px);animation:fade .2s ease}
+.overlay{position:fixed;inset:0;background:rgba(3,5,14,.84);display:flex;align-items:center;justify-content:center;z-index:80;padding:calc(18px + var(--safe-top)) 18px calc(18px + var(--safe-bottom));backdrop-filter:blur(4px);animation:fade .2s ease}
 .modal{background:var(--panel-solid);border:1px solid var(--border);border-radius:18px;padding:22px 20px;max-width:440px;width:100%;text-align:center;box-shadow:var(--shadow)}
 .modal h2{font-family:var(--display);font-size:22px;margin-bottom:8px;color:var(--ink-strong)}
 .modal p{color:var(--muted);font-size:14px;line-height:1.6}
@@ -782,7 +787,7 @@ button:focus-visible,.profile-card:focus-visible{outline:2px solid var(--gold);o
 .oe-btn.even{background:linear-gradient(180deg,#22d3ee,#0e7490);border-color:#a5f3fc}
 
 /* Multiple Blaster — a sum falls; type the answer and the blaster shoots it before it lands */
-.mb-sky{height:clamp(170px,calc(100vh - 440px),340px);height:clamp(170px,calc(100dvh - 440px),340px);margin:8px 0 6px}   /* the sky takes what the number pad leaves */
+.mb-sky{height:clamp(170px,calc(100vh - 440px - var(--safe-y)),340px);height:clamp(170px,calc(100dvh - 440px - var(--safe-y)),340px);margin:8px 0 6px}   /* the sky takes what the number pad leaves */
 .mb-sky .oe-num{height:54px;padding:0 14px;display:flex;align-items:center;font-size:30px;transition:scale .25s,opacity .25s,background .15s;
   background:radial-gradient(circle at 35% 30%,#a5b4fc,#6366f1 55%,#3730a3);box-shadow:0 0 18px rgba(99,102,241,.8),0 -12px 24px rgba(165,180,252,.3)}
 .mb-sky .oe-num::before{background:linear-gradient(0deg,rgba(165,180,252,.7),transparent)}
@@ -799,7 +804,7 @@ button:focus-visible,.profile-card:focus-visible{outline:2px solid var(--gold);o
 .mb-wrap .bc-pad{margin-top:8px}
 .mb-wrap .bc-pad .kb-key{padding:11px 0;font-size:22px}
 @media(max-height:680px){
-  .mb-sky{height:clamp(150px,calc(100vh - 416px),340px);height:clamp(150px,calc(100dvh - 416px),340px)}
+  .mb-sky{height:clamp(150px,calc(100vh - 416px - var(--safe-y)),340px);height:clamp(150px,calc(100dvh - 416px - var(--safe-y)),340px)}
   .mb-wrap .bc-ans{min-height:42px;font-size:26px;line-height:38px}
   .mb-wrap .bc-pad .kb-key{padding:8px 0;font-size:20px}
 }
@@ -807,7 +812,7 @@ button:focus-visible,.profile-card:focus-visible{outline:2px solid var(--gold);o
 @keyframes mb-fire{from{opacity:1}to{opacity:0}}
 
 /* Divide & Conquer — a right answer hits the monster; a wrong one and it hits you */
-.df-arena{position:relative;height:clamp(150px,calc(100vh - 480px),270px);height:clamp(150px,calc(100dvh - 480px),270px);margin:8px 0 4px;border-radius:18px;overflow:hidden;border:1px solid var(--border);--hit:.2s}
+.df-arena{position:relative;height:clamp(150px,calc(100vh - 480px - var(--safe-y)),270px);height:clamp(150px,calc(100dvh - 480px - var(--safe-y)),270px);margin:8px 0 4px;border-radius:18px;overflow:hidden;border:1px solid var(--border);--hit:.2s}
 .df-arena.atk-shield{--hit:.4s}
 .df-arena.atk-web{--hit:.28s}
 .df-arena.brute{background:linear-gradient(180deg,#3b2a78,#a8467c 65%,#f08a5d)}
@@ -868,7 +873,7 @@ button:focus-visible,.profile-card:focus-visible{outline:2px solid var(--gold);o
 .df-boom.on-hero{left:calc(var(--hero-at,12%) - 40px);animation:df-boom .65s var(--hit)}
 .df-wrap .bc-q{font-size:36px;margin:2px 0 0;line-height:1.15}
 @media(max-height:680px){
-  .df-arena{height:clamp(120px,calc(100vh - 446px),270px);height:clamp(120px,calc(100dvh - 446px),270px)}
+  .df-arena{height:clamp(120px,calc(100vh - 446px - var(--safe-y)),270px);height:clamp(120px,calc(100dvh - 446px - var(--safe-y)),270px)}
   .df-wrap .bc-q{font-size:30px}
 }
 .df-lineup{display:flex;align-items:flex-end;justify-content:center;gap:6px;margin:12px 0 2px}
