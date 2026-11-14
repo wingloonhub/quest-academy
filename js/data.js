@@ -230,7 +230,13 @@
           ] },
         { id: "geometry", label: "Geometry", icon: "📐", desc: "Shapes, angles, lines and position", topics: [] },
         { id: "statistics_probability", label: "Statistics & probability", icon: "📊", desc: "Tables, charts, graphs and chance", topics: [] },
-        { id: "word_problems", label: "Word problems", icon: "🧩", desc: "Picking the right operation for real-life problems", topics: [] },
+        { id: "word_problems", label: "Word problems", icon: "🧩", desc: "Picking the right operation for real-life problems", topics: [
+            { id: "add_subtract", label: "Addition & subtraction", icon: "➕", desc: "Read the story, then decide whether to add or subtract", levels: [
+                // The type tags would say whether to add or subtract, so they're hidden on screen.
+                { id: "level1", label: "Level 1", desc: "Add or subtract, 2- and 3-digit numbers", sessionSize: 15, hideCat: true,
+                  catLabels: { ADD: "Adding (put together, more come)", TAKE: "Taking away (left, remain)", COMPARE: "Comparing (how many more or fewer)" } }
+              ] }
+          ] },
         { id: "reasoning", label: "Mathematical reasoning", icon: "🧠", desc: "Thinking problems — patterns, logic and equal groups", topics: [
             { id: "equal_groups", label: "Equal groups", icon: "🧺", desc: "Spot the number of groups and how many are in each", levels: [
                 { id: "level1", label: "Level 1", desc: "Identify groups & items in each group", sessionSize: 15, hideCat: true,

@@ -376,6 +376,10 @@ button:focus-visible,.profile-card:focus-visible{outline:2px solid var(--gold);o
 }
 .typed-blank{display:inline-block;min-width:80px;padding:0 10px;margin:0 4px;border-bottom:3px solid var(--accent);color:var(--accent);text-align:center;letter-spacing:1px;border-radius:6px 6px 0 0;transition:background .15s}
 .placeholder{color:var(--muted);font-weight:500;font-size:16px;letter-spacing:.4px}
+/* A typed answer with a unit: "RM [ 125 ]" or "[ 87 ] books". */
+.ans-unit-row{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:4px}
+.ans-unit-row .answer-box{flex:0 1 220px;min-width:0;margin-bottom:0}
+.ans-unit{font-size:20px;font-weight:800;color:var(--ink-strong);white-space:nowrap}
 .typed-blank .placeholder{font-size:inherit;color:var(--accent);font-weight:800}
 .answer-box.ok,.typed-blank.ok{border-color:var(--good);background:rgba(78,196,106,.18);color:#b2f3c3}
 .answer-box.bad,.typed-blank.bad{border-color:var(--bad);background:rgba(226,85,77,.18);color:#ffc8c4}

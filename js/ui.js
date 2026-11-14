@@ -2372,7 +2372,9 @@
       body = `${passage}${visual}
         ${inlineBlank
           ? `<div class="qtext">${fmt(parts[0])}<span class="typed-blank" id="ansBox"></span>${fmt(parts.slice(1).join("___"))}</div>`
-          : `<div class="qtext">${fmt(qText)}</div><div class="answer-box" id="ansBox"></div>`}
+          : `<div class="qtext">${fmt(qText)}</div>${q.unit || q.unitBefore
+            ? `<div class="ans-unit-row">${q.unitBefore ? `<span class="ans-unit">${esc(q.unitBefore)}</span>` : ""}<div class="answer-box" id="ansBox"></div>${q.unit ? `<span class="ans-unit">${esc(q.unit)}</span>` : ""}</div>`
+            : `<div class="answer-box" id="ansBox"></div>`}`}
         <p class="spell-instr">${esc(q.instr || (numeric ? "Type your answer with the number pad." : inlineBlank ? "Type the missing word." : "Type your answer."))}</p>
         <div class="keyboard${numeric ? " numeric" : ""}" id="kb">${keyboardHtml(accepts, numeric, !!q.caseSensitive)}</div>
         ${actions}`;
@@ -2695,12 +2697,14 @@
       clearBtn.disabled = true; submitBtn.disabled = true;
       box.classList.add(ok ? "ok" : "bad");
       const right = accepts[0];
+      // An answer with a unit ("87 books", "RM125"): the child types the number, the unit is shown and saved with it.
+      const unitOf = (v) => (q.unitBefore || "") + v + (q.unit ? " " + q.unit : "");
       let corr;
       if (kind === "spell") corr = `❌ The correct spelling is <b>${esc(right)}</b>`;
       else if (inlineBlank) corr = `❌ The correct answer is <b>${esc(right)}</b><div class="fixed">✔ ${fmt(qText).replace("___", () => "<u>" + esc(right) + "</u>")}</div>`;
       else if (exactCase && sameAnswer(typed, accepts, false)) corr = `❌ Right word — but it needs a capital letter: <b>${esc(right)}</b>`;
-      else corr = `❌ The correct answer is <b>${esc(right)}</b>`;
-      finish(ok, typed.trim(), right, corr);
+      else corr = `❌ The correct answer is <b>${esc(unitOf(right))}</b>`;
+      finish(ok, unitOf(typed.trim()), unitOf(right), corr);
     }
     kb.querySelectorAll(".kb-key").forEach(b => { b.onclick = () => press(b.dataset.key); });
     clearBtn.onclick = () => { if (!busy) { typed = ""; paint(); } };
