@@ -47,6 +47,7 @@ There is a progress report at every step, so you can see where he's weak:
 | Bahasa levels ready: Pembentukan kata → Kata dasar → Levels 1 to 4: kata kerja dasar bergambar, 15 random picture questions from banks of 20, 20, 18 and 16 (no word twice in a test). Imbuhan awalan, Imbuhan akhiran, Imbuhan apitan, Kata ganda, Kata majmuk and Penjodoh bilangan are waiting for their worksheets · Pemahaman & Kosa kata → Kosa kata (sub-topics) → Anggota badan → Level 1: Muka & Kepala, tap the part named in Bahasa on a drawn face (all 15 parts every test) · Level 2: the English word, tap the part and write it in Bahasa | ✅ built |
 | More English and Maths topics, and Bahasa topics | ⏳ *coming soon* — same module → topic → level layout |
 | History & Analysis, Parent Report (mastery grid for every module and level) — assessment history can't be cleared | ✅ built |
+| 📋 **To do** for each subject: a card on the subject page (and a count on the menu) opens a list of 🆕 new levels (added in the last 14 days) not done yet, ⚪ levels not done yet and 🎯 levels done but not at 100% (lowest best first, with the points still to win). Each row opens its level | ✅ built |
 | Assessments left part-way: saved after every answer and shown as **Unfinished** (how far he got) in History, the level, topic and module reports, the Parent Report and the AI report. Their answers count towards weak areas and mistakes, never towards a score, best, average, stars, mastery or points | ✅ built |
 | Parent Report → 🤖 AI report for each subject, written by Claude: strength, weakness, details, how to improve, next steps and overall assessment, dated and saved | ✅ built (needs the setup below) |
 | Installable on phones (Add to Home Screen) | ✅ built |
@@ -441,6 +442,8 @@ Never rename an id that has results saved against it — to move a level, list
 its old → new ids in `MOVED` in `js/data.js` and saved results follow it.
 
 Re-upload the changed files to GitHub — Vercel redeploys automatically.
+
+Every level also has `added: "YYYY-MM-DD"` — the day it was added, so it shows as 🆕 New in the subject's To do list for 14 days (`DATA.NEW_DAYS`). Give every new level today's date.
 
 Every level shows its number **and its title** wherever it's named — the assessment, results, History and reports — e.g. *Subtraction · Level 2: 3–4 digits with borrowing*. The title is the level's `desc` in `data.js`, so give every new level one.
 

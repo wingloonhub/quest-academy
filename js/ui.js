@@ -261,7 +261,9 @@
     else if (!levels) meta = `<span class="subject-meta">${plural(s.topics.length, "module")}</span><span class="soon-pill">Topics coming soon</span>`;
     else {
       const mastered = s.topics.reduce((a, t) => a + REPORT.topicSummary(s.id, t.id).mastered, 0);
-      meta = `<span class="subject-meta">${plural(s.topics.length, "module")} · ${plural(DATA.topicCount(s.id), "topic")}${mastered ? ` · 🏆 ${mastered} mastered` : ""}${sh.length ? ` · average ${avgPct(sh)}%` : ""}</span>`;
+      const todo = REPORT.todo(s.id);
+      meta = `<span class="subject-meta">${plural(s.topics.length, "module")} · ${plural(DATA.topicCount(s.id), "topic")}${mastered ? ` · 🏆 ${mastered} mastered` : ""}${sh.length ? ` · average ${avgPct(sh)}%` : ""}</span>
+        <span class="todo-pill">${todo.count ? `📋 ${todo.count} to do${todo.fresh.length ? ` · 🆕 ${todo.fresh.length} new` : ""}` : "🎉 All done"}</span>`;
     }
     return `<button class="subject-card" data-subject="${esc(s.id)}" type="button">
       <span class="subject-art">${ART.subject(s.id)}</span>
@@ -403,6 +405,7 @@
 
   const ICON_BOOK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 5.5C4.6 4 8.2 4 12 6c3.8-2 7.4-2 10-.5V19c-2.6-1.5-6.2-1.5-10 .5-3.8-2-7.4-2-10-.5z"/><path d="M12 6v13.5"/></svg>`;
   const ICON_CAP = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9.5 12 4.5l10 5-10 5z"/><path d="M6 11.5v4.8c0 1.4 2.7 3.2 6 3.2s6-1.8 6-3.2v-4.8"/><path d="M22 9.5v5.5"/></svg>`;
+  const ICON_TODO = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1"/><path d="m8.5 10 1.5 1.5 2.5-2.5"/><path d="M14.5 11h1.5"/><path d="m8.5 16 1.5 1.5 2.5-2.5"/><path d="M14.5 17h1.5"/></svg>`;
   const ICON_GAME = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 11h4M8 9v4"/><path d="M15 12h.01M18 10h.01"/><path d="M17.32 5H6.68a4 4 0 0 0-3.98 3.59C2.6 9.42 2 14.46 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.41-1.41A2 2 0 0 1 9.83 16h4.34a2 2 0 0 1 1.41.59L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.55-.6-6.58-.69-7.26A4 4 0 0 0 17.32 5z"/></svg>`;
 
   function subjectHero(subj, hist) {
@@ -428,6 +431,9 @@
     const topicLine = names.length ? esc(names.slice(0, 3).join(", ")) + (names.length > 3 ? "…" : "") : "Coming soon";
     const readyYears = DATA.SCHOOL_YEARS.filter(y => DATA.yearTopics(subjectId, y).length);
     const arenaGames = DATA.games(subjectId), arenaReady = arenaGames.filter(gm => !gm.soon);
+    const todo = DATA.levelCount(subjectId) ? REPORT.todo(subjectId) : null;
+    const todoLine = !todo ? "" : !todo.count ? "🎉 All done!"
+      : [todo.fresh.length && todo.fresh.length + " new", todo.notDone.length && todo.notDone.length + " not done", todo.notPerfect.length && todo.notPerfect.length + " not 100%"].filter(Boolean).join(" · ");
     const arenaBadges = [].concat.apply([], arenaReady.map(gm => gm.rounds.map(r => r.badge).filter(Boolean)));
     show(`
       <div class="topbar"><span class="back" id="bk">← Menu</span><h2>${esc(subj.label)}</h2></div>
@@ -462,6 +468,13 @@
                 : `<span class="study-eg">${arenaGames.length ? esc(arenaGames.map(gm => gm.label).join(", ")) : "Battles · Races · Puzzles"}</span>
                    <span class="soon-pill sm">Coming soon</span>`}
             </button>
+            ${todo ? `<button class="study-card" id="byTodo" type="button">
+              ${todo.fresh.length ? `<span class="study-last todo-new">${todo.fresh.length} new</span>` : ""}
+              <span class="study-icon">${ICON_TODO}</span>
+              <span class="study-title">To do</span>
+              <span class="study-desc">New levels, ones not done yet, and ones not at 100%.</span>
+              <span class="study-eg">${esc(todoLine)}</span>
+            </button>` : ""}
           </div>
         </div>
         <button class="btn full" id="histBtn" type="button" style="margin-top:18px">📈 ${esc(subj.label)} history &amp; analysis${hist.length ? ` <span class="muted">· ${plural(hist.length, "assessment")}</span>` : ""}</button>
@@ -470,7 +483,41 @@
     $("#byTopic").onclick = () => { rememberStudy(subjectId, "topic"); renderTopicList(subjectId); };
     $("#byYear").onclick = () => { rememberStudy(subjectId, "year"); renderYearList(subjectId); };
     $("#byGame").onclick = () => { rememberStudy(subjectId, "game"); renderArena(subjectId); };
+    if ($("#byTodo")) $("#byTodo").onclick = () => renderTodo(subjectId);
     $("#histBtn").onclick = () => renderHistory(subjectId, () => renderStudyMode(subjectId));
+  }
+
+  /* ===================== To do: what's left in a subject =====================
+     New levels not done yet, the other levels not done yet, and levels done but not at 100% yet
+     (REPORT.todo). Each row opens its level; back from there comes back here. */
+  function renderTodo(subjectId) {
+    const subj = DATA.subject(subjectId);
+    if (!subj) return renderMenu();
+    current = () => renderTodo(subjectId);
+    studyCtx = { subjectId, mode: "todo", year: null };
+    const t = REPORT.todo(subjectId);
+    const row = (r, showBest) => {
+      const mp = maxPoints(r.subjectId, r.moduleId, r.levelId);
+      return `<button class="todo-row" data-mod="${esc(r.moduleId)}" data-level="${esc(r.levelId)}" type="button">
+          <span class="todo-name"><b>${esc(r.level.topicLabel)}</b> · ${esc(DATA.levelName(r.level))}</span>
+          <span class="todo-meta">${r.isNew ? `<span class="todo-tag new">New</span>` : ""}${r.unfinished ? `<span class="todo-tag unf">Unfinished</span>` : ""}${showBest ? `<span class="todo-best">Best <b>${r.best}%</b></span>` : ""}${mp.rate > 0 && mp.max > 0 ? `<span class="todo-pts">${ART.coin(14)} +${mp.max}</span>` : ""}<span class="todo-go">Go ▶</span></span>
+        </button>`;
+    };
+    const section = (title, list, showBest) => list.length
+      ? `<h3 class="section-h">${title} <span class="todo-count">${list.length}</span></h3><div class="todo-list">${list.map(r => row(r, showBest)).join("")}</div>` : "";
+    show(`
+      <div class="topbar"><span class="back" id="bk">← ${esc(subj.label)}</span><h2>📋 To do</h2></div>
+      <div class="page narrow">
+        <div class="todo-tiles">
+          <div class="todo-tile new"><b>${t.fresh.length}</b><span>New</span></div>
+          <div class="todo-tile"><b>${t.notDone.length}</b><span>Not done</span></div>
+          <div class="todo-tile"><b>${t.notPerfect.length}</b><span>Not 100%</span></div>
+        </div>
+        ${t.count ? section("🆕 New", t.fresh, false) + section("⚪ Not done yet", t.notDone, false) + section("🎯 Not 100% yet", t.notPerfect, true)
+          : `<div class="card wide center" style="margin-top:14px"><div class="big-emoji">🎉</div><h2 class="card-h">All done!</h2><p class="muted">Every ${esc(subj.label)} level is at 100%.</p></div>`}
+      </div>`, subjectId);
+    $("#bk").onclick = () => renderStudyMode(subjectId);
+    $$(".todo-row").forEach(b => { b.onclick = () => renderLevel(subjectId, b.dataset.mod, b.dataset.level); });
   }
 
   /* ===================== Quest Arena (games) =====================
@@ -1954,6 +2001,7 @@
   // otherwise the level's topic page.
   function levelBack(subjectId, topicId, levelId) {
     const l = DATA.level(subjectId, topicId, levelId);
+    if (studyCtx.mode === "todo" && studyCtx.subjectId === subjectId) return { label: "To do", go: () => renderTodo(subjectId) };
     const viaYear = studyCtx.mode === "year" && studyCtx.subjectId === subjectId &&
       DATA.levelYears(l).indexOf(studyCtx.year) > -1;
     return viaYear

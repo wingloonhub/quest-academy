@@ -47,19 +47,19 @@
       modules: [
         { id: "grammar", label: "Grammar", icon: "🔤", desc: "Word classes and how sentences fit together", topics: [
             { id: "conjunctions", label: "Conjunctions", icon: "🔗", desc: "Joining words — and, but, so, because, if, unless…", levels: [
-                { id: "basics", label: "Level 1", desc: "Basic conjunctions — and, but, or", sessionSize: 15, hideCat: true,
+                { id: "basics", label: "Level 1", desc: "Basic conjunctions — and, but, or", added: "2026-10-23", sessionSize: 15, hideCat: true,
                   catLabels: { AND: "and (adding)", BUT: "but (contrast)", OR: "or (choice)" } },
-                { id: "reason_result", label: "Level 2", desc: "Reason & result — because, so, since, as", sessionSize: 15, hideCat: true,
+                { id: "reason_result", label: "Level 2", desc: "Reason & result — because, so, since, as", added: "2026-10-23", sessionSize: 15, hideCat: true,
                   catLabels: { BECAUSE: "because (reason)", SINCE: "since (reason)", AS: "as (reason)", SO: "so (result)" } },
-                { id: "time_conditions", label: "Level 3", desc: "Time & conditions — before, after, when, while, until, if, unless", sessionSize: 15, hideCat: true,
+                { id: "time_conditions", label: "Level 3", desc: "Time & conditions — before, after, when, while, until, if, unless", added: "2026-10-23", sessionSize: 15, hideCat: true,
                   catLabels: { BEFORE: "before (comes first)", AFTER: "after (comes later)", WHEN: "when (the moment)", WHILE: "while (at the same time)",
                                UNTIL: "until (up to a point)", IF: "if (condition)", UNLESS: "unless (if not)" } },
-                { id: "advanced", label: "Level 4", desc: "Advanced & paired — although, yet, either … or, neither … nor, both … and", sessionSize: 15, hideCat: true,
+                { id: "advanced", label: "Level 4", desc: "Advanced & paired — although, yet, either … or, neither … nor, both … and", added: "2026-10-23", sessionSize: 15, hideCat: true,
                   catLabels: { ALTHOUGH: "although (contrast)", THOUGH: "though (contrast)", EVENTHOUGH: "even though (contrast)", YET: "yet (contrast)",
                                EITHEROR: "either … or (choice)", NEITHERNOR: "neither … nor (not either)", BOTHAND: "both … and (the two together)" } }
               ] },
             { id: "pronouns", label: "Pronouns", icon: "🙋", desc: "I, you, he, she, it, we, they — words that stand for nouns", levels: [
-                { id: "level1", label: "Level 1", desc: "Write the right pronoun", sessionSize: 15, hideCat: true,
+                { id: "level1", label: "Level 1", desc: "Write the right pronoun", added: "2026-10-22", sessionSize: 15, hideCat: true,
                   catLabels: { I: "I (myself)", YOU: "you (the person I'm talking to)", HE: "he (one boy or man)",
                                SHE: "she (one girl or woman)", IT: "it (one thing or animal)", WE: "we (me and others)",
                                THEY: "they (more than one)" } }
@@ -70,23 +70,23 @@
         { id: "spelling",     label: "Spelling",                     icon: "🐝", desc: "Spelling rules and tricky words",                       topics: [] },
         { id: "punctuation",  label: "Punctuation & capitalisation", icon: "❗", desc: "Full stops, commas, question marks and capital letters", topics: [
             { id: "capital_letters", label: "Capital letters", icon: "🔠", desc: "Which words need a capital letter — and why", levels: [
-                { id: "level1", label: "Level 1", desc: "Find the word that needs a capital", sessionSize: 10, hideCat: true,
+                { id: "level1", label: "Level 1", desc: "Find the word that needs a capital", added: "2026-10-24", sessionSize: 10, hideCat: true,
                   catLabels: { START: "First word of a sentence", NAME: "People's names & the word I", PLACE: "Places & landmarks",
                                TIME: "Days & months", SPECIAL: "Languages & festivals" } }
               ] },
             { id: "punctuation_marks", label: "Punctuation", icon: "❓", desc: "Full stops, commas, apostrophes, speech marks and more", levels: [
-                { id: "mixed_single", label: "Level 1", desc: "Mixed full stops, questions & exclamation marks", sessionSize: 15, hideCat: true,
+                { id: "mixed_single", label: "Level 1", desc: "Mixed full stops, questions & exclamation marks", added: "2026-10-24", sessionSize: 15, hideCat: true,
                   catLabels: { STATEMENT: "Full stops (statements)", QUESTION: "Question marks", EXCLAIM: "Exclamation marks",
                                SPEECH: "Marks inside speech" } },
-                { id: "commas", label: "Level 2", desc: "Commas — lists, opening words and clauses", sessionSize: 15, hideCat: true,
+                { id: "commas", label: "Level 2", desc: "Commas — lists, opening words and clauses", added: "2026-10-24", sessionSize: 15, hideCat: true,
                   catLabels: { LISTS: "Commas in lists", INTRO_WORDS: "Commas after opening words", INTRO_CLAUSES: "Commas after opening clauses", MIXED: "Mixed comma use" } },
-                { id: "apostrophes", label: "Level 3", desc: "Apostrophes — contractions and belonging", sessionSize: 15, hideCat: true,
+                { id: "apostrophes", label: "Level 3", desc: "Apostrophes — contractions and belonging", added: "2026-10-24", sessionSize: 15, hideCat: true,
                   catLabels: { CONTRACTIONS: "Contractions", SINGULAR: "Belonging — one owner", PLURAL: "Belonging — more than one owner", MIXED: "Mixed apostrophe use" } },
-                { id: "quotation_marks", label: "Level 4", desc: "Quotation marks — direct speech and dialogue", sessionSize: 15, hideCat: true,
+                { id: "quotation_marks", label: "Level 4", desc: "Quotation marks — direct speech and dialogue", added: "2026-10-24", sessionSize: 15, hideCat: true,
                   catLabels: { DIRECT: "Spotting direct speech", BASIC: "Basic quotation marks", DIALOGUE: "Dialogue punctuation", MIXED: "Mixed dialogue" } },
-                { id: "colons_semicolons", label: "Level 5", desc: "Colons & semicolons", sessionSize: 15, hideCat: true,
+                { id: "colons_semicolons", label: "Level 5", desc: "Colons & semicolons", added: "2026-10-24", sessionSize: 15, hideCat: true,
                   catLabels: { COLON_LISTS: "Colons before lists", COLON_EXPLAIN: "Colons before explanations", SEMICOLONS: "Semicolons joining sentences", MIXED: "Colons or semicolons" } },
-                { id: "hyphens_dashes", label: "Level 6", desc: "Hyphens, dashes & parentheses", sessionSize: 15, hideCat: true,
+                { id: "hyphens_dashes", label: "Level 6", desc: "Hyphens, dashes & parentheses", added: "2026-10-24", sessionSize: 15, hideCat: true,
                   catLabels: { HYPHENS: "Hyphens joining describing words", BRACKETS: "Brackets for extra information", DASHES: "Dashes for interruptions", MIXED: "Hyphens, dashes & brackets" } }
               ] }
           ] },
@@ -106,13 +106,13 @@
         { id: "kata_tugas",          label: "Kata tugas",                  icon: "🔗", desc: "Kata hubung, kata sendi nama, kata tanya, kata seru…",   topics: [] },
         { id: "pembentukan_kata",    label: "Pembentukan kata",            icon: "🧱", desc: "Imbuhan, kata majmuk dan kata ganda",                     topics: [
             { id: "kata_dasar", label: "Kata dasar", icon: "🌱", desc: "Kata asal tanpa imbuhan", levels: [
-                { id: "gambar1", label: "Level 1", desc: "Kata kerja dasar bergambar", sessionSize: 15, hideCat: true,
+                { id: "gambar1", label: "Level 1", desc: "Kata kerja dasar bergambar", added: "2026-11-07", sessionSize: 15, hideCat: true,
                   catLabels: { RUTIN: "Rutin harian", RUMAH: "Kerja rumah", GERAK: "Gerakan", BELAJAR: "Belajar" } },
-                { id: "gambar2", label: "Level 2", desc: "Kata kerja dasar bergambar", sessionSize: 15, hideCat: true,
+                { id: "gambar2", label: "Level 2", desc: "Kata kerja dasar bergambar", added: "2026-11-07", sessionSize: 15, hideCat: true,
                   catLabels: { BARANG: "Memegang & mengalih barang", SUKAN: "Sukan & permainan", BADAN: "Gerakan badan", CAKAP: "Lihat, dengar & bercakap" } },
-                { id: "gambar3", label: "Level 3", desc: "Kata kerja dasar bergambar", sessionSize: 15, hideCat: true,
+                { id: "gambar3", label: "Level 3", desc: "Kata kerja dasar bergambar", added: "2026-11-07", sessionSize: 15, hideCat: true,
                   catLabels: { FIKIR: "Berfikir", BARANG: "Barang & hadiah", SOSIAL: "Bersama orang lain", AKTIVITI: "Belajar & aktiviti" } },
-                { id: "gambar4", label: "Level 4", desc: "Kata kerja dasar bergambar", sessionSize: 15, hideCat: true,
+                { id: "gambar4", label: "Level 4", desc: "Kata kerja dasar bergambar", added: "2026-11-07", sessionSize: 15, hideCat: true,
                   catLabels: { PERASAAN: "Perasaan", DIRI: "Rutin harian", RUMAH: "Kerja rumah", KEBUN: "Berkebun" } }
             ] },
             { id: "imbuhan_awalan", label: "Imbuhan awalan", icon: "⏮️", desc: "Imbuhan di depan kata dasar", levels: [] },
@@ -129,9 +129,9 @@
           groups: [{ id: "kosa_kata_group", label: "Kosa kata", icon: "🔤", desc: "Perkataan baharu mengikut tema" }],
           topics: [
             { id: "anggota_badan", group: "kosa_kata_group", label: "Anggota badan", icon: "🧍", desc: "Nama bahagian badan kita", levels: [
-                { id: "level1", label: "Level 1", desc: "Muka & Kepala", sessionSize: 15, hideCat: true,
+                { id: "level1", label: "Level 1", desc: "Muka & Kepala", added: "2026-11-07", sessionSize: 15, hideCat: true,
                   catLabels: { KEPALA: "Kepala, rambut, dahi & telinga", MATA: "Mata, kening & bulu mata", MUKA: "Pipi, hidung, dagu & leher", MULUT: "Mulut, bibir, gigi & lidah" } },
-                { id: "level2", label: "Level 2", desc: "Muka & Kepala — English to Bahasa Melayu", sessionSize: 15, hideCat: true,
+                { id: "level2", label: "Level 2", desc: "Muka & Kepala — English to Bahasa Melayu", added: "2026-11-07", sessionSize: 15, hideCat: true,
                   catLabels: { KEPALA: "Kepala, rambut, dahi & telinga", MATA: "Mata, kening & bulu mata", MUKA: "Pipi, hidung, dagu & leher", MULUT: "Mulut, bibir, gigi & lidah" } }
               ] }
           ] },
@@ -146,53 +146,53 @@
       modules: [
         { id: "number_place_value", label: "Numbers & Place value", icon: "🔢", desc: "Reading, writing, ordering and rounding numbers", topics: [
             { id: "comparing_ordering", label: "Comparing & Ordering Numbers", icon: "⚖️", desc: "Bigger, smaller and putting numbers in order", levels: [
-                { id: "level1", label: "Level 1", desc: "Ascending & descending order — 2-, 3- and 4-digit numbers", sessionSize: 15,
+                { id: "level1", label: "Level 1", desc: "Ascending & descending order — 2-, 3- and 4-digit numbers", added: "2026-10-30", sessionSize: 15,
                   catLabels: { ASC2: "2-digit numbers · ascending", DESC2: "2-digit numbers · descending",
                                ASC3: "3-digit numbers · ascending", DESC3: "3-digit numbers · descending",
                                ASC4: "4-digit numbers · ascending", DESC4: "4-digit numbers · descending" } },
-                { id: "level2", label: "Level 2", desc: "Greater than, less than or equal to (>, <, =)", sessionSize: 15,
+                { id: "level2", label: "Level 2", desc: "Greater than, less than or equal to (>, <, =)", added: "2026-10-30", sessionSize: 15,
                   catLabels: { CMP2: "Comparing 2-digit numbers", CMP3: "Comparing 3-digit numbers", CMP4: "Comparing 4-digit numbers" } }
               ] },
             { id: "odd_even", label: "Odd & Even Numbers", icon: "🧦", desc: "Spotting, counting and using odd and even numbers", levels: [
-                { id: "level1", label: "Level 1", desc: "Identify, count, patterns & reasoning", sessionSize: 15,
+                { id: "level1", label: "Level 1", desc: "Identify, count, patterns & reasoning", added: "2026-10-30", sessionSize: 15,
                   catLabels: { IDENTIFY: "Is it odd or even?", COUNT: "Counting odd & even numbers",
                                PATTERN: "Odd & even number patterns", REASON: "Odd & even reasoning" } }
               ] }
           ] },
         { id: "operations", label: "Operations", icon: "🧮", desc: "Adding, subtracting, multiplying and dividing", topics: [
             { id: "addition", label: "Addition", icon: "+", desc: "Adding numbers, with and without carrying", levels: [
-                { id: "level1", label: "Level 1", desc: "2- and 3-digit addition",
+                { id: "level1", label: "Level 1", desc: "2- and 3-digit addition", added: "2026-10-21",
                   catLabels: { ADD2: "2-digit addition", ADD3: "3-digit addition" } }
               ] },
             { id: "subtraction", label: "Subtraction", icon: "−", desc: "Taking away and finding the difference", levels: [
-                { id: "level1", label: "Level 1", desc: "2- and 3-digit subtraction", sessionSize: 15,
+                { id: "level1", label: "Level 1", desc: "2- and 3-digit subtraction", added: "2026-10-24", sessionSize: 15,
                   catLabels: { SUB2: "2-digit, no borrowing", SUB2B: "2-digit, with borrowing", SUB3: "3-digit, no borrowing", SUB3B: "3-digit, with borrowing" } },
                 // Every sum needs borrowing; the type tags would say how, so they're hidden on screen.
-                { id: "level2", label: "Level 2", desc: "3–4 digits with borrowing", sessionSize: 15, hideCat: true,
+                { id: "level2", label: "Level 2", desc: "3–4 digits with borrowing", added: "2026-11-14", sessionSize: 15, hideCat: true,
                   catLabels: { BORROW_ONCE: "3-digit, borrowing once", BORROW_TWICE: "3-digit, borrowing more than once", SUB4_3: "4-digit − 3-digit", SUB4_4: "4-digit − 4-digit" } }
               ] },
             { id: "multiplication", label: "Multiplication", icon: "×", desc: "Times tables and multiplying bigger numbers", levels: [
-                { id: "level1", label: "Level 1", desc: "1 digit × 1 digit", sessionSize: 20,
+                { id: "level1", label: "Level 1", desc: "1 digit × 1 digit", added: "2026-10-21", sessionSize: 20,
                   catLabels: { T2: "2 times table", T3: "3 times table", T4: "4 times table", T5: "5 times table",
                                T6: "6 times table", T7: "7 times table", T8: "8 times table", T9: "9 times table",
                                T10: "10 times table" } },
-                { id: "level2", label: "Level 2", desc: "2 digits × 1 digit", sessionSize: 15,
+                { id: "level2", label: "Level 2", desc: "2 digits × 1 digit", added: "2026-10-21", sessionSize: 15,
                   catLabels: { NOCARRY: "Without carrying", CARRY: "With carrying" } }
               ] },
             { id: "division", label: "Division", icon: "÷", desc: "Sharing, grouping and remainders", levels: [
-                { id: "level1", label: "Level 1", desc: "Dividing by 2 to 9 (no remainders)", sessionSize: 15,
+                { id: "level1", label: "Level 1", desc: "Dividing by 2 to 9 (no remainders)", added: "2026-10-30", sessionSize: 15,
                   catLabels: { D2: "Dividing by 2", D3: "Dividing by 3", D4: "Dividing by 4", D5: "Dividing by 5",
                                D6: "Dividing by 6", D7: "Dividing by 7", D8: "Dividing by 8", D9: "Dividing by 9" } },
-                { id: "level2", label: "Level 2", desc: "2- and 3-digit, without regrouping", sessionSize: 15, hideCat: true,
+                { id: "level2", label: "Level 2", desc: "2- and 3-digit, without regrouping", added: "2026-11-14", sessionSize: 15, hideCat: true,
                   catLabels: { DIV2: "2-digit ÷ 1-digit", DIV3: "3-digit ÷ 1-digit" } },
-                { id: "level3", label: "Level 3", desc: "2- and 3-digit, with regrouping", sessionSize: 15, hideCat: true,
+                { id: "level3", label: "Level 3", desc: "2- and 3-digit, with regrouping", added: "2026-11-14", sessionSize: 15, hideCat: true,
                   catLabels: { DIV2: "2-digit ÷ 1-digit", DIV3: "3-digit ÷ 1-digit" } }
               ] },
             { id: "missing_numbers", label: "Missing numbers", icon: "❓", desc: "Find the number that makes the sum right", levels: [
-                { id: "level1a", label: "Level 1a", desc: "3-digit addition & subtraction", sessionSize: 15, hideCat: true,
+                { id: "level1a", label: "Level 1a", desc: "3-digit addition & subtraction", added: "2026-11-01", sessionSize: 15, hideCat: true,
                   catLabels: { ADD_1: "Addition · first number missing", ADD_2: "Addition · second number missing", ADD_R: "Addition · answer missing",
                                SUB_1: "Subtraction · first number missing", SUB_2: "Subtraction · second number missing", SUB_R: "Subtraction · answer missing" } },
-                { id: "level2a", label: "Level 2a", desc: "Multiplication & division (1 to 11 times tables)", sessionSize: 15, hideCat: true,
+                { id: "level2a", label: "Level 2a", desc: "Multiplication & division (1 to 11 times tables)", added: "2026-11-01", sessionSize: 15, hideCat: true,
                   catLabels: { MUL_1: "Multiplication · first number missing", MUL_2: "Multiplication · second number missing", MUL_R: "Multiplication · answer missing",
                                DIV_1: "Division · first number missing", DIV_2: "Division · second number missing", DIV_R: "Division · answer missing" } }
               ] },
@@ -204,9 +204,9 @@
           topics: [
             // Keeps the id "fractions" from when it was the whole Fractions topic, so saved results stay.
             { id: "fractions", group: "fractions_group", label: "Understanding fractions", icon: "🍕", desc: "Parts of a whole — shaded parts, numerators and denominators", levels: [
-                { id: "level1", label: "Level 1", desc: "Shaded parts, numerators & denominators", sessionSize: 15, hideCat: true,
+                { id: "level1", label: "Level 1", desc: "Shaded parts, numerators & denominators", added: "2026-11-01", sessionSize: 15, hideCat: true,
                   catLabels: { BAR: "Shaded fraction bars", CIRCLE: "Shaded fraction circles", UNSHADED: "Unshaded fraction bars", NUMDEN: "Numerators & denominators" } },
-                { id: "level2", label: "Level 2", desc: "Represent fractions — shade the parts", sessionSize: 15, hideCat: true,
+                { id: "level2", label: "Level 2", desc: "Represent fractions — shade the parts", added: "2026-11-07", sessionSize: 15, hideCat: true,
                   catLabels: { BAR: "Shading fraction bars", CIRCLE: "Shading fraction circles", GRID: "Shading fraction grids" } }
               ] },
             { id: "fractions_of_quantities", group: "fractions_group", label: "Fractions of quantities", icon: "🍬", desc: "Finding a fraction of an amount, like ½ of 12", levels: [] },
@@ -218,13 +218,13 @@
           ] },
         { id: "measurement", label: "Measurement", icon: "📏", desc: "Length, mass, capacity, time and money", topics: [
             { id: "time", label: "Time", icon: "🕒", desc: "Reading clocks — exact times, quarters, minutes past and to", levels: [
-                { id: "level1", label: "Level 1", desc: "Reading exact time", sessionSize: 15, hideCat: true,
+                { id: "level1", label: "Level 1", desc: "Reading exact time", added: "2026-11-01", sessionSize: 15, hideCat: true,
                   catLabels: { ON5: "Long hand on a number", BETWEEN: "Long hand between the numbers" } },
-                { id: "quarters_words", label: "Level 2", desc: "Quarter past, half past & quarter to — in words", sessionSize: 15, hideCat: true,
+                { id: "quarters_words", label: "Level 2", desc: "Quarter past, half past & quarter to — in words", added: "2026-11-07", sessionSize: 15, hideCat: true,
                   catLabels: { QP: "Quarter past", HP: "Half past", QT: "Quarter to" } },
-                { id: "level3_1", label: "Level 3.1", desc: "Minutes past & to — recognition", sessionSize: 15, hideCat: true,
+                { id: "level3_1", label: "Level 3.1", desc: "Minutes past & to — recognition", added: "2026-11-01", sessionSize: 15, hideCat: true,
                   catLabels: { PAST: "Minutes past", TO: "Minutes to" } },
-                { id: "level3_2", label: "Level 3.2", desc: "Minutes past & to — application", sessionSize: 15, hideCat: true,
+                { id: "level3_2", label: "Level 3.2", desc: "Minutes past & to — application", added: "2026-11-01", sessionSize: 15, hideCat: true,
                   catLabels: { PAST: "Minutes past", TO: "Minutes to" } }
               ] }
           ] },
@@ -233,13 +233,13 @@
         { id: "word_problems", label: "Word problems", icon: "🧩", desc: "Picking the right operation for real-life problems", topics: [
             { id: "add_subtract", label: "Addition & subtraction", icon: "➕", desc: "Read the story, then decide whether to add or subtract", levels: [
                 // The type tags would say whether to add or subtract, so they're hidden on screen.
-                { id: "level1", label: "Level 1", desc: "Add or subtract, 2- and 3-digit numbers", sessionSize: 15, hideCat: true,
+                { id: "level1", label: "Level 1", desc: "Add or subtract, 2- and 3-digit numbers", added: "2026-11-14", sessionSize: 15, hideCat: true,
                   catLabels: { ADD: "Adding (put together, more come)", TAKE: "Taking away (left, remain)", COMPARE: "Comparing (how many more or fewer)" } }
               ] }
           ] },
         { id: "reasoning", label: "Mathematical reasoning", icon: "🧠", desc: "Thinking problems — patterns, logic and equal groups", topics: [
             { id: "equal_groups", label: "Equal groups", icon: "🧺", desc: "Spot the number of groups and how many are in each", levels: [
-                { id: "level1", label: "Level 1", desc: "Identify groups & items in each group", sessionSize: 15, hideCat: true,
+                { id: "level1", label: "Level 1", desc: "Identify groups & items in each group", added: "2026-10-21", sessionSize: 15, hideCat: true,
                   catLabels: { SETUP: "“… are set up. There are … in each one”", EACHOF: "“Each of the … contains …”",
                                EVERY: "“… has …, with … in every one”", PUTIN: "“… are put in each of …” (items first)" } }
               ] }
@@ -403,6 +403,8 @@
   /* Quest bonus — for EVERY game, now and in future: extra points, paid once, for
      winning all of its levels. STORE works it out from the wins (see questBonus). */
   const QUEST_BONUS = 50;
+  // A level added in the last NEW_DAYS days shows as New in the subject's To do list (its `added` date).
+  const NEW_DAYS = 14;
 
   /* Games that were replaced. They can't be played and their badges are gone, but the
      points they paid stay in the player's total (the wins are still in "arenaWins"). */
@@ -538,7 +540,7 @@
   }
 
   window.DATA = {
-    DEFAULT_SESSION_SIZE, SCHOOL_YEARS, SUBJECTS, GAMES, RETIRED_GAMES, BADGES, MOVED, REPLAY_BONUS, QUEST_BONUS, games, game, anyGame,
+    DEFAULT_SESSION_SIZE, SCHOOL_YEARS, SUBJECTS, GAMES, RETIRED_GAMES, BADGES, MOVED, REPLAY_BONUS, QUEST_BONUS, NEW_DAYS, games, game, anyGame,
     subject, topic, level, moduleTopics, moduleTopic, moduleEntries, topicGroup, topicLevels, bank, levelCount, topicCount,
     levelYears, yearTopics, topicLabel, levelLabel, levelName, fullLabel, catLabel
   };

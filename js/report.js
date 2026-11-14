@@ -480,5 +480,31 @@
     return name ? text.replace(new RegExp("\\b" + name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "gi"), "the student") : text;
   }
 
-  window.REPORT = { subjectEvidence, reportFacts, finishReport, splitGaps, AI_NOTES, weakTypes, build, band, timeAgo, shortDate, mastery, nextStep, levelStats, topicSummary, moduleTopicSummary, topicReport, moduleReport, MASTERY, MASTERY_RULE };
+  /* ---------- what's left to do in a subject ----------
+     Every level with questions, in three groups: new ones (added in the last DATA.NEW_DAYS days)
+     not done yet, the other ones not done yet, and ones done but not at 100% yet (lowest best first).
+     Done = finished at least once; a level left part-way is still to do (marked unfinished). */
+  function todo(subjectId, now) {
+    now = now || Date.now();
+    const s = DATA.subject(subjectId), fresh = [], notDone = [], notPerfect = [];
+    if (!s) return { fresh, notDone, notPerfect, count: 0 };
+    s.modules.forEach(m => (m.levels || []).forEach(l => {
+      const bank = DATA.bank(subjectId, m.id, l.id);
+      if (!bank || !bank.length) return;
+      const best = STORE.bestScore(subjectId, m.id, l.id);
+      const done = best > 0 || STORE.history(subjectId, null, m.id, l.id).length > 0;
+      const addedTs = l.added ? new Date(l.added + "T00:00:00").getTime() : 0;
+      const row = {
+        subjectId, moduleId: m.id, levelId: l.id, level: l, best,
+        isNew: !!addedTs && now - addedTs < DATA.NEW_DAYS * 864e5,
+        unfinished: STORE.unfinished(subjectId, null, m.id, l.id).length
+      };
+      if (!done) (row.isNew ? fresh : notDone).push(row);
+      else if (best < 100) notPerfect.push(row);
+    }));
+    notPerfect.sort((a, b) => a.best - b.best);
+    return { fresh, notDone, notPerfect, count: fresh.length + notDone.length + notPerfect.length };
+  }
+
+  window.REPORT = { todo, subjectEvidence, reportFacts, finishReport, splitGaps, AI_NOTES, weakTypes, build, band, timeAgo, shortDate, mastery, nextStep, levelStats, topicSummary, moduleTopicSummary, topicReport, moduleReport, MASTERY, MASTERY_RULE };
 })();
