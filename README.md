@@ -39,7 +39,7 @@ There is a progress report at every step, so you can see where he's weak:
 | Study Mode inside each subject: **By Module**, **By School Year** (Year 1–6) or **Quest Arena** (games) | ✅ built |
 | Quest Arena → Maths → Multiple Blaster — times tables ×2 to ×10 (4 badges) · Meteor Mayhem — odd or even (3 badges) · Divide & Conquer — division, ×2 to ×11, monster fights (3 badges) · Bahasa → Kilat Kata — name the picture against the clock (4 badges) · 🏆 Trophy Room | ✅ built |
 | Maths → 8 modules (Numbers & Place value, Operations, Fractions, Decimals & Percentages, Measurement, Geometry, Statistics & probability, Word problems, Mathematical reasoning) · Numbers & Place value → 2 topics (Comparing & Ordering Numbers, Odd & Even Numbers) · Operations → 6 topics (Addition, Subtraction, Multiplication, Division, Missing numbers, Mixed operations) · Fractions, Decimals & Percentages → Fractions (5 sub-topics: Understanding fractions, Fractions of quantities, Equivalent fractions, Comparing fractions, Fraction calculations), Decimals, Percentages · Measurement → Time | ✅ built |
-| Maths levels ready: Numbers & Place value → Comparing & Ordering Numbers → Level 1: ascending & descending order, 2- to 4-digit (80 questions — tap the numbers into order, 15 per test) · Level 2: greater than, less than or equal to (80 multiple-choice >, <, =, 15 per test) · Odd & Even Numbers → Level 1: identify (Odd / Even multiple choice), count, patterns & reasoning (80 questions, 15 per test) · Operations → Addition → Level 1: 2- and 3-digit (50 questions, 10 per test) · Operations → Subtraction → Level 1: 2- and 3-digit, with and without borrowing (80 questions, 15 per test) · Operations → Multiplication → Level 1: 1 digit × 1 digit (tables 2–10, 90 questions, 20 per test) · Level 2: 2 digits × 1 digit (80 questions, 15 per test) · Operations → Division → Level 1: dividing by 2 to 9, no remainders (80 questions, 15 per test) · Operations → Missing numbers → Level 1a: 3-digit addition & subtraction · Level 2a: multiplication & division, 1 to 11 times tables (80 questions each, 15 per test) · Fractions, Decimals & Percentages → Fractions → Understanding fractions → Level 2: represent fractions — tap the parts of a bar, circle or grid to shade the fraction, any parts are right (80 questions, 15 per test) · Level 1: shaded bars and circles drawn from their fractions, unshaded bars, numerators & denominators (80 questions, 15 per test) · Measurement → Time → Level 1: reading exact time · Level 2: quarter past, half past & quarter to, in words (multiple choice) · Level 3.1: minutes past & to, recognition (multiple choice) · Level 3.2: minutes past & to, application (written in words) — every question has a clock drawn from its time (80 questions each, 15 per test) · Mathematical reasoning → Equal groups → Level 1: identify groups & items in each group (80 word problems with two answer boxes, 15 per test) — not linked to a school year yet | ✅ loaded |
+| Maths levels ready: Numbers & Place value → Comparing & Ordering Numbers → Level 1: ascending & descending order, 2- to 4-digit (80 questions — tap the numbers into order, 15 per test) · Level 2: greater than, less than or equal to (80 multiple-choice >, <, =, 15 per test) · Odd & Even Numbers → Level 1: identify (Odd / Even multiple choice), count, patterns & reasoning (80 questions, 15 per test) · Operations → Addition → Level 1: 2- and 3-digit (50 questions, 10 per test) · Operations → Subtraction → Level 1: 2- and 3-digit, with and without borrowing (80 questions, 15 per test) · Level 2: 3–4 digits with borrowing (80 multiple-choice questions, every one needs borrowing — 3-digit once, 3-digit more than once, 4-digit − 3-digit and 4-digit − 4-digit — 15 per test) · Operations → Multiplication → Level 1: 1 digit × 1 digit (tables 2–10, 90 questions, 20 per test) · Level 2: 2 digits × 1 digit (80 questions, 15 per test) · Operations → Division → Level 1: dividing by 2 to 9, no remainders (80 questions, 15 per test) · Level 2: 2- and 3-digit, without regrouping (80 typed answers, 15 per test) · Level 3: 2- and 3-digit, with regrouping (80 typed answers, 15 per test; a wrong answer shows the short-division working) · Operations → Missing numbers → Level 1a: 3-digit addition & subtraction · Level 2a: multiplication & division, 1 to 11 times tables (80 questions each, 15 per test) · Fractions, Decimals & Percentages → Fractions → Understanding fractions → Level 2: represent fractions — tap the parts of a bar, circle or grid to shade the fraction, any parts are right (80 questions, 15 per test) · Level 1: shaded bars and circles drawn from their fractions, unshaded bars, numerators & denominators (80 questions, 15 per test) · Measurement → Time → Level 1: reading exact time · Level 2: quarter past, half past & quarter to, in words (multiple choice) · Level 3.1: minutes past & to, recognition (multiple choice) · Level 3.2: minutes past & to, application (written in words) — every question has a clock drawn from its time (80 questions each, 15 per test) · Mathematical reasoning → Equal groups → Level 1: identify groups & items in each group (80 word problems with two answer boxes, 15 per test) — not linked to a school year yet | ✅ loaded |
 | English → 7 modules (Grammar, Tenses & verbs, Vocabulary, Spelling, Punctuation & capitalisation, Reading comprehension, Writing) | ✅ built |
 | English levels ready: Grammar → Conjunctions → Level 1: basics — and, but, or · Level 2: reason & result — because, so, since, as · Level 3: time & conditions — before, after, when, while, until, if, unless · Level 4: advanced & paired — although, though, even though, yet, either … or, neither … nor, both … and (80 typed questions each, 15 per test; the key’s “also acceptable” answers are accepted; Level 4’s paired questions have two boxes) · Grammar → Pronouns → Level 1: write the right pronoun — I, you, he, she, it, we, they (80 typed one-word answers, 15 per test) · Punctuation & capitalisation → Punctuation → Level 1: mixed full stops, questions & exclamation marks (80 multiple-choice questions, one sentence each, 15 per test — ending marks and marks inside speech; the marks are shown big with their names. Replaced the two-sentence version on 24 Oct 2026; any results from that one show as “Old Level 1 (removed)”) · Punctuation → Levels 2–6 (100 multiple-choice questions each, 15 per test, mixing the worksheet’s 4 themes): Level 2 Commas · Level 3 Apostrophes · Level 4 Quotation marks · Level 5 Colons & semicolons · Level 6 Hyphens, dashes & parentheses · Punctuation & capitalisation → Capital letters → Level 1: find the ONE word that needs a capital and type it correctly (80 sentences, 10 per test; the capital itself is checked — the keyboard gets a ⇧ key) — not linked to a school year yet. The first Conjunctions Level 1 (removed 23 Oct 2026) still shows in History & Analysis as “Old Level 1 (removed)”, and its points are kept | ✅ loaded |
 | Module page → Topics + 📊 Module report (weakest topic first) · Topic page → Levels + 📊 Topic report (weakest level and question type first) · Level page → Assessment · Progress report | ✅ built — fills in as levels are added |
@@ -47,6 +47,7 @@ There is a progress report at every step, so you can see where he's weak:
 | Bahasa levels ready: Pembentukan kata → Kata dasar → Levels 1 to 4: kata kerja dasar bergambar, 15 random picture questions from banks of 20, 20, 18 and 16 (no word twice in a test). Imbuhan awalan, Imbuhan akhiran, Imbuhan apitan, Kata ganda, Kata majmuk and Penjodoh bilangan are waiting for their worksheets · Pemahaman & Kosa kata → Kosa kata (sub-topics) → Anggota badan → Level 1: Muka & Kepala, tap the part named in Bahasa on a drawn face (all 15 parts every test) · Level 2: the English word, tap the part and write it in Bahasa | ✅ built |
 | More English and Maths topics, and Bahasa topics | ⏳ *coming soon* — same module → topic → level layout |
 | History & Analysis, Parent Report (mastery grid for every module and level) — assessment history can't be cleared | ✅ built |
+| Assessments left part-way: saved after every answer and shown as **Unfinished** (how far he got) in History, the level, topic and module reports, the Parent Report and the AI report. Their answers count towards weak areas and mistakes, never towards a score, best, average, stars, mastery or points | ✅ built |
 | Parent Report → 🤖 AI report for each subject, written by Claude: strength, weakness, details, how to improve, next steps and overall assessment, dated and saved | ✅ built (needs the setup below) |
 | Installable on phones (Add to Home Screen) | ✅ built |
 
@@ -99,7 +100,7 @@ points him to Operations → Multiplication → Level 1.
 
 | | Rule | Badge | Points |
 |---|---|---|---|
-| Lives | ❤️❤️❤️ for the whole game; a wrong answer — or letting a sum land — costs one | | |
+| Lives | ❤️❤️❤️, full again at the start of every level; a wrong answer — or letting a sum land — costs one | | |
 | Level 1 | 15 sums, each **takes 15 seconds to fall** | 🎯 **Blaster Cadet** (bronze) | **+50** the first win, then +5 per win |
 | Level 2 | 15 more, **10 seconds to fall** | ⚡ **Blaster Ace** (silver) | **+50** the first win, then +5 per win |
 | Level 3 | 15 more, **5 seconds to fall** | 💥 **Blaster Captain** (gold) | **+50** the first win, then +5 per win |
@@ -116,7 +117,7 @@ run out it points him to Numbers & Place value → Odd & Even Numbers → Level 
 
 | | Rule | Badge | Points |
 |---|---|---|---|
-| Lives | ❤️❤️❤️ for the whole game; a wrong tap — or letting a number land — costs one | | |
+| Lives | ❤️❤️❤️, full again at the start of every level; a wrong tap — or letting a number land — costs one | | |
 | Level 1 | 15 numbers, each **takes 10 seconds to fall** | ☄️ **Comet Catcher** (bronze) | **+50** the first win, then +5 per win |
 | Level 2 | 15 more, **5 seconds to fall** | 🚀 **Rocket Ranger** (silver) | **+50** the first win, then +5 per win |
 | Level 3 | 15 more, **only 3 seconds to fall** | 🪐 **Galaxy Guardian** (gold) | **+50** the first win, then +5 per win |
@@ -126,7 +127,7 @@ monster each level. His hero is a card thrower in a long coat, boy or girl to ma
 player profile. A sum like 56 ÷ 7 shows above the number pad; a right answer goes in by
 itself and his hero throws glowing power cards at the monster, taking one of its 12 lives.
 A wrong answer or running out of time and the monster hits him, costing one of his 3 lives
-(they last the whole game) and taking none of the monster's, so a level ends when the
+(full again at the start of every level) and taking none of the monster's, so a level ends when the
 monster's lives are gone. Every hit shows the cards flying or the monster's own attack
 (a punch, a thrown shield or a web), a 💥 and the one hit flashing. Sums are made up fresh
 every game:
@@ -149,7 +150,7 @@ twice in a game. If his lives run out it points him to Pembentukan kata → Kata
 
 | | Rule | Badge | Points |
 |---|---|---|---|
-| Lives | ❤️❤️❤️ for the whole game; a wrong tap — or running out of time — costs one | | |
+| Lives | ❤️❤️❤️, full again at the start of every level; a wrong tap — or running out of time — costs one | | |
 | Level 1 | 15 pictures, **12 seconds** each | 🦌 **Kancil Cerdik** (bronze) | **+50** the first win, then +5 per win |
 | Level 2 | 15 more, **10 seconds** each | 🦅 **Helang Tangkas** (silver) | **+50** the first win, then +5 per win |
 | Level 3 | 15 more, **8 seconds** each | 🐅 **Harimau Pantas** (gold) | **+50** the first win, then +5 per win |
@@ -396,6 +397,9 @@ or **Install app** (Android) so it opens like a normal app.
   ☁️ *Saved to the cloud*, 📴 *Offline — will sync when back online*, etc.
 - Deleting a player or clearing history is remembered, so it stays deleted on
   every device.
+- An assessment in progress is saved after every answer ("unfinished", up to 30
+  per player), so leaving part-way still leaves a record. When it's finished,
+  the finished result replaces it on every device.
 
 ---
 
@@ -437,6 +441,8 @@ Never rename an id that has results saved against it — to move a level, list
 its old → new ids in `MOVED` in `js/data.js` and saved results follow it.
 
 Re-upload the changed files to GitHub — Vercel redeploys automatically.
+
+Every level shows its number **and its title** wherever it's named — the assessment, results, History and reports — e.g. *Subtraction · Level 2: 3–4 digits with borrowing*. The title is the level's `desc` in `data.js`, so give every new level one.
 
 ### Question formats
 

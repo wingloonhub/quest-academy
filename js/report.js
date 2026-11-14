@@ -1,7 +1,9 @@
 /* report.js — progress analytics: mastery status, per-level progress
    reports and the Parent Report. Everything is worked out from the active
    player's finished assessments (STORE.history), so every device signed in
-   to the same account shows the same numbers. */
+   to the same account shows the same numbers. Assessments left part-way
+   (STORE.unfinished) add their answers to weak areas, mistakes and the AI
+   report, but never to a score, average, best, mastery or points. */
 (function () {
   "use strict";
 
@@ -44,6 +46,11 @@
     return              { txt: "Weak — focus here", cls: "tag-weak", color: "#e2554d" };
   }
 
+  const count = (n, word) => n + " " + word + (n === 1 ? "" : "s");
+  // Newest first, finished and unfinished together (for "recent mistakes").
+  const byNewest = (list) => list.slice().sort((a, b) => (b.ts || 0) - (a.ts || 0));
+  const whenOf = (s) => timeAgo(s.unfinished ? (s.lastTs || s.ts) : s.ts) + (s.unfinished ? " · unfinished" : "");
+
   function timeAgo(ts) {
     const s = Math.max(1, (Date.now() - ts) / 1000);
     if (s < 60)     return "just now";
@@ -64,8 +71,32 @@
       subjectId, topicId, levelId,
       label: DATA.fullLabel(subjectId, topicId, levelId),
       attempts: sessions.length, sessions,
-      mastery: mastery(sessions), next: nextStep(sessions)
+      mastery: mastery(sessions), next: nextStep(sessions),
+      unfinished: STORE.unfinished(subjectId, null, topicId, levelId)   // left part-way: weak areas only
     };
+    // Weak areas — question types over the most recent attempts (so areas the
+    // child has since fixed drop off), weakest first. Assessments left part-way
+    // in that time count too: their answers are real answers.
+    const recent = sessions.slice(0, AREA_WINDOW);
+    const since = sessions.length >= AREA_WINDOW ? recent[recent.length - 1].ts : 0;
+    const recentU = out.unfinished.filter(u => u.ts >= since);
+    out.areaSpan = recent.length;
+    out.areaUnfinished = recentU.length;
+    const agg = {};
+    recent.concat(recentU).forEach(s => Object.keys(s.byCat || {}).forEach(c => {
+      if (!agg[c]) agg[c] = { correct: 0, total: 0 };
+      agg[c].correct += s.byCat[c].correct || 0;
+      agg[c].total += s.byCat[c].total || 0;
+    }));
+    out.areas = Object.keys(agg).map(c => {
+      const a = agg[c], acc = a.total ? a.correct / a.total : 0;
+      return { cat: c, label: DATA.catLabel(subjectId, topicId, levelId, c), correct: a.correct, total: a.total, acc, pct: Math.round(acc * 100) };
+    }).sort((a, b) => a.acc - b.acc);
+    out.weakAreas = out.areas.filter(a => a.acc < 0.7);
+    if (!sessions.length && out.unfinished.length) {   // started, never finished
+      out.mastery = Object.assign({}, MASTERY.none, { label: "Not finished yet" });
+      out.next = "Finish an assessment to get a starting score (" + count(out.unfinished.length, "assessment") + " left part-way so far).";
+    }
     if (!sessions.length) return out;
     const scores = sessions.map(s => s.pct);
     out.latest = scores[0];
@@ -79,21 +110,6 @@
     out.trend = out.latest > priorAvg ? "up" : out.latest < priorAvg ? "down" : "flat";
     out.totalQ = sessions.reduce((a, s) => a + (s.total || 0), 0);
     out.totalC = sessions.reduce((a, s) => a + (s.correct || 0), 0);
-    // Weak areas — question types over the most recent attempts (so areas the
-    // child has since fixed drop off), weakest first.
-    const recent = sessions.slice(0, AREA_WINDOW);
-    out.areaSpan = recent.length;
-    const agg = {};
-    recent.forEach(s => Object.keys(s.byCat || {}).forEach(c => {
-      if (!agg[c]) agg[c] = { correct: 0, total: 0 };
-      agg[c].correct += s.byCat[c].correct || 0;
-      agg[c].total += s.byCat[c].total || 0;
-    }));
-    out.areas = Object.keys(agg).map(c => {
-      const a = agg[c], acc = a.total ? a.correct / a.total : 0;
-      return { cat: c, label: DATA.catLabel(subjectId, topicId, levelId, c), correct: a.correct, total: a.total, acc, pct: Math.round(acc * 100) };
-    }).sort((a, b) => a.acc - b.acc);
-    out.weakAreas = out.areas.filter(a => a.acc < 0.7);
     return out;
   }
 
@@ -118,9 +134,10 @@
     const levels = DATA.topicLevels(subjectId, moduleId, topicId).map(l => levelStats(subjectId, moduleId, l.id));
     const sessions = [].concat.apply([], levels.map(l => l.sessions)).sort((a, b) => (b.ts || 0) - (a.ts || 0));
     const started = levels.filter(l => l.attempts > 0);
-    // Weak areas across the topic's levels (each level's recent assessments).
+    const unfinished = byNewest([].concat.apply([], levels.map(l => l.unfinished)));
+    // Weak areas across the topic's levels (each level's recent assessments, finished or not).
     const agg = {};
-    started.forEach(l => (l.areas || []).forEach(a => {
+    levels.filter(l => l.attempts > 0 || l.unfinished.length).forEach(l => (l.areas || []).forEach(a => {
       const g = agg[a.label] = agg[a.label] || { label: a.label, correct: 0, total: 0 };
       g.correct += a.correct;
       g.total += a.total;
@@ -134,7 +151,7 @@
       levels, total: levels.length,
       mastered: levels.filter(l => l.mastery.id === "mastered").length,
       started: started.length,
-      sessions, attempts: sessions.length,
+      sessions, attempts: sessions.length, unfinished,
       lastTs: sessions.length ? sessions[0].ts : 0,
       avg: sessions.length ? Math.round(sessions.reduce((a, s) => a + s.pct, 0) / sessions.length) : null,
       best: started.length ? Math.max.apply(null, started.map(l => l.best)) : null,
@@ -147,26 +164,29 @@
   function topicReport(subjectId, moduleId, topicId) {
     const ts = moduleTopicSummary(subjectId, moduleId, topicId);
     const name = (ts.topic && ts.topic.label) || "this topic";
-    const lvlName = (l) => { const d = DATA.level(subjectId, moduleId, l.levelId); return d ? d.label : "Level"; };
+    const lvlName = (l) => DATA.levelName(DATA.level(subjectId, moduleId, l.levelId));
     const practised = ts.levels.filter(l => l.attempts).sort((a, b) => a.avg - b.avg);
-    const notStarted = ts.levels.filter(l => !l.attempts);
+    const unfinishedOnly = ts.levels.filter(l => !l.attempts && l.unfinished.length);   // started, never finished
+    const notStarted = ts.levels.filter(l => !l.attempts && !l.unfinished.length);
     const mistakes = [];
-    ts.sessions.slice(0, 3).forEach(s => (s.mistakes || []).forEach(x => {
+    byNewest(ts.sessions.concat(ts.unfinished)).slice(0, 3).forEach(s => (s.mistakes || []).forEach(x => {
       if (mistakes.length >= 8) return;
       const l = DATA.level(subjectId, moduleId, s.levelId);
-      mistakes.push({ m: x, levelLabel: l ? l.label : "", when: timeAgo(s.ts) });
+      mistakes.push({ m: x, levelLabel: l ? DATA.levelName(l) : "", when: whenOf(s) });
     }));
     let summary;
     if (!ts.total) summary = "Levels for <b>" + name + "</b> are coming soon.";
-    else if (!ts.attempts) summary = "No assessments in <b>" + name + "</b> yet — start with Level 1.";
+    else if (!ts.attempts && !ts.unfinished.length) summary = "No assessments in <b>" + name + "</b> yet — start with Level 1.";
     else {
       summary = ts.weakAreas.length
         ? "Weak at: <b class=\"bad\">" + ts.weakAreas.slice(0, 4).map(a => a.label + " (" + a.pct + "%)").join(", ") + "</b>. Practise these first."
         : "No weak areas in <b>" + name + "</b> — every question type is at 70% or above.";
       if (practised.length > 1) summary += " Weakest level: <b>" + lvlName(practised[0]) + "</b> (" + practised[0].avg + "% average).";
+      if (unfinishedOnly.length) summary += " Started but not finished yet: " + unfinishedOnly.map(lvlName).join(", ") + ".";
       if (notStarted.length) summary += " Not started yet: " + notStarted.map(lvlName).join(", ") + ".";
     }
-    return Object.assign({}, ts, { name, levelsWeakFirst: practised.concat(notStarted), practised, notStarted, mistakes, summary });
+    if (ts.unfinished.length) summary += " <span class=\"muted\">" + count(ts.unfinished.length, "assessment") + " left part-way: " + (ts.unfinished.length === 1 ? "its" : "their") + " answers count towards weak areas, not scores.</span>";
+    return Object.assign({}, ts, { name, levelsWeakFirst: practised.concat(unfinishedOnly, notStarted), practised, unfinishedOnly, notStarted, mistakes, summary });
   }
 
   /* ---------- a whole module (or one group of sub-topics in it): how each topic is doing, weakest first ---------- */
@@ -174,21 +194,27 @@
     const m = DATA.topic(subjectId, moduleId), group = groupId ? DATA.topicGroup(subjectId, moduleId, groupId) : null;
     const inOrder = DATA.moduleTopics(subjectId, moduleId).filter(t => !groupId || t.group === groupId).map(t => moduleTopicSummary(subjectId, moduleId, t.id));
     const practised = inOrder.filter(t => t.attempts).sort((a, b) => a.avg - b.avg);
-    const notStarted = inOrder.filter(t => !t.attempts);
+    const unfinishedOnly = inOrder.filter(t => !t.attempts && t.unfinished.length);   // started, never finished
+    const notStarted = inOrder.filter(t => !t.attempts && !t.unfinished.length);
     const sessions = [].concat.apply([], inOrder.map(t => t.sessions)).sort((a, b) => (b.ts || 0) - (a.ts || 0));
+    const unfinished = byNewest([].concat.apply([], inOrder.map(t => t.unfinished)));
     const weakTopics = practised.filter(t => t.avg < 70);
-    const areas = [].concat.apply([], practised.map(t => t.areas.map(a => Object.assign({ topicLabel: t.topic.label }, a))))
+    const areas = [].concat.apply([], practised.concat(unfinishedOnly).map(t => t.areas.map(a => Object.assign({ topicLabel: t.topic.label }, a))))
       .sort((a, b) => a.acc - b.acc);
     const mistakes = [];
-    sessions.slice(0, 3).forEach(s => (s.mistakes || []).forEach(x => {
+    byNewest(sessions.concat(unfinished)).slice(0, 3).forEach(s => (s.mistakes || []).forEach(x => {
       if (mistakes.length >= 8) return;
       const l = DATA.level(subjectId, moduleId, s.levelId);
-      mistakes.push({ m: x, topicLabel: l ? l.topicLabel : "", when: timeAgo(s.ts) });
+      mistakes.push({ m: x, topicLabel: l ? l.topicLabel : "", when: whenOf(s) });
     }));
     const name = (group && group.label) || (m && m.label) || "this module";
     let summary;
     if (!inOrder.length) summary = "Topics for <b>" + name + "</b> are coming soon.";
-    else if (!practised.length) summary = "No assessments in <b>" + name + "</b> yet — pick a topic and start with Level 1.";
+    else if (!practised.length && !unfinishedOnly.length) summary = "No assessments in <b>" + name + "</b> yet — pick a topic and start with Level 1.";
+    else if (!practised.length) {
+      summary = "No finished assessments in <b>" + name + "</b> yet. Started but not finished: " + unfinishedOnly.map(t => t.topic.label).join(", ") + ".";
+      if (notStarted.length) summary += " Not started yet: " + notStarted.map(t => t.topic.label).join(", ") + ".";
+    }
     else {
       const w = practised[0];
       summary = weakTopics.length
@@ -196,11 +222,13 @@
         : practised.length > 1
           ? "Weakest topic so far: <b>" + w.topic.label + "</b> (" + w.avg + "% average). Every topic practised is at 70% or above — great work!"
           : "<b>" + w.topic.label + "</b> is at " + w.avg + "% on average.";
+      if (unfinishedOnly.length) summary += " Started but not finished yet: " + unfinishedOnly.map(t => t.topic.label).join(", ") + ".";
       if (notStarted.length) summary += " Not started yet: " + notStarted.map(t => t.topic.label).join(", ") + ".";
     }
+    if (unfinished.length) summary += " <span class=\"muted\">" + count(unfinished.length, "assessment") + " left part-way: " + (unfinished.length === 1 ? "its" : "their") + " answers count towards weak areas, not scores.</span>";
     return {
-      module: m, group, inOrder, topics: practised.concat(notStarted), practised, notStarted, weakTopics,
-      attempts: sessions.length,
+      module: m, group, inOrder, topics: practised.concat(unfinishedOnly, notStarted), practised, unfinishedOnly, notStarted, weakTopics,
+      attempts: sessions.length, unfinished,
       avg: sessions.length ? Math.round(sessions.reduce((a, s) => a + s.pct, 0) / sessions.length) : null,
       lastTs: sessions.length ? sessions[0].ts : 0,
       mastered: inOrder.reduce((n, t) => n + t.mastered, 0),
@@ -250,13 +278,16 @@
         "Every level practised so far is almost mastered or better — great work!";
     }
 
+    const unfinished = STORE.unfinished();
+    if (unfinished.length) summary += " <span class=\"muted\">" + count(unfinished.length, "assessment") + " left part-way: " + (unfinished.length === 1 ? "its" : "their") + " answers count towards weak areas and mistakes, not scores.</span>";
+
     const recent = [];
-    for (const h of history.slice(0, 6)) {
+    for (const h of byNewest(history.slice(0, 6).concat(unfinished)).slice(0, 6)) {
       for (const m of (h.mistakes || [])) {
         recent.push({
           subjectId: h.subjectId,
           label: DATA.fullLabel(h.subjectId, h.topicId, h.levelId),
-          q: m.q || "Question", chosen: m.chosen, answer: m.answer, when: timeAgo(h.ts)
+          q: m.q || "Question", chosen: m.chosen, answer: m.answer, when: whenOf(h)
         });
         if (recent.length >= 12) break;
       }
@@ -265,7 +296,7 @@
 
     return {
       levels, subjects, weakest, summary, recent, totalQ, totalC,
-      sessions: history.length,
+      sessions: history.length, unfinished: unfinished.length,
       overallPct: totalQ ? Math.round(totalC / totalQ * 100) : 0,
       mastered: levels.filter(l => l.mastery.id === "mastered").length
     };
@@ -286,9 +317,10 @@
       const pct = stats.totalQ ? Math.round(stats.totalC / stats.totalQ * 100) : 0;
       return { stats, label: stats.label.split(" · ").slice(-2).join(" · "), correct: stats.totalC, total: stats.totalQ, pct, status: startingStatus(stats.totalQ, pct) };
     }).sort((a, b) => a.pct - b.pct).map((l, i) => Object.assign(l, { id: i + 1 }));
-    const wrong = [].concat.apply([], history.map(h => savedAnswers(h).filter(a => !a.ok).map(a => ({ question: a.q, answer: a.c, correct: a.a }))));
+    const unfinished = STORE.unfinished(subjectId);
+    const wrong = [].concat.apply([], history.concat(unfinished).map(h => savedAnswers(h).filter(a => !a.ok).map(a => ({ question: a.q, answer: a.c, correct: a.a }))));
     const correct = history.reduce((a, h) => a + (h.correct || 0), 0), total = history.reduce((a, h) => a + (h.total || 0), 0);
-    return { levels, wrong, stats: { assessments: history.length, correct, total, pct: total ? Math.round(correct / total * 100) : 0 } };
+    return { levels, wrong, unfinished, stats: { assessments: history.length, correct, total, pct: total ? Math.round(correct / total * 100) : 0, unfinished: unfinished.length } };
   }
   // Join Claude's writing to the facts. It picks wrong answers and levels by number,
   // so every question and score shown is one that was really saved.
@@ -344,7 +376,7 @@
       if (m.chosen && row.chosen.indexOf(m.chosen) < 0) row.chosen.push(m.chosen);
       if (m.sec != null) row.secs.push(m.sec);
     };
-    STORE.history(subjectId).filter(h => !uptoTs || h.ts <= uptoTs).forEach(h => {
+    STORE.history(subjectId).concat(STORE.unfinished(subjectId)).filter(h => !uptoTs || h.ts <= uptoTs).forEach(h => {
       const level = DATA.fullLabel(h.subjectId, h.topicId, h.levelId);
       const name = (cat) => (cat && cat !== "?" ? DATA.catLabel(h.subjectId, h.topicId, h.levelId, cat) : "Other questions");
       Object.keys(h.byCat || {}).forEach(cat => {
@@ -385,7 +417,8 @@
       MASTERY_RULE,
       "Times such as (12s) show how long an answer took. Older answers don't have them. WRONG lines show the question's type in brackets.",
       "",
-      "OVERALL: " + count(facts.stats.assessments, "assessment") + ", " + facts.stats.correct + " of " + facts.stats.total + " questions correct" + (facts.stats.total ? " (" + facts.stats.pct + "%)" : "") + "."
+      "OVERALL: " + count(facts.stats.assessments, "assessment") + ", " + facts.stats.correct + " of " + facts.stats.total + " questions correct" + (facts.stats.total ? " (" + facts.stats.pct + "%)" : "") + "." +
+        (facts.stats.unfinished ? " Also " + count(facts.stats.unfinished, "assessment") + " left part-way (listed at the end; not counted in any score, average or best)." : "")
     ];
     // The last report, so the new one can say what has changed.
     const last = STORE.aiReport(subjectId);
@@ -400,7 +433,7 @@
       const types = (l.areas || []).map(a => clean(a.label) + " " + a.pct + "% (" + a.correct + " of " + a.total + ")").join(", ");
       const timed = [].concat.apply([], l.sessions.map(h => h.answers || [])).filter(a => a.s != null);
       const pace = (ok) => { const t = timed.filter(a => !!a.ok === ok).map(a => a.s); return t.length ? Math.round(t.reduce((x, y) => x + y, 0) / t.length) + "s" : "no data"; };
-      lines.push("- [L" + row.id + "] " + l.label + (d && d.desc ? " (" + clean(d.desc) + ")" : "") + ": " + row.correct + " of " + row.total + " right (" + row.pct + "%), average " + l.avg + "%, latest " + l.latest + "%, best " + l.best + "%, " + count(l.attempts, "attempt") + trend + ", " + l.mastery.label + "." + (types ? " Recent question types: " + types + "." : "") + (timed.length ? " Average time: right answers " + pace(true) + ", wrong answers " + pace(false) + "." : ""));
+      lines.push("- [L" + row.id + "] " + l.label + ": " + row.correct + " of " + row.total + " right (" + row.pct + "%), average " + l.avg + "%, latest " + l.latest + "%, best " + l.best + "%, " + count(l.attempts, "attempt") + trend + ", " + l.mastery.label + "." + (types ? " Recent question types: " + types + "." : "") + (timed.length ? " Average time: right answers " + pace(true) + ", wrong answers " + pace(false) + "." : ""));
     });
     // A level's best score is kept for good, so old work isn't mistaken for work never done.
     const noRecent = [].concat.apply([], s.topics.map(m => topicSummary(subjectId, m.id).levels.filter(l => !l.attempts)));
@@ -410,7 +443,7 @@
     if (notStarted.length) lines.push("", "LEVELS NOT STARTED YET", notStarted.map(l => l.label).join("; "));
     const games = (DATA.GAMES || []).filter(g => g.subjectId === subjectId).map(def => ({ def, log: STORE.gameLog(def.id) })).filter(g => g.log.length);
     if (games.length) {
-      lines.push("", "TIMED GAMES (each game ends after 3 misses; older games only have totals)");
+      lines.push("", "TIMED GAMES (3 misses in one level ends the game, and every level starts with 3 lives again; older games only have totals)");
       games.forEach(g => {
         const sum = (k) => g.log.reduce((a, e) => a + (e[k] || 0), 0);
         lines.push("- " + clean(g.def.label) + " (" + clean(g.def.desc) + "): " + count(g.log.length, "game") + ", " + sum("correct") + " of " + sum("answered") + " correct, " + sum("tooSlow") + " too slow.");
@@ -431,6 +464,17 @@
         lines.push(a.ok ? "right: " + clean(a.q) + " = " + clean(a.a) + took : "WRONG #" + (++wrongNo) + type + ": " + clean(a.q) + " | answered: " + (clean(a.c) || "nothing") + " | correct: " + clean(a.a) + took);
       });
     });
+    if (facts.unfinished.length) {
+      lines.push("", "LEFT PART-WAY (newest first). The student stopped before the end, so these are not scores; recent question types above include their answers");
+      facts.unfinished.forEach(u => {
+        lines.push("", "[" + shortDate(u.ts) + "] " + where(u) + ": stopped after " + u.total + " of " + count(u.planned || u.total, "question") + ", " + u.correct + " right");
+        savedAnswers(u).forEach(a => {
+          const took = a.s != null ? " (" + a.s + "s)" : "";
+          const type = a.cat && a.cat !== "?" ? " (" + clean(DATA.catLabel(u.subjectId, u.topicId, u.levelId, a.cat)) + ")" : "";
+          lines.push(a.ok ? "right: " + clean(a.q) + " = " + clean(a.a) + took : "WRONG #" + (++wrongNo) + type + ": " + clean(a.q) + " | answered: " + (clean(a.c) || "nothing") + " | correct: " + clean(a.a) + took);
+        });
+      });
+    }
     // A typed answer could hold the child's name.
     const name = ((STORE.active() || {}).name || "").trim(), text = lines.join("\n");
     return name ? text.replace(new RegExp("\\b" + name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "gi"), "the student") : text;

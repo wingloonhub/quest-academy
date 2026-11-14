@@ -166,7 +166,10 @@
               ] },
             { id: "subtraction", label: "Subtraction", icon: "−", desc: "Taking away and finding the difference", levels: [
                 { id: "level1", label: "Level 1", desc: "2- and 3-digit subtraction", sessionSize: 15,
-                  catLabels: { SUB2: "2-digit, no borrowing", SUB2B: "2-digit, with borrowing", SUB3: "3-digit, no borrowing", SUB3B: "3-digit, with borrowing" } }
+                  catLabels: { SUB2: "2-digit, no borrowing", SUB2B: "2-digit, with borrowing", SUB3: "3-digit, no borrowing", SUB3B: "3-digit, with borrowing" } },
+                // Every sum needs borrowing; the type tags would say how, so they're hidden on screen.
+                { id: "level2", label: "Level 2", desc: "3–4 digits with borrowing", sessionSize: 15, hideCat: true,
+                  catLabels: { BORROW_ONCE: "3-digit, borrowing once", BORROW_TWICE: "3-digit, borrowing more than once", SUB4_3: "4-digit − 3-digit", SUB4_4: "4-digit − 4-digit" } }
               ] },
             { id: "multiplication", label: "Multiplication", icon: "×", desc: "Times tables and multiplying bigger numbers", levels: [
                 { id: "level1", label: "Level 1", desc: "1 digit × 1 digit", sessionSize: 20,
@@ -179,7 +182,11 @@
             { id: "division", label: "Division", icon: "÷", desc: "Sharing, grouping and remainders", levels: [
                 { id: "level1", label: "Level 1", desc: "Dividing by 2 to 9 (no remainders)", sessionSize: 15,
                   catLabels: { D2: "Dividing by 2", D3: "Dividing by 3", D4: "Dividing by 4", D5: "Dividing by 5",
-                               D6: "Dividing by 6", D7: "Dividing by 7", D8: "Dividing by 8", D9: "Dividing by 9" } }
+                               D6: "Dividing by 6", D7: "Dividing by 7", D8: "Dividing by 8", D9: "Dividing by 9" } },
+                { id: "level2", label: "Level 2", desc: "2- and 3-digit, without regrouping", sessionSize: 15, hideCat: true,
+                  catLabels: { DIV2: "2-digit ÷ 1-digit", DIV3: "3-digit ÷ 1-digit" } },
+                { id: "level3", label: "Level 3", desc: "2- and 3-digit, with regrouping", sessionSize: 15, hideCat: true,
+                  catLabels: { DIV2: "2-digit ÷ 1-digit", DIV3: "3-digit ÷ 1-digit" } }
               ] },
             { id: "missing_numbers", label: "Missing numbers", icon: "❓", desc: "Find the number that makes the sum right", levels: [
                 { id: "level1a", label: "Level 1a", desc: "3-digit addition & subtraction", sessionSize: 15, hideCat: true,
@@ -285,7 +292,7 @@
       winText: "You blasted every sum!",
       tables: { from: 2, to: 10 },
       source: { topicId: "operations", levelId: "multiplication.level1" },   // where to practise if the lives run out
-      lives: 3,                                                               // for the whole game
+      lives: 3,                                                               // full again at the start of every level
       rounds: [
         { questions: 15, perQuestion: 15, badge: "blaster_cadet",   points: { first: 50, repeat: 5 } },
         { questions: 15, perQuestion: 10, badge: "blaster_ace",     points: { first: 50, repeat: 5 } },
@@ -303,7 +310,7 @@
       roundName: "Level",
       winText: "You stopped every meteor!",
       source: { topicId: "number_place_value", levelId: "odd_even.level1" },   // where to practise if the lives run out
-      lives: 3,                                                                 // for the whole game
+      lives: 3,                                                                 // full again at the start of every level
       rounds: [
         { questions: 15, perQuestion: 10, badge: "comet_catcher",   points: { first: 50, repeat: 5 } },
         { questions: 15, perQuestion: 5,  badge: "rocket_ranger",   points: { first: 50, repeat: 5 } },
@@ -321,7 +328,7 @@
       winText: "You conquered every monster!",
       tables: { from: 2, to: 11 },
       source: { topicId: "operations", levelId: "division.level1" },   // where to practise if the lives run out
-      lives: 3,                                                         // the player's, for the whole game
+      lives: 3,                                                         // the player's, full again at the start of every level
       rounds: [
         { questions: 12, perQuestion: 15, monster: { art: "brute",  name: "Hulk",                   attack: "punch" },  badge: "tomb_conqueror",   points: { first: 50, repeat: 5 } },
         { questions: 12, perQuestion: 10, monster: { art: "zombie", name: "Zombie Captain America", attack: "shield" }, badge: "titan_conqueror",  points: { first: 50, repeat: 5 } },
@@ -346,7 +353,7 @@
         { topicId: "pembentukan_kata", levelId: "kata_dasar.gambar4" }
       ],
       source: { topicId: "pembentukan_kata", levelId: "kata_dasar.gambar1" },   // where to practise if the lives run out
-      lives: 3,                                                                 // for the whole game
+      lives: 3,                                                                 // full again at the start of every level
       rounds: [
         { questions: 15, perQuestion: 12, badge: "kancil_cerdik",  points: { first: 50, repeat: 5 } },
         { questions: 15, perQuestion: 10, badge: "helang_tangkas", points: { first: 50, repeat: 5 } },
@@ -504,12 +511,15 @@
     return (m && m.label) || tidyId(moduleId || "Module");
   }
   // Topic + level, e.g. "Conjunctions · Level 1"
+  // A level's number and its title, e.g. "Level 2: 3–4 digits with borrowing" — never the number alone
+  // (Wing, 2026-11-14: "dont just put level no. also add in the title").
+  function levelName(l) { return l ? l.label + (l.desc ? ": " + l.desc : "") : "Level"; }
   function levelLabel(subjectId, moduleId, levelId) {
     const l = level(subjectId, moduleId, levelId);
-    if (l) return l.topicLabel + " · " + l.label;
+    if (l) return l.topicLabel + " · " + levelName(l);
     return RETIRED[subjectId + "|" + moduleId + "|" + levelId] || String(levelId || "Level").split(".").map(tidyId).join(" · ");
   }
-  // Everything, e.g. "Grammar · Conjunctions · Level 1"
+  // Everything, e.g. "Grammar · Conjunctions · Level 1: Basic conjunctions — and, but, or"
   function fullLabel(subjectId, moduleId, levelId) {
     return topicLabel(subjectId, moduleId) + (levelId ? " · " + levelLabel(subjectId, moduleId, levelId) : "");
   }
@@ -524,6 +534,6 @@
   window.DATA = {
     DEFAULT_SESSION_SIZE, SCHOOL_YEARS, SUBJECTS, GAMES, RETIRED_GAMES, BADGES, MOVED, REPLAY_BONUS, QUEST_BONUS, games, game, anyGame,
     subject, topic, level, moduleTopics, moduleTopic, moduleEntries, topicGroup, topicLevels, bank, levelCount, topicCount,
-    levelYears, yearTopics, topicLabel, levelLabel, fullLabel, catLabel
+    levelYears, yearTopics, topicLabel, levelLabel, levelName, fullLabel, catLabel
   };
 })();

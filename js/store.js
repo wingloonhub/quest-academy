@@ -32,7 +32,13 @@
      come off what's available, never more than that; "earned" doesn't change.
    - REPLAY BONUS: once a level's best is 100%, every replay scoring 90%+
      earns +5 (DATA.REPLAY_BONUS). Kept in a small ledger ("replays"), one
-     entry per session, so it syncs and can never be paid twice. */
+     entry per session, so it syncs and can never be paid twice.
+   - UNFINISHED: an assessment is saved after every answer ("unfinished"), so
+     one left part-way (quit, back button, app closed) still shows in the
+     reports: weak areas, mistakes, History, the AI report. It never counts as
+     a score — not the best, average, latest, stars, mastery or points. Once
+     the assessment is finished, its finished session (same start time,
+     "startTs") replaces it on every device. */
 (function () {
   "use strict";
   const LS_PREFIX = "qa_save_";
@@ -41,6 +47,7 @@
   const MISTAKES_MAX = 8;      // mistakes kept per session for the Parent Report
   const DEFAULT_RATE = 1;      // points for each 1% improvement on a level's best score
   const GAMES_MAX = 100;       // game runs kept per player
+  const UNFINISHED_MAX = 30;   // assessments left part-way, kept per player (all subjects)
 
   // A random id for this device. Quest Arena round wins are counted per
   // device, so wins made on two devices (even offline) add up correctly.
@@ -231,6 +238,8 @@
 
   // Same key on every device for the same finished session.
   function sessionKey(h) { return (h.subjectId || "?") + "|" + (h.topicId || "?") + "|" + (h.levelId || "?") + "|" + (h.ts || 0); }
+  // An unfinished assessment's ts is when it started; its finished session keeps that as startTs.
+  function startKey(h) { return (h.subjectId || "?") + "|" + (h.topicId || "?") + "|" + (h.levelId || "?") + "|" + (h.startTs || 0); }
 
   function isCleared(h, cleared) {
     const c = cleared || {};
@@ -259,6 +268,22 @@
       if (perSubject[h.subjectId] > DETAIL_KEEP && h.answers) delete h.answers;
     });
     return capped;
+  }
+
+  // Assessments left part-way: one per start time (the copy with the most answers wins),
+  // dropped once that assessment was finished or its subject's history was cleared.
+  function tidyUnfinished(list, cleared, history) {
+    const done = {};
+    (history || []).forEach(function (h) { if (h.startTs) done[startKey(h)] = true; });
+    const byKey = {};
+    (list || []).forEach(function (u) {
+      if (!isObj(u) || u.ts == null || !(u.total > 0) || isCleared(u, cleared)) return;
+      const k = sessionKey(u), had = byKey[k];
+      if (done[k]) return;
+      if (!had || u.total > had.total || (u.total === had.total && (u.lastTs || 0) > (had.lastTs || 0))) byKey[k] = u;
+    });
+    return Object.keys(byKey).map(function (k) { return byKey[k]; })
+      .sort(function (a, b) { return (b.ts || 0) - (a.ts || 0); }).slice(0, UNFINISHED_MAX);
   }
 
   function maxMap(a, b) {
@@ -309,6 +334,7 @@
     p.lastPlayed = p.lastPlayed || p.updatedAt;
     p.cleared = isObj(p.cleared) ? p.cleared : {};
     p.history = tidyHistory(relocate(Array.isArray(p.history) ? p.history : [], "subjectId", "topicId", "levelId"), p.cleared);
+    p.unfinished = tidyUnfinished(relocate(Array.isArray(p.unfinished) ? p.unfinished : [], "subjectId", "topicId", "levelId"), p.cleared, p.history);
     p.bests = tidyBests(relocate(Array.isArray(p.bests) ? p.bests : [], "s", "t", "l"));
     p.replays = tidyReplays(relocate(Array.isArray(p.replays) ? p.replays : [], "s", "t", "l"));
     p.games = tidyGames(Array.isArray(p.games) ? p.games : []);
@@ -356,6 +382,7 @@
       p.lastPlayed = Math.max(pa.lastPlayed || 0, pb.lastPlayed || 0);
       p.cleared = maxMap(pa.cleared, pb.cleared);
       p.history = tidyHistory(pb.history.concat(pa.history), p.cleared);
+      p.unfinished = tidyUnfinished(pb.unfinished.concat(pa.unfinished), p.cleared, p.history);
       p.bests = tidyBests(pb.bests.concat(pa.bests));
       p.replays = tidyReplays(pb.replays.concat(pa.replays));
       p.games = tidyGames(pb.games.concat(pa.games));
@@ -462,6 +489,37 @@
       });
     },
 
+    // Assessments left part-way, newest first. For the reports only — never a score.
+    unfinished(subjectId, profile, topicId, levelId) {
+      const p = profile || STORE.active();
+      return ((p && p.unfinished) || []).filter(function (u) {
+        return (!subjectId || u.subjectId === subjectId) &&
+               (!topicId || u.topicId === topicId) &&
+               (!levelId || u.levelId === levelId);
+      });
+    },
+    // Saves an assessment in progress after every answer (ts = when it started), so one left
+    // part-way still shows in the reports. No points, no best score.
+    saveProgress(entry) {
+      const p = STORE.active(); if (!p || !entry || !(entry.total > 0) || !entry.ts) return;
+      const clean = clone({
+        unfinished: 1,
+        subjectId: entry.subjectId,
+        topicId:   entry.topicId,
+        levelId:   entry.levelId,
+        ts:        entry.ts,
+        lastTs:    Date.now(),
+        planned:   entry.planned,                 // questions in the assessment
+        total:     entry.total,                   // questions answered so far
+        correct:   entry.correct,
+        byCat:     entry.byCat || {},
+        mistakes:  (entry.mistakes || []).slice(0, MISTAKES_MAX),
+        answers:   entry.answers || null
+      });
+      p.unfinished = tidyUnfinished([clean].concat(p.unfinished || []), p.cleared, p.history);
+      STORE.save();
+    },
+
     // Records a finished assessment and pays points if it beats the best score.
     // Returns the stored session plus { points, prevBest, newBest, rate }.
     recordSession(entry) {
@@ -478,6 +536,7 @@
         mistakes:  (entry.mistakes || []).slice(0, MISTAKES_MAX),
         answers:   entry.answers || null         // every question, for "View details"
       };
+      if (entry.startTs) clean.startTs = entry.startTs;   // replaces its unfinished copy
       const prevBest = STORE.bestScore(clean.subjectId, clean.topicId, clean.levelId, p);
       const rate = STORE.rate(clean.subjectId);
       let points = 0;
@@ -497,6 +556,7 @@
       clean.points = points;
       p.history.unshift(clean);
       p.history = tidyHistory(p.history, p.cleared);
+      p.unfinished = tidyUnfinished(p.unfinished, p.cleared, p.history);
       p.lastPlayed = Date.now();
       STORE.save({ immediate: true });           // a finished session must never be lost
       return Object.assign({}, clean, { prevBest: prevBest, newBest: clean.pct > prevBest, rate: rate, replayBonus: replayBonus });
@@ -778,6 +838,7 @@
       const p = STORE.active(); if (!p) return;
       p.cleared[subjectId || "all"] = Date.now();
       p.history = tidyHistory(p.history, p.cleared);
+      p.unfinished = tidyUnfinished(p.unfinished, p.cleared, p.history);
       STORE.save({ immediate: true });
     },
 

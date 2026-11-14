@@ -477,8 +477,8 @@
      A subject's arena lists its games (DATA.games). A game with no kind asks
      typed questions from a level's bank, each with its own countdown
      (rounds[].perQuestion seconds). A wrong answer — or running out of time —
-     costs one of the lives, which last the whole game. Clearing a round earns
-     its badge.
+     costs one of the lives. Lives fill back up to full at the start of every
+     round (Wing, 2026-11-14). Clearing a round earns its badge.
      Falling games use the same lives, rounds, points and badges, but the
      question falls from the sky over perQuestion seconds. Kind "odd_even"
      (Meteor Mayhem): tap Odd or Even before the number lands. Kind "blaster"
@@ -708,7 +708,7 @@
         <div class="card wide center game-page">
           <div class="muted">${esc(def.desc)}</div>
           ${isBattle(def) ? `<div class="df-lineup"><span class="df-me">${ART.hero((STORE.active() || {}).gender)}</span><b>VS</b>${def.rounds.map(r => `<span>${ART.monster(r.monster.art)}</span>`).join("")}</div>` : ""}
-          <div class="game-lives">${"❤️".repeat(def.lives)} <b>${def.lives} lives</b></div>
+          <div class="game-lives">${"❤️".repeat(def.lives)} <b>${def.lives} lives</b> every ${roundWord(def).toLowerCase()}</div>
           ${pointsPlan(def)}
           ${log.length ? `<div class="muted small">${esc(gameBest(def, log))}</div>` : ""}
           <div class="row" style="margin-top:14px">
@@ -1116,6 +1116,7 @@
         <div class="big-emoji">🎉</div>
         <h2>${word} ${g.round + 1} cleared!</h2>
         ${pts ? `<div class="points-won">${ART.coin(30)}<div><b>+${plural(pts, "point")}!</b><span>for winning ${word} ${g.round + 1}</span></div></div>` : ""}
+        <div class="lives-refill">${"❤️".repeat(g.def.lives)} <b>Full lives!</b></div>
         <div class="row"><button class="btn primary" id="goBtn" type="button">Start ${word} ${g.round + 2} ▶</button></div>
       </div></div>`);
     const go = $("#goBtn");
@@ -1123,6 +1124,7 @@
       $("#roundUp").remove();
       if (game !== g) return;
       g.round++;
+      g.lives = g.def.lives;                    // every level starts with full lives
       renderGameRound();
     };
     go.focus();                                 // Enter starts it on a keyboard
@@ -1681,7 +1683,7 @@
     const bank = DATA.bank(subjectId, topicId, levelId);
     const parts = [];
     parts.push(bank ? "📝 " + plural(sessionSizeFor(l, bank), "question") : "📝 questions coming soon");
-    const name = (withTopic ? l.topicLabel + " · " : "") + l.label + (l.desc ? ": " + l.desc : "");
+    const name = (withTopic ? l.topicLabel + " · " : "") + DATA.levelName(l);
     return `<button class="level-card" data-topic="${esc(topicId)}" data-level="${esc(levelId)}" type="button">
         <span class="level-head"><span class="level-name">${esc(name)}</span>${masteryBadge(ls.mastery)}</span>
         <span class="level-foot">
@@ -1695,7 +1697,7 @@
      (in the code a module is a "topic": topicId = module id — see data.js) */
   // How a topic is doing overall, from its average score.
   function topicBand(ts) {
-    if (!ts.attempts) return { txt: "Not started", cls: "tb-none" };
+    if (!ts.attempts) return { txt: (ts.unfinished || []).length ? "Not finished" : "Not started", cls: "tb-none" };
     if (ts.avg < 70) return { txt: "Needs practice", cls: "tb-weak" };
     if (ts.avg < 80) return { txt: "Getting there", cls: "tb-mid" };
     return { txt: "Strong", cls: "tb-strong" };
@@ -1835,12 +1837,15 @@
     return rep.levelsWeakFirst.map(ls => {
       const l = DATA.level(subjectId, moduleId, ls.levelId), b = topicBand(ls);
       return `<button class="mr-row ${b.cls}" data-rlevel="${esc(ls.levelId)}" type="button">
-          <span class="mr-top"><span class="mr-name">${esc(l.label)}${l.desc ? `: ${esc(l.desc)}` : ""}</span><span class="mr-tag">${esc(b.txt)}</span></span>
+          <span class="mr-top"><span class="mr-name">${esc(DATA.levelName(l))}</span><span class="mr-tag">${esc(b.txt)}</span></span>
           ${ls.attempts
             ? `<span class="mr-bar"><i style="width:${ls.avg}%"></i></span>
                <span class="mr-meta">average <b>${ls.avg}%</b> · best ${ls.best}% · latest ${ls.latest}% · ${plural(ls.attempts, "assessment")} · ${esc(ls.mastery.icon + " " + ls.mastery.label)} · ${esc(REPORT.timeAgo(ls.lastTs))}</span>
                ${ls.weakAreas.length ? `<span class="mr-weak">🎯 Weak areas: ${weakList(ls.weakAreas, 3)}</span>` : `<span class="mr-ok">✓ No weak areas</span>`}`
-            : `<span class="mr-meta">Not started yet.</span>`}
+            : ls.unfinished.length
+              ? `<span class="mr-meta">Not finished yet · ${plural(ls.unfinished.length, "assessment")} left part-way</span>
+                 ${ls.weakAreas.length ? `<span class="mr-weak">🎯 Weak areas: ${weakList(ls.weakAreas, 3)}</span>` : ""}`
+              : `<span class="mr-meta">Not started yet.</span>`}
         </button>`;
     }).join("");
   }
@@ -1911,6 +1916,7 @@
           ${ts.attempts
             ? `<span class="mr-bar"><i style="width:${ts.avg}%"></i></span>
                <span class="mr-meta">average <b>${ts.avg}%</b> · best ${ts.best}% · ${plural(ts.attempts, "assessment")} · last practised ${esc(REPORT.timeAgo(ts.lastTs))}</span>`
+            : ts.unfinished.length ? `<span class="mr-meta">Not finished yet · ${plural(ts.unfinished.length, "assessment")} left part-way</span>`
             : `<span class="mr-meta">Not started yet.</span>`}
           ${chips ? `<span class="ov-levels">${chips}</span>` : `<span class="mr-meta">Levels coming soon.</span>`}
           ${ts.weakAreas.length ? `<span class="mr-weak">🎯 Weak areas: ${weakList(ts.weakAreas, 4)}</span>` : ""}
@@ -1986,7 +1992,7 @@
         </div></div>`;
 
     show(`
-      <div class="topbar"><span class="back" id="bk">← ${esc(back.label)}</span><h2>${esc(l.topicLabel)} · ${esc(l.label)}</h2></div>
+      <div class="topbar"><span class="back" id="bk">← ${esc(back.label)}</span><h2>${esc(l.topicLabel)} · ${esc(DATA.levelName(l))}</h2></div>
       <div class="page narrow">
         <div class="level-hero">
           <div class="level-hero-top">
@@ -2060,7 +2066,7 @@
     };
     const top = `<div class="topbar"><span class="back" id="bk">← Back</span><h2>📊 Progress report</h2></div>`;
 
-    if (!st.attempts) {
+    if (!st.attempts && !st.unfinished.length) {
       show(`${top}<div class="page narrow">${head}
         <div class="empty-note">No assessments yet for this level. After the first one you'll see the score history, number of attempts, weak areas, the last practice date and the mastery status here.</div>
         ${buttons}</div>`, subjectId);
@@ -2068,7 +2074,7 @@
       return;
     }
 
-    const kpis = `<div class="kpi-grid">
+    const kpis = !st.attempts ? "" : `<div class="kpi-grid">
         <div class="kpi-box"><div class="kpi-label">Attempts</div><div class="kpi">${st.attempts}</div></div>
         <div class="kpi-box"><div class="kpi-label">Best</div><div class="kpi">${st.best}%</div></div>
         <div class="kpi-box"><div class="kpi-label">Average</div><div class="kpi">${st.avg}%</div></div>
@@ -2083,13 +2089,16 @@
       </button>`;
     }).join("");
     const areas = st.areas.length
-      ? `<div class="rep-grid">${st.areas.map(a => barCard((a.acc < 0.7 ? "🎯 " : "") + a.label, a.correct, a.total, `${a.correct} / ${a.total} correct in the last ${plural(st.areaSpan, "assessment")}`, a.acc < 0.7)).join("")}</div>`
+      ? `<div class="rep-grid">${st.areas.map(a => barCard((a.acc < 0.7 ? "🎯 " : "") + a.label, a.correct, a.total, `${a.correct} / ${a.total} correct · ${areaSpanText(st)}`, a.acc < 0.7)).join("")}</div>`
       : "";
     const weakLine = st.weakAreas.length
       ? `<div class="summary-box" style="margin-bottom:10px">Weak areas: <b class="bad">${st.weakAreas.map(a => esc(a.label) + " (" + a.pct + "%)").join(", ")}</b>. Practise these first.</div>`
       : `<div class="summary-box" style="margin-bottom:10px">No weak areas — every question type is at 70% or above. 👏</div>`;
     const mistakes = [];
-    st.sessions.slice(0, 3).forEach(s => (s.mistakes || []).forEach(m => { if (mistakes.length < 8) mistakes.push({ m, when: REPORT.timeAgo(s.ts) }); }));
+    st.sessions.concat(st.unfinished).sort((a, b) => b.ts - a.ts).slice(0, 3).forEach(s => (s.mistakes || []).forEach(m => {
+      if (mistakes.length < 8) mistakes.push({ m, when: REPORT.timeAgo(s.unfinished ? (s.lastTs || s.ts) : s.ts) + (s.unfinished ? " · unfinished" : "") });
+    }));
+    const unfinishedList = st.unfinished.map(u => unfinishedRow(u, esc(REPORT.shortDate(u.ts)))).join("");
     const mistakeCards = mistakes.map(({ m, when }) => `<div class="rep-card">
         <div class="sub ink">${esc(m.q || "Question")} <span class="muted small">· ${esc(when)}</span></div>
         <div class="sub bad">Answered: <b>${esc(m.chosen)}</b></div>
@@ -2100,17 +2109,30 @@
       <div class="page narrow">
         ${head}
         ${kpis}
-        <h3 class="section-h">Score history</h3>
+        ${st.attempts ? `<h3 class="section-h">Score history</h3>
         ${st.attempts >= 2 ? `<div class="card wide center" style="padding:14px">${sparkline(st.sessions, st.avg)}</div><div style="height:10px"></div>` : ""}
-        <div class="session-list">${history}</div>
-        <h3 class="section-h">Weak areas <span class="muted small">· last ${plural(st.areaSpan, "assessment")}</span></h3>
+        <div class="session-list">${history}</div>` : ""}
+        ${unfinishedList ? `<h3 class="section-h">Unfinished <span class="muted small">· left part-way, not counted in scores</span></h3><div class="session-list">${unfinishedList}</div>` : ""}
+        <h3 class="section-h">Weak areas <span class="muted small">· ${areaSpanText(st)}</span></h3>
         ${weakLine}
         ${areas}
         ${mistakeCards ? `<h3 class="section-h">Recent mistakes</h3><div class="rep-grid">${mistakeCards}</div>` : ""}
         ${buttons}
       </div>`, subjectId);
     wire();
-    $$(".session-row").forEach(r => { r.onclick = () => renderSessionDetail(subjectId, topicId, levelId, Number(r.dataset.ts), self); });
+    $$(".session-row").forEach(r => { r.onclick = () => renderSessionDetail(subjectId, topicId, levelId, Number(r.dataset.ts), self, r.dataset.unf === "1"); });
+  }
+  // Which assessments a level's weak areas come from, e.g. "last 5 assessments + 1 unfinished".
+  function areaSpanText(st) {
+    const n = st.areaSpan || 0, u = st.areaUnfinished || 0;
+    return n && u ? `last ${plural(n, "assessment")} + ${u} unfinished` : n ? `last ${plural(n, "assessment")}` : plural(u, "unfinished assessment");
+  }
+  // An assessment left part-way: how far it got. Never a score.
+  function unfinishedRow(u, title) {
+    return `<button class="session-row unf-row" data-subj="${esc(u.subjectId)}" data-topic="${esc(u.topicId)}" data-level="${esc(u.levelId)}" data-ts="${u.ts}" data-unf="1" type="button">
+        <span class="session-line"><span class="session-topic">${title}</span><span class="unf-tag">Unfinished</span></span>
+        <span class="session-line"><span class="muted small">Stopped after ${u.total} of ${plural(u.planned || u.total, "question")} · ${u.correct} right · ${esc(REPORT.timeAgo(u.lastTs || u.ts))}</span><span class="session-more">View details ›</span></span>
+      </button>`;
   }
 
   /* ===================== assessment engine ===================== */
@@ -2159,7 +2181,7 @@
     const questions = lvl.passageMode ? samplePassages(bank, lvl.passageCount || 3) : sampleBalanced(bank, sessionSizeFor(lvl, bank));
     if (!questions.length) { toast("No questions found for this level.", "bad"); return; }
     questions.forEach(q => { if (q.pic) new Image().src = q.pic; });   // ready before their turn comes
-    exam = { subjectId, topicId, levelId, questions, idx: 0, answers: [], byCat: {}, maxPts: maxPoints(subjectId, topicId, levelId) };
+    exam = { subjectId, topicId, levelId, questions, idx: 0, answers: [], byCat: {}, maxPts: maxPoints(subjectId, topicId, levelId), startTs: Date.now() };
     renderQuestion();
   }
 
@@ -2364,8 +2386,9 @@
     }
 
     show(`
-      <div class="topbar"><span class="back" id="bk">✕ Quit</span><h2>📝 ${esc(DATA.fullLabel(st.subjectId, st.topicId, st.levelId))}</h2></div>
+      <div class="topbar"><span class="back" id="bk">✕ Quit</span><h2>📝 ${esc(DATA.levelLabel(st.subjectId, st.topicId, st.levelId))}</h2></div>
       <div class="qwrap${q.clock || fracShape || q.pic ? " clock-q" : ""}${q.shade ? " shade-q" : ""}${q.tap ? " tap-wrap" + (q.write ? " tap-write" : "") : ""}">
+        ${q.tap ? "" : `<div class="level-line">${esc(DATA.levelLabel(st.subjectId, st.topicId, st.levelId))}</div>`}
         <div class="progress-label"><span>Question ${num} of ${total}</span><span>${st.maxPts && st.maxPts.rate > 0 && st.maxPts.max > 0 ? `<span class="max-chip">${ART.coin(13)} up to <b>${st.maxPts.max}</b> pts</span> · `
           : st.maxPts && st.maxPts.replay ? `<span class="max-chip">${ART.coin(13)} replay: <b>+${st.maxPts.replay}</b> at ${st.maxPts.replayMin}%+</span> · ` : ""}✓ ${correctSoFar} correct</span></div>
         <div class="progress"><i style="width:${Math.round((st.idx / total) * 100)}%"></i></div>
@@ -2375,7 +2398,7 @@
       </div>`, st.subjectId);
 
     $("#bk").onclick = () => {
-      showConfirm("Quit this assessment?", "Your answers in this assessment won't be saved.", "Quit", () => {
+      showConfirm("Quit this assessment?", "It won't count towards your score or points.", "Quit", () => {
         exam = null; renderLevel(st.subjectId, st.topicId, st.levelId);
       });
     };
@@ -2401,6 +2424,10 @@
         : q.pic ? qText + " (gambar: " + q.options[q.answer] + ")" : (qText || "Question");
       const sec = Math.min(300, Math.round((Date.now() - shownAt) / 1000));   // capped, in case the page was left open
       st.answers.push({ q, correct, stem, chosenText, answerText, sec });
+      // Saved after every answer, so an assessment left part-way still shows in the reports (never as a score).
+      const sofar = answersToSave(st);
+      STORE.saveProgress({ subjectId: st.subjectId, topicId: st.topicId, levelId: st.levelId, ts: st.startTs, planned: st.questions.length,
+        total: st.answers.length, correct: st.answers.filter(a => a.correct).length, byCat: st.byCat, mistakes: sofar.mistakes, answers: sofar.answers });
       const fb = $("#fbk");
       if (correct) {
         fb.innerHTML = `<div class="fb-ok">✅ ${PRAISE[Math.floor(Math.random() * PRAISE.length)]}</div>`;
@@ -2695,6 +2722,14 @@
     }
   }
 
+  // What's kept of an assessment's answers: the wrong ones (for the reports) and every one ("View details").
+  function answersToSave(st) {
+    return {
+      mistakes: st.answers.filter(a => !a.correct).map(a => ({ q: a.stem, chosen: a.chosenText, answer: a.answerText, cat: a.q.cat || "?", sec: a.sec })),
+      answers: st.answers.map(a => ({ q: a.stem, c: a.chosenText, a: a.answerText, ok: a.correct ? 1 : 0, cat: a.q.cat || "?", s: a.sec }))
+    };
+  }
+
   /* ---------- results ---------- */
   function renderResults() {
     const st = exam;
@@ -2706,11 +2741,10 @@
     const pct = total ? Math.round(correct / total * 100) : 0;
     const before = REPORT.levelStats(st.subjectId, st.topicId, st.levelId);
 
-    const mistakes = st.answers.filter(a => !a.correct).map(a => ({ q: a.stem, chosen: a.chosenText, answer: a.answerText, cat: a.q.cat || "?", sec: a.sec }));
+    const kept = answersToSave(st), mistakes = kept.mistakes;
     const saved = STORE.recordSession({
       subjectId: st.subjectId, topicId: st.topicId, levelId: st.levelId,
-      ts: Date.now(), total, correct, byCat: st.byCat, mistakes,
-      answers: st.answers.map(a => ({ q: a.stem, c: a.chosenText, a: a.answerText, ok: a.correct ? 1 : 0, cat: a.q.cat || "?", s: a.sec }))
+      ts: Date.now(), startTs: st.startTs, total, correct, byCat: st.byCat, mistakes: kept.mistakes, answers: kept.answers
     });
     const after = REPORT.levelStats(st.subjectId, st.topicId, st.levelId);
     const nStars = starsFor(pct);
@@ -2771,8 +2805,9 @@
       </div>`).join("");
 
     show(`
-      <div class="topbar"><span class="back" id="bk">← ${esc(DATA.levelLabel(st.subjectId, st.topicId, st.levelId))}</span><h2>Results — ${esc(DATA.fullLabel(st.subjectId, st.topicId, st.levelId))}</h2></div>
+      <div class="topbar"><span class="back" id="bk">← ${esc((DATA.level(st.subjectId, st.topicId, st.levelId) || {}).label || "Back")}</span><h2>Results — ${esc(DATA.levelLabel(st.subjectId, st.topicId, st.levelId))}</h2></div>
       <div class="page narrow">
+        <div class="level-line">${esc(DATA.levelLabel(st.subjectId, st.topicId, st.levelId))}</div>
         <div class="card wide center results-card">
           <div class="results-owl">${ART.owl()}</div>
           <h2 class="card-h">${head}</h2>
@@ -2812,12 +2847,12 @@
     current = () => renderHistory(filter, onBack);
     const self = () => renderHistory(filter, onBack);
     const subjectId = filter === "all" ? null : filter;
-    const history = STORE.history(subjectId);
+    const history = STORE.history(subjectId), unfinished = STORE.unfinished(subjectId);
     const chips = [{ id: "all", label: "All subjects" }].concat(DATA.SUBJECTS.map(s => ({ id: s.id, label: s.label })))
       .map(c => `<button class="chip${c.id === filter ? " on" : ""}" data-f="${c.id}" ${c.id !== "all" ? `data-subject="${c.id}"` : ""} type="button">${esc(c.label)}</button>`).join("");
     const top = `<div class="topbar"><span class="back" id="bk">← Back</span><h2>📈 History &amp; Analysis</h2></div>`;
 
-    if (!history.length) {
+    if (!history.length && !unfinished.length) {
       show(`${top}
         <div class="page narrow">
           <div class="chips">${chips}</div>
@@ -2839,9 +2874,11 @@
       return REPORT.levelStats(h.subjectId, h.topicId, h.levelId, groups[k]);
     }).sort((a, b) => a.avg - b.avg);
     const weak = levels.filter(l => l.mastery.rank <= 2).slice(0, 3);
-    let summary = `Overall: <b>${avgPct(history)}%</b> across <b>${plural(history.length, "assessment")}</b> in <b>${plural(levels.length, "level")}</b>. `;
-    summary += weak.length ? `Needs the most practice: <b class="bad">${weak.map(l => esc(l.label)).join(", ")}</b>.` : "No weak levels — keep it up!";
-    summary += `<br/><span class="muted small">👆 Tap a level for its full progress report.</span>`;
+    let summary = !history.length ? "No finished assessments yet. "
+      : `Overall: <b>${avgPct(history)}%</b> across <b>${plural(history.length, "assessment")}</b> in <b>${plural(levels.length, "level")}</b>. ` +
+        (weak.length ? `Needs the most practice: <b class="bad">${weak.map(l => esc(l.label)).join(", ")}</b>.` : "No weak levels — keep it up!");
+    if (unfinished.length) summary += `<br/>Left part-way: <b>${plural(unfinished.length, "assessment")}</b> — not counted in scores, but ${unfinished.length === 1 ? "its" : "their"} answers count towards weak areas.`;
+    if (history.length) summary += `<br/><span class="muted small">👆 Tap a level for its full progress report.</span>`;
 
     const cards = levels.map(l => {
       const w = l.weakAreas[0];
@@ -2856,6 +2893,7 @@
           <span>Latest <b>${l.latest}%</b></span>
           <span>Best <b>${l.best}%</b></span>
           <span>Last <b>${esc(REPORT.timeAgo(l.lastTs))}</b></span>
+          ${l.unfinished.length ? `<span><b>${l.unfinished.length}</b> unfinished</span>` : ""}
           <span>${trendMark(l.trend)}</span>
         </span>
         ${w ? `<span class="hist-note"><span class="label">🎯 Weak area</span> <b>${esc(w.label)}</b> — ${w.correct}/${w.total} correct (${w.pct}%)</span>`
@@ -2876,17 +2914,19 @@
       <div class="page narrow">
         <div class="chips">${chips}</div>
         <div class="summary-box" style="margin-top:14px">${summary}</div>
-        <h3 class="section-h">By level — weakest first</h3>
+        ${history.length ? `<h3 class="section-h">By level — weakest first</h3>
         <div class="hist-list">${cards}</div>
         <h3 class="section-h">Recent assessments</h3>
-        <div class="session-list">${recent}</div>
+        <div class="session-list">${recent}</div>` : ""}
+        ${unfinished.length ? `<h3 class="section-h">Unfinished <span class="muted small">· left part-way, not counted in scores</span></h3>
+        <div class="session-list">${unfinished.slice(0, 12).map(u => unfinishedRow(u, esc(DATA.fullLabel(u.subjectId, u.topicId, u.levelId)) + " " + (subjectId ? "" : subjectPill(u.subjectId)))).join("")}</div>` : ""}
         <div class="row" style="margin-top:20px">
           <button class="btn primary" id="backBtn" type="button">← Back</button>
         </div>
       </div>`, subjectId);
     wireHistoryCommon(onBack);
     $$(".hist-card").forEach(c => { c.onclick = () => renderLevelReport(c.dataset.subj, c.dataset.topic, c.dataset.level, self); });
-    $$(".session-row").forEach(r => { r.onclick = () => renderSessionDetail(r.dataset.subj, r.dataset.topic, r.dataset.level, Number(r.dataset.ts), self); });
+    $$(".session-row").forEach(r => { r.onclick = () => renderSessionDetail(r.dataset.subj, r.dataset.topic, r.dataset.level, Number(r.dataset.ts), self, r.dataset.unf === "1"); });
   }
   function wireHistoryCommon(onBack) {
     $("#bk").onclick = onBack;
@@ -2895,11 +2935,11 @@
   }
 
   /* ---------- one assessment, every question ---------- */
-  function renderSessionDetail(subjectId, topicId, levelId, ts, onBack) {
-    const s = STORE.history(subjectId, null, topicId, levelId).filter(h => h.ts === ts)[0];
+  function renderSessionDetail(subjectId, topicId, levelId, ts, onBack, unf) {
+    const s = (unf ? STORE.unfinished : STORE.history)(subjectId, null, topicId, levelId).filter(h => h.ts === ts)[0];
     if (!s) return onBack();
-    current = () => renderSessionDetail(subjectId, topicId, levelId, ts, onBack);
-    const band = pctBand(s.pct);
+    current = () => renderSessionDetail(subjectId, topicId, levelId, ts, onBack, unf);
+    const band = pctBand(s.pct || 0);
     const src = s.byCat || {};
     const rows = Object.keys(src).map(k => ({
       label: DATA.catLabel(subjectId, topicId, levelId, k),
@@ -2927,9 +2967,12 @@
         <div class="card wide center">
           <div class="hist-name">${esc(DATA.fullLabel(subjectId, topicId, levelId))} ${subjectPill(subjectId)}</div>
           <div class="muted small" style="margin-top:4px">${esc(fullDate(s.ts))} · ${esc(REPORT.timeAgo(s.ts))}</div>
-          <div class="score">${s.pct}%</div>
+          ${unf ? `<div class="unf-tag big">Unfinished</div>
+          <div class="muted" style="font-weight:700;margin-top:8px">Stopped after ${s.total} of ${plural(s.planned || s.total, "question")} · ${s.correct} right</div>
+          <div class="muted small" style="margin-top:4px">Not counted in scores, best or points — kept for the reports.</div>`
+          : `<div class="score">${s.pct}%</div>
           <div class="results-stars">${ART.stars(starsFor(s.pct), 26)}</div>
-          <div class="muted" style="font-weight:700">${s.correct} / ${s.total} correct · <span class="${band.cls}">${band.txt}</span></div>
+          <div class="muted" style="font-weight:700">${s.correct} / ${s.total} correct · <span class="${band.cls}">${band.txt}</span></div>`}
         </div>
         ${rows.length > 1 ? `<h3 class="section-h">By question type — weakest first</h3><div class="rep-grid">${rows.map(r => barCard(r.label, r.correct, r.total)).join("")}</div>` : ""}
         <h3 class="section-h">${hasFull ? "Every question" : "Mistakes"}</h3>

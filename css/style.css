@@ -682,6 +682,9 @@ button:focus-visible,.profile-card:focus-visible{outline:2px solid var(--gold);o
 /* ---------- Put in order: tap the number tiles into the answer row ---------- */
 .ord-slots{display:grid;grid-template-columns:repeat(var(--n,5),1fr);gap:8px;margin-top:10px}
 @media (max-width:480px){.ord-slots{grid-template-columns:repeat(3,1fr)}}   /* phones: rows of 3, read left to right */
+/* Phones: the top bar is too narrow for a level's full name, so it's shown in full above the question and the results. */
+.level-line{display:none}
+@media (max-width:600px){.level-line{display:block;font-weight:800;font-size:13.5px;line-height:1.35;color:var(--accent);margin:0 0 8px}}
 .ord-slot{min-width:0;min-height:54px;padding:8px 4px;border-radius:12px;font-size:21px;font-weight:800;color:var(--ink-strong);
   background:rgba(0,0,0,.3);border:2px dashed var(--border);cursor:pointer;transition:border-color .15s,background .15s,box-shadow .15s}
 .ord-slot .placeholder{font-size:15px;color:var(--muted)}
@@ -712,6 +715,12 @@ button:focus-visible,.profile-card:focus-visible{outline:2px solid var(--gold);o
 .gt-pts{display:inline-flex;align-items:center;gap:4px;color:var(--gold-bright)}
 .game-page{padding:14px 12px}
 .game-lives{margin-top:8px;font-size:15px}
+/* An assessment left part-way (never a score). */
+.unf-tag{display:inline-block;flex-shrink:0;font-size:10.5px;font-weight:800;letter-spacing:1.1px;text-transform:uppercase;padding:3px 9px;border-radius:99px;background:rgba(242,193,78,.12);border:1px dashed rgba(242,193,78,.55);color:var(--gold-bright)}
+.unf-tag.big{font-size:12.5px;padding:5px 14px;margin-top:12px}
+.unf-row{border-style:dashed}
+.lives-refill{margin:4px 0 14px;font-size:18px;letter-spacing:2px}
+.lives-refill b{font-size:14px;letter-spacing:0;color:var(--ink-strong);margin-left:4px}
 .game-badges{display:flex;flex-wrap:wrap;gap:10px}
 .center-row{justify-content:center}
 .badge-chip{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:14px;padding:6px 12px 6px 6px;text-align:left}
