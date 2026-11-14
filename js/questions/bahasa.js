@@ -163,6 +163,46 @@ window.QUESTIONS.bahasa = {
           { tap: "face", write: true, part: "mulut", q: "mouth", word: "mulut", same: "mulut", cat: "MULUT" },
           { tap: "face", write: true, part: "lidah", q: "tongue", word: "lidah", same: "lidah", cat: "MULUT" }
       ]
+    },
+
+    hari_dalam_seminggu: {
+
+      // Level 1 — the 7 days: choose the Bahasa word for the English day (7 choices, shuffled for every
+      // question), or hear the day and spell it. same: the day, so each day comes up once a test — 7
+      // questions, a mix of both kinds. spellFirst (data.js): the spelling ones come first, so the choices
+      // (all 7 days, spelled out) can't show how to spell them.
+      level1: [
+        // Choose: English → Bahasa Melayu
+        { q: "Monday = ___", options: ["Khamis", "Ahad", "Selasa", "Jumaat", "Isnin", "Sabtu", "Rabu"], answer: 4, same: "isnin", cat: "PILIH",
+          explain: "Monday = Isnin. Isnin, Selasa, Rabu, Khamis, Jumaat, Sabtu, Ahad = Monday to Sunday." },
+        { q: "Tuesday = ___", options: ["Khamis", "Ahad", "Selasa", "Jumaat", "Isnin", "Sabtu", "Rabu"], answer: 2, same: "selasa", cat: "PILIH",
+          explain: "Tuesday = Selasa. Isnin, Selasa, Rabu, Khamis, Jumaat, Sabtu, Ahad = Monday to Sunday." },
+        { q: "Wednesday = ___", options: ["Khamis", "Ahad", "Selasa", "Jumaat", "Isnin", "Sabtu", "Rabu"], answer: 6, same: "rabu", cat: "PILIH",
+          explain: "Wednesday = Rabu. Isnin, Selasa, Rabu, Khamis, Jumaat, Sabtu, Ahad = Monday to Sunday." },
+        { q: "Thursday = ___", options: ["Khamis", "Ahad", "Selasa", "Jumaat", "Isnin", "Sabtu", "Rabu"], answer: 0, same: "khamis", cat: "PILIH",
+          explain: "Thursday = Khamis. Isnin, Selasa, Rabu, Khamis, Jumaat, Sabtu, Ahad = Monday to Sunday." },
+        { q: "Friday = ___", options: ["Khamis", "Ahad", "Selasa", "Jumaat", "Isnin", "Sabtu", "Rabu"], answer: 3, same: "jumaat", cat: "PILIH",
+          explain: "Friday = Jumaat. Isnin, Selasa, Rabu, Khamis, Jumaat, Sabtu, Ahad = Monday to Sunday." },
+        { q: "Saturday = ___", options: ["Khamis", "Ahad", "Selasa", "Jumaat", "Isnin", "Sabtu", "Rabu"], answer: 5, same: "sabtu", cat: "PILIH",
+          explain: "Saturday = Sabtu. Isnin, Selasa, Rabu, Khamis, Jumaat, Sabtu, Ahad = Monday to Sunday." },
+        { q: "Sunday = ___", options: ["Khamis", "Ahad", "Selasa", "Jumaat", "Isnin", "Sabtu", "Rabu"], answer: 1, same: "ahad", cat: "PILIH",
+          explain: "Sunday = Ahad. Isnin, Selasa, Rabu, Khamis, Jumaat, Sabtu, Ahad = Monday to Sunday." },
+        // Hear and spell (read aloud in Malay)
+        { spelling: true, word: "Isnin", same: "isnin", cat: "EJA",
+          explain: "Isnin (Monday) is spelled I-S-N-I-N." },
+        { spelling: true, word: "Selasa", same: "selasa", cat: "EJA",
+          explain: "Selasa (Tuesday) is spelled S-E-L-A-S-A." },
+        { spelling: true, word: "Rabu", same: "rabu", cat: "EJA",
+          explain: "Rabu (Wednesday) is spelled R-A-B-U." },
+        { spelling: true, word: "Khamis", same: "khamis", cat: "EJA",
+          explain: "Khamis (Thursday) is spelled K-H-A-M-I-S." },
+        { spelling: true, word: "Jumaat", same: "jumaat", cat: "EJA",
+          explain: "Jumaat (Friday) is spelled J-U-M-A-A-T." },
+        { spelling: true, word: "Sabtu", same: "sabtu", cat: "EJA",
+          explain: "Sabtu (Saturday) is spelled S-A-B-T-U." },
+        { spelling: true, word: "Ahad", same: "ahad", cat: "EJA",
+          explain: "Ahad (Sunday) is spelled A-H-A-D." }
+      ]
     }
   }
 };

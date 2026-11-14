@@ -133,6 +133,11 @@
                   catLabels: { KEPALA: "Kepala, rambut, dahi & telinga", MATA: "Mata, kening & bulu mata", MUKA: "Pipi, hidung, dagu & leher", MULUT: "Mulut, bibir, gigi & lidah" } },
                 { id: "level2", label: "Level 2", desc: "Muka & Kepala — English to Bahasa Melayu", added: "2026-11-07", sessionSize: 15, hideCat: true,
                   catLabels: { KEPALA: "Kepala, rambut, dahi & telinga", MATA: "Mata, kening & bulu mata", MUKA: "Pipi, hidung, dagu & leher", MULUT: "Mulut, bibir, gigi & lidah" } }
+              ] },
+            { id: "hari_dalam_seminggu", group: "kosa_kata_group", label: "Hari dalam seminggu", icon: "📅", desc: "Isnin hingga Ahad", levels: [
+                // Every day once a test (7 questions), choosing and spelling mixed; the spelling ones first.
+                { id: "level1", label: "Level 1", desc: "Pilih & eja nama hari", added: "2026-11-14", sessionSize: 7, hideCat: true, spellFirst: true,
+                  catLabels: { PILIH: "Pilih perkataan (English → Bahasa Melayu)", EJA: "Dengar & eja" } }
               ] }
           ] },
         { id: "penulisan",           label: "Penulisan",                   icon: "✍️", desc: "Membina ayat, karangan pendek dan surat",                 topics: [] }

@@ -2226,7 +2226,9 @@
     const lvl = DATA.level(subjectId, topicId, levelId);
     const bank = DATA.bank(subjectId, topicId, levelId);
     if (!lvl || !bank) { toast("This level's questions haven't been added yet.", "bad"); return; }
-    const questions = lvl.passageMode ? samplePassages(bank, lvl.passageCount || 3) : sampleBalanced(bank, sessionSizeFor(lvl, bank));
+    let questions = lvl.passageMode ? samplePassages(bank, lvl.passageCount || 3) : sampleBalanced(bank, sessionSizeFor(lvl, bank));
+    // spellFirst: the listen-and-spell questions go first, so choices shown later can't show the spelling.
+    if (lvl.spellFirst) questions = questions.filter(q => q.spelling).concat(questions.filter(q => !q.spelling));
     if (!questions.length) { toast("No questions found for this level.", "bad"); return; }
     questions.forEach(q => { if (q.pic) new Image().src = q.pic; });   // ready before their turn comes
     exam = { subjectId, topicId, levelId, questions, idx: 0, answers: [], byCat: {}, maxPts: maxPoints(subjectId, topicId, levelId), startTs: Date.now() };
@@ -2432,7 +2434,7 @@
       const blankHtml = q.marks ? '<span class="blank mark-blank"></span>' : '<span class="blank">?</span>';
       body = `${passage}${visual}
         <div class="qtext">${fmt(qText).replace(/___/g, blankHtml)}</div>
-        <div class="opts">${q.options.map((o, i) => `<button class="opt" data-i="${i}" type="button"><span class="letter">${"ABCDEF"[i] || i + 1}</span><span class="opt-text">${q.marks ? markHtml(o) : esc(o)}</span></button>`).join("")}</div>`;
+        <div class="opts">${q.options.map((o, i) => `<button class="opt" data-i="${i}" type="button"><span class="letter">${"ABCDEFGH"[i] || i + 1}</span><span class="opt-text">${q.marks ? markHtml(o) : esc(o)}</span></button>`).join("")}</div>`;
     }
 
     show(`
